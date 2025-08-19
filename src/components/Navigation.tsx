@@ -32,7 +32,7 @@ const Navigation = () => {
             <div className="w-8 h-8 bg-aurora rounded-lg animate-glow-pulse flex items-center justify-center">
               <Music className="w-5 h-5 text-background" />
             </div>
-            <span className="text-xl font-bold text-aurora">Audius TON</span>
+            <span className="text-xl font-bold text-aurora">AudioTon</span>
           </div>
 
           {/* Desktop Navigation */}
