@@ -14,7 +14,194 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      fan_club_memberships: {
+        Row: {
+          artist_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          membership_tier: string
+          nft_token_id: string | null
+          profile_id: string | null
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          membership_tier: string
+          nft_token_id?: string | null
+          profile_id?: string | null
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          membership_tier?: string
+          nft_token_id?: string | null
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fan_club_memberships_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listening_history: {
+        Row: {
+          artist_id: string
+          duration_played: number | null
+          id: string
+          played_at: string
+          profile_id: string | null
+          tip_amount: number | null
+          track_id: string
+        }
+        Insert: {
+          artist_id: string
+          duration_played?: number | null
+          id?: string
+          played_at?: string
+          profile_id?: string | null
+          tip_amount?: number | null
+          track_id: string
+        }
+        Update: {
+          artist_id?: string
+          duration_played?: number | null
+          id?: string
+          played_at?: string
+          profile_id?: string | null
+          tip_amount?: number | null
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listening_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          reputation_score: number | null
+          ton_dns_name: string | null
+          updated_at: string
+          wallet_address: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          reputation_score?: number | null
+          ton_dns_name?: string | null
+          updated_at?: string
+          wallet_address?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          reputation_score?: number | null
+          ton_dns_name?: string | null
+          updated_at?: string
+          wallet_address?: string | null
+        }
+        Relationships: []
+      }
+      track_collections: {
+        Row: {
+          collected_at: string
+          id: string
+          nft_contract_address: string | null
+          nft_token_id: string | null
+          profile_id: string | null
+          purchase_price: number | null
+          track_id: string
+        }
+        Insert: {
+          collected_at?: string
+          id?: string
+          nft_contract_address?: string | null
+          nft_token_id?: string | null
+          profile_id?: string | null
+          purchase_price?: number | null
+          track_id: string
+        }
+        Update: {
+          collected_at?: string
+          id?: string
+          nft_contract_address?: string | null
+          nft_token_id?: string | null
+          profile_id?: string | null
+          purchase_price?: number | null
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "track_collections_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_assets: {
+        Row: {
+          asset_type: string
+          contract_address: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          profile_id: string | null
+          token_id: string | null
+        }
+        Insert: {
+          asset_type: string
+          contract_address?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          profile_id?: string | null
+          token_id?: string | null
+        }
+        Update: {
+          asset_type?: string
+          contract_address?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          profile_id?: string | null
+          token_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_assets_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
