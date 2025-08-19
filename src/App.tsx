@@ -12,6 +12,7 @@ import { useEffect } from "react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Playlists from "./pages/Playlists";
 import ArtistDetail from "./pages/ArtistDetail";
 import TrackDetail from "./pages/TrackDetail";
 import Terms from "./pages/Terms";
@@ -41,6 +42,7 @@ function AppContent() {
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/playlists" element={<Playlists />} />
             <Route path="/artist/:artistId" element={<ArtistDetail />} />
             <Route path="/track/:trackId" element={<TrackDetail />} />
             <Route path="/terms" element={<Terms />} />

@@ -29,7 +29,7 @@ const Navigation = () => {
 
   const navItems = [
     { icon: Home, label: 'Discovery', href: '/' },
-    { icon: Music, label: 'Tracks', href: '/tracks' },
+    { icon: Music, label: 'Playlists', href: '/playlists' },
     { icon: Users, label: 'Fan Clubs', href: '/fan-clubs' },
     { icon: Palette, label: 'Creator Studio', href: '/creator-studio' },
   ];
