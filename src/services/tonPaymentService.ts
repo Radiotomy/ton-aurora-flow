@@ -1,6 +1,4 @@
-import { Address, toNano, fromNano, Cell } from '@ton/core';
-import { TonClient } from '@ton/ton';
-import { PaymentContract } from '@/contracts/PaymentContract';
+import { Address, toNano, fromNano } from '@ton/core';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface PaymentResult {
@@ -23,25 +21,9 @@ export interface PaymentRequest {
 }
 
 export class TonPaymentService {
-  private client: TonClient;
-  private contract: PaymentContract | null = null;
-  
-  // Testnet contract address - will be deployed during Phase 1
-  private readonly TESTNET_CONTRACT_ADDRESS = 'EQD0vdSA_NedR9uvbgN9EikRX-suesDxGeFg69XQMavfLqIw';
   
   constructor() {
-    // Initialize TON client for testnet
-    this.client = new TonClient({
-      endpoint: 'https://testnet.toncenter.com/api/v2/jsonRPC',
-      apiKey: '8c9c0d8c5d4e3f2a1b0c9d8e7f6a5b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a'
-    });
-  }
-
-  async initializeContract(): Promise<void> {
-    if (!this.contract) {
-      const address = Address.parse(this.TESTNET_CONTRACT_ADDRESS);
-      this.contract = PaymentContract.createFromAddress(address);
-    }
+    // Phase 1: Direct TON transfers, contract integration in Phase 2
   }
 
   async sendTip(
@@ -49,22 +31,23 @@ export class TonPaymentService {
     request: TipRequest
   ): Promise<PaymentResult> {
     try {
-      await this.initializeContract();
-      if (!this.contract) {
-        throw new Error('Contract not initialized');
-      }
-
-      const recipientAddress = Address.parse(request.recipientAddress);
       const amount = toNano(request.amount);
 
-      // Create transaction
+      // Create transaction for simple TON transfer (Phase 1 implementation)
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 300, // 5 minutes
         messages: [
           {
-            address: this.contract.address.toString(),
+            address: request.recipientAddress, // Send directly to recipient for Phase 1
             amount: amount.toString(),
-            payload: this.createTipPayload(recipientAddress, request.message).toBoc().toString('base64'),
+            // Simple comment payload for tips
+            payload: btoa(unescape(encodeURIComponent(
+              JSON.stringify({
+                type: 'tip',
+                message: request.message || 'AudioTon tip',
+                timestamp: Date.now()
+              })
+            )))
           },
         ],
       };
@@ -101,25 +84,21 @@ export class TonPaymentService {
     request: PaymentRequest
   ): Promise<PaymentResult> {
     try {
-      await this.initializeContract();
-      if (!this.contract) {
-        throw new Error('Contract not initialized');
-      }
-
-      const recipientAddress = Address.parse(request.recipientAddress);
       const amount = toNano(request.amount);
 
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 300,
         messages: [
           {
-            address: this.contract.address.toString(),
+            address: request.recipientAddress, // Direct payment for Phase 1
             amount: amount.toString(),
-            payload: this.createPaymentPayload(
-              recipientAddress,
-              request.paymentType,
-              request.itemId
-            ).toBoc().toString('base64'),
+            payload: btoa(unescape(encodeURIComponent(
+              JSON.stringify({
+                type: request.paymentType,
+                itemId: request.itemId || '',
+                timestamp: Date.now()
+              })
+            )))
           },
         ],
       };
@@ -149,23 +128,6 @@ export class TonPaymentService {
         error: error instanceof Error ? error.message : 'Transaction failed',
       };
     }
-  }
-
-  private createTipPayload(recipient: Address, message?: string): Cell {
-    const cell = new Cell();
-    // This would contain the actual cell construction logic
-    // For now, returning empty cell as placeholder
-    return cell;
-  }
-
-  private createPaymentPayload(
-    recipient: Address,
-    paymentType: string,
-    itemId?: string
-  ): Cell {
-    const cell = new Cell();
-    // This would contain the actual cell construction logic
-    return cell;
   }
 
   private async recordTransaction(params: {
