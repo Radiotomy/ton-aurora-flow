@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { WalletButton } from '@/components/WalletButton';
+import { SearchModal } from '@/components/SearchModal';
 import { 
   Home, 
   Music, 
@@ -13,6 +14,7 @@ import {
 
 const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const navItems = [
     { icon: Home, label: 'Discovery', href: '#' },
@@ -49,7 +51,12 @@ const Navigation = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-muted-foreground hover:text-foreground"
+              onClick={() => setIsSearchOpen(true)}
+            >
               <Search className="w-4 h-4" />
             </Button>
             <WalletButton />
@@ -92,6 +99,8 @@ const Navigation = () => {
           </div>
         )}
       </div>
+      
+      <SearchModal open={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </nav>
   );
 };

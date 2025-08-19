@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TonConnectProvider } from "@/providers/TonConnectProvider";
+import { AudioPlayer } from "@/components/AudioPlayer";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
@@ -16,7 +17,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <div className="min-h-screen bg-subtle">
+        <div className="min-h-screen bg-subtle pb-20">
           <Navigation />
           <BrowserRouter>
             <Routes>
@@ -25,6 +26,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          <AudioPlayer />
         </div>
       </TooltipProvider>
     </TonConnectProvider>

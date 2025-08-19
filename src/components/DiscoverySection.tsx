@@ -1,74 +1,29 @@
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import TrackCard from './TrackCard';
-import { TrendingUp, Flame, Crown, Zap } from 'lucide-react';
-import track1 from '@/assets/track-1.jpg';
-import track2 from '@/assets/track-2.jpg';
-import track3 from '@/assets/track-3.jpg';
+import TrackCard from '@/components/TrackCard';
+import { useAudiusTracks } from '@/hooks/useAudius';
+import { AudiusService } from '@/services/audiusService';
+import { 
+  Filter, 
+  TrendingUp, 
+  Clock, 
+  Zap,
+  Users,
+  Radio,
+  Loader2
+} from 'lucide-react';
 
 const DiscoverySection = () => {
-  const categories = [
-    { icon: Flame, label: 'Trending', active: true },
-    { icon: Crown, label: 'Fan Clubs', active: false },
-    { icon: Zap, label: 'New Drops', active: false },
-    { icon: TrendingUp, label: 'Rising', active: false },
-  ];
+  const [activeCategory, setActiveCategory] = useState('all');
+  const { tracks, loading, error, refreshTracks } = useAudiusTracks(activeCategory);
 
-  const tracks = [
-    {
-      title: "Neon Dreams",
-      artist: "SyntaX",
-      artwork: track1,
-      duration: "3:24",
-      likes: 15420,
-      isNft: true,
-      price: 2.5
-    },
-    {
-      title: "Crystal Waves",
-      artist: "Echo Luna",
-      artwork: track2,
-      duration: "4:12",
-      likes: 8934,
-      isNft: true,
-      price: 1.8,
-      fanClubOnly: true
-    },
-    {
-      title: "Aurora Pulse",
-      artist: "Void Collective",
-      artwork: track3,
-      duration: "2:58",
-      likes: 23187,
-      isNft: false
-    },
-    {
-      title: "Synthetic Rain",
-      artist: "SyntaX",
-      artwork: track1,
-      duration: "5:33",
-      likes: 12045,
-      isNft: true,
-      price: 3.2
-    },
-    {
-      title: "Digital Horizon",
-      artist: "Echo Luna",
-      artwork: track2,
-      duration: "3:47",
-      likes: 9876,
-      isNft: false,
-      fanClubOnly: true
-    },
-    {
-      title: "Quantum Drift",
-      artist: "Void Collective",
-      artwork: track3,
-      duration: "4:05",
-      likes: 18432,
-      isNft: true,
-      price: 1.5
-    }
+  const categories = [
+    { id: 'all', label: 'Trending', icon: TrendingUp },
+    { id: 'electronic', label: 'Electronic', icon: Zap },
+    { id: 'hip-hop/rap', label: 'Hip-Hop', icon: Radio },
+    { id: 'rock', label: 'Rock', icon: Users },
+    { id: 'pop', label: 'Pop', icon: Clock },
   ];
 
   return (
@@ -83,71 +38,93 @@ const DiscoverySection = () => {
         </p>
       </div>
 
-      {/* Category Filters */}
-      <div className="flex flex-wrap justify-center gap-3 mb-12">
-        {categories.map((category) => (
-          <Button
-            key={category.label}
-            variant={category.active ? "default" : "outline"}
-            size="sm"
-            className={`glass-button ${
-              category.active 
-                ? 'bg-primary/20 text-primary border-primary/30' 
-                : 'border-glass-border hover:border-primary/30'
-            }`}
-          >
-            <category.icon className="w-4 h-4 mr-2" />
-            {category.label}
-          </Button>
-        ))}
-      </div>
+        {/* Category Filters */}
+        <div className="flex flex-wrap justify-center gap-3 mb-12">
+          {categories.map((category) => (
+            <Button
+              key={category.id}
+              variant={activeCategory === category.id ? 'aurora' : 'glass'}
+              size="sm"
+              onClick={() => setActiveCategory(category.id)}
+              className="px-4 py-2"
+            >
+              <category.icon className="w-4 h-4 mr-2" />
+              {category.label}
+            </Button>
+          ))}
+        </div>
 
-      {/* Live Stats Bar */}
-      <div className="glass-panel rounded-2xl p-6 mb-12 bg-gradient-to-r from-primary/5 to-secondary/5">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-6">
+        {/* Live Stats Bar */}
+        <div className="glass-panel rounded-2xl p-4 mb-8">
+          <div className="flex flex-wrap justify-center gap-6 text-sm">
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
-              <span className="text-sm font-medium">Live</span>
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+              <span className="text-muted-foreground">Live Audius Data</span>
             </div>
-            <div className="text-sm text-muted-foreground">
-              <span className="text-primary font-bold">1,247</span> listeners right now
+            <div className="flex items-center space-x-2">
+              <Zap className="w-4 h-4 text-accent" />
+              <span className="text-muted-foreground">{tracks.length} tracks loaded</span>
             </div>
-          </div>
-          
-          <div className="flex items-center space-x-4 text-sm">
-            <Badge variant="outline" className="glass-panel bg-primary/10 text-primary border-primary/20">
-              <Zap className="w-3 h-3 mr-1" />
-              47 NFTs minted today
-            </Badge>
-            <Badge variant="outline" className="glass-panel bg-secondary/10 text-secondary border-secondary/20">
-              <Crown className="w-3 h-3 mr-1" />
-              12 events live
-            </Badge>
+            <div className="flex items-center space-x-2">
+              <Radio className="w-4 h-4 text-secondary" />
+              <span className="text-muted-foreground">Real-time streaming</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Tracks Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        {tracks.map((track, index) => (
-          <TrackCard
-            key={`${track.title}-${index}`}
-            {...track}
-          />
-        ))}
-      </div>
+        {/* Tracks Grid */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="ml-2 text-muted-foreground">Loading tracks from Audius...</span>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">Failed to load tracks</p>
+            <Button onClick={refreshTracks} variant="outline">
+              Try Again
+            </Button>
+          </div>
+        ) : tracks.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+            {tracks.map((track) => {
+              const trackProps = AudiusService.convertToTrackCardProps(track);
+              return (
+                <TrackCard
+                  key={track.id}
+                  {...trackProps}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No tracks found for this genre</p>
+          </div>
+        )}
 
-      {/* Load More */}
-      <div className="text-center">
-        <Button 
-          size="lg" 
-          variant="outline" 
-          className="glass-button border-glass-border px-8 py-3"
-        >
-          Load More Tracks
-        </Button>
-      </div>
+        {/* Load More */}
+        <div className="text-center">
+          <Button 
+            variant="glass" 
+            size="lg" 
+            className="px-8"
+            onClick={refreshTracks}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 w-5 animate-spin mr-2" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <Filter className="w-5 h-5 mr-2" />
+                Refresh Tracks
+              </>
+            )}
+          </Button>
+        </div>
     </section>
   );
 };

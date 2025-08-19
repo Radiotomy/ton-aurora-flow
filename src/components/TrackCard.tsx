@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTrackInteractions } from '@/hooks/useTrackInteractions';
+import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { 
   Play, 
   Heart, 
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 
 interface TrackCardProps {
+  id: string;
   title: string;
   artist: string;
   artwork: string;
@@ -22,9 +24,12 @@ interface TrackCardProps {
   isNft?: boolean;
   price?: number;
   fanClubOnly?: boolean;
+  streamUrl?: string;
+  permalink?: string;
 }
 
 const TrackCard = ({ 
+  id,
   title, 
   artist, 
   artwork, 
@@ -32,34 +37,43 @@ const TrackCard = ({
   likes, 
   isNft = false, 
   price,
-  fanClubOnly = false 
+  fanClubOnly = false,
+  streamUrl = '',
+  permalink = ''
 }: TrackCardProps) => {
-  const { playTrack, likeTrack, collectTrack, shareTrack, isConnected } = useTrackInteractions();
-  const [isPlaying, setIsPlaying] = React.useState(false);
+  const { likeTrack, collectTrack, shareTrack, isConnected } = useTrackInteractions();
+  const { playTrack, currentTrack, isPlaying } = useAudioPlayer();
   const [isCollecting, setIsCollecting] = React.useState(false);
 
-  const trackId = `${artist}-${title}`.toLowerCase().replace(/\s+/g, '-');
-  const artistId = artist.toLowerCase().replace(/\s+/g, '-');
+  const trackData = {
+    id,
+    title,
+    artist,
+    artwork,
+    streamUrl,
+    duration: parseInt(duration.split(':')[0]) * 60 + parseInt(duration.split(':')[1])
+  };
+
+  const isCurrentTrack = currentTrack?.id === id;
+  const isTrackPlaying = isCurrentTrack && isPlaying;
 
   const handlePlay = async () => {
-    setIsPlaying(true);
-    await playTrack(trackId, artistId);
-    setTimeout(() => setIsPlaying(false), 1000); // Simulate play start
+    await playTrack(trackData);
   };
 
   const handleLike = async () => {
-    await likeTrack(trackId, artistId);
+    await likeTrack(id, artist.toLowerCase().replace(/\s+/g, '-'));
   };
 
   const handleCollect = async () => {
     if (!isNft || !price) return;
     setIsCollecting(true);
-    await collectTrack(trackId, `nft-contract-${trackId}`, price);
+    await collectTrack(id, `nft-contract-${id}`, price);
     setIsCollecting(false);
   };
 
   const handleShare = async () => {
-    await shareTrack(trackId);
+    await shareTrack(id);
   };
   return (
     <div className="glass-panel rounded-2xl overflow-hidden group hover:scale-[1.02] transition-all duration-300">
@@ -78,9 +92,8 @@ const TrackCard = ({
               size="sm" 
               className="glass-button bg-primary/20 hover:bg-primary/30"
               onClick={handlePlay}
-              disabled={isPlaying}
             >
-              {isPlaying ? (
+              {isTrackPlaying ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <Play className="w-4 h-4" />
