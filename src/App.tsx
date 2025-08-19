@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TonConnectProvider } from "@/providers/TonConnectProvider";
 import { AudioPlayer } from "@/components/AudioPlayer";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
@@ -13,23 +14,32 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TonConnectProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <div className="min-h-screen bg-subtle pb-20">
-          <Navigation />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-          <AudioPlayer />
-        </div>
-      </TooltipProvider>
-    </TonConnectProvider>
+    <ErrorBoundary>
+      <TonConnectProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <div className="min-h-screen bg-subtle pb-20">
+            <BrowserRouter>
+              <Navigation />
+              <ErrorBoundary>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/tracks" element={<Index />} />
+                  <Route path="/fan-clubs" element={<Index />} />
+                  <Route path="/creator-studio" element={<Index />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </ErrorBoundary>
+              <ErrorBoundary>
+                <AudioPlayer />
+              </ErrorBoundary>
+            </BrowserRouter>
+          </div>
+        </TooltipProvider>
+      </TonConnectProvider>
+    </ErrorBoundary>
   </QueryClientProvider>
 );
 

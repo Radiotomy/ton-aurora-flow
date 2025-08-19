@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { WalletButton } from '@/components/WalletButton';
@@ -19,12 +20,13 @@ const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isVoiceSearchOpen, setIsVoiceSearchOpen] = useState(false);
+  const location = useLocation();
 
   const navItems = [
-    { icon: Home, label: 'Discovery', href: '#' },
-    { icon: Music, label: 'Tracks', href: '#' },
-    { icon: Users, label: 'Fan Clubs', href: '#' },
-    { icon: Palette, label: 'Creator Studio', href: '#' },
+    { icon: Home, label: 'Discovery', href: '/' },
+    { icon: Music, label: 'Tracks', href: '/tracks' },
+    { icon: Users, label: 'Fan Clubs', href: '/fan-clubs' },
+    { icon: Palette, label: 'Creator Studio', href: '/creator-studio' },
   ];
 
   return (
@@ -42,14 +44,18 @@ const Navigation = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.label}
-                href={item.href}
-                className="flex items-center space-x-2 text-muted-foreground hover:text-foreground aurora-hover px-3 py-2 rounded-lg transition-all duration-300"
+                to={item.href}
+                className={`flex items-center space-x-2 aurora-hover px-3 py-2 rounded-lg transition-all duration-300 ${
+                  location.pathname === item.href 
+                    ? 'text-aurora' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
               >
                 <item.icon className="w-4 h-4" />
                 <span className="text-sm font-medium">{item.label}</span>
-              </a>
+              </Link>
             ))}
           </div>
 
@@ -108,15 +114,19 @@ const Navigation = () => {
           <div className="md:hidden border-t border-glass-border">
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navItems.map((item) => (
-                <a
+                <Link
                   key={item.label}
-                  href={item.href}
-                  className="flex items-center space-x-2 text-muted-foreground hover:text-foreground aurora-hover px-3 py-2 rounded-lg block"
+                  to={item.href}
+                  className={`flex items-center space-x-2 aurora-hover px-3 py-2 rounded-lg block ${
+                    location.pathname === item.href 
+                      ? 'text-aurora' 
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <item.icon className="w-4 h-4" />
                   <span className="text-sm font-medium">{item.label}</span>
-                </a>
+                </Link>
               ))}
               
               <div className="flex items-center space-x-2 px-3 py-2">
