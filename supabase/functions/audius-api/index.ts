@@ -72,22 +72,30 @@ async function makeAudiusRequest(endpoint: string, params: Record<string, string
 
   console.log(`Making Audius API request to: ${url.toString()}`);
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      'Accept': 'application/json',
-      'User-Agent': 'AudioTon/1.0',
-    },
-  });
+  try {
+    const response = await fetch(url.toString(), {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'AudioTon/1.0',
+      },
+    });
 
-  if (!response.ok) {
-    console.error(`Audius API error: ${response.status} ${response.statusText}`);
-    throw new Error(`Audius API error: ${response.status}`);
+    console.log(`Audius API response status: ${response.status}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Audius API error: ${response.status} ${response.statusText}`, errorText);
+      throw new Error(`Audius API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log(`Audius API response data:`, JSON.stringify(data, null, 2));
+    
+    return data;
+  } catch (error) {
+    console.error(`Error in makeAudiusRequest:`, error);
+    throw error;
   }
-
-  const data = await response.json();
-  console.log(`Audius API response:`, data);
-  
-  return data;
 }
 
 serve(async (req) => {

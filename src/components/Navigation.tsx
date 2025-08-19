@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { WalletButton } from '@/components/WalletButton';
 import { SearchModal } from '@/components/SearchModal';
+import { VoiceSearch } from '@/components/VoiceSearch';
 import { 
   Home, 
   Music, 
   Users, 
   Palette, 
   Search,
+  Mic,
   Menu,
   X 
 } from 'lucide-react';
@@ -15,6 +18,7 @@ import {
 const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isVoiceSearchOpen, setIsVoiceSearchOpen] = useState(false);
 
   const navItems = [
     { icon: Home, label: 'Discovery', href: '#' },
@@ -59,6 +63,28 @@ const Navigation = () => {
             >
               <Search className="w-4 h-4" />
             </Button>
+            
+            <Dialog open={isVoiceSearchOpen} onOpenChange={setIsVoiceSearchOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Mic className="w-4 h-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <VoiceSearch 
+                  onResults={(query) => {
+                    setIsVoiceSearchOpen(false);
+                    setIsSearchOpen(true);
+                  }}
+                  onClose={() => setIsVoiceSearchOpen(false)}
+                />
+              </DialogContent>
+            </Dialog>
+            
             <WalletButton />
           </div>
 
@@ -92,6 +118,44 @@ const Navigation = () => {
                   <span className="text-sm font-medium">{item.label}</span>
                 </a>
               ))}
+              
+              <div className="flex items-center space-x-2 px-3 py-2">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-muted-foreground hover:text-foreground flex-1"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsSearchOpen(true);
+                  }}
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  Search
+                </Button>
+                
+                <Dialog open={isVoiceSearchOpen} onOpenChange={setIsVoiceSearchOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-muted-foreground hover:text-foreground"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Mic className="w-4 h-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <VoiceSearch 
+                      onResults={(query) => {
+                        setIsVoiceSearchOpen(false);
+                        setIsSearchOpen(true);
+                      }}
+                      onClose={() => setIsVoiceSearchOpen(false)}
+                    />
+                  </DialogContent>
+                </Dialog>
+              </div>
+              
               <div className="pt-2 border-t border-glass-border">
                 <WalletButton />
               </div>
