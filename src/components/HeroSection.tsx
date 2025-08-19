@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { WalletButton } from '@/components/WalletButton';
 import { Play, Headphones, Zap, TrendingUp } from 'lucide-react';
 import heroImage from '@/assets/hero-aurora.jpg';
 
@@ -71,19 +72,19 @@ const HeroSection = () => {
           
           {/* Call to Action */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button size="lg" className="glass-button bg-primary/20 hover:bg-primary/30 text-primary-foreground px-8 py-4 text-lg font-medium">
+            <Button 
+              size="lg" 
+              className="glass-button bg-primary/20 hover:bg-primary/30 text-primary-foreground px-8 py-4 text-lg font-medium"
+              onClick={() => {
+                const element = document.getElementById('discovery');
+                element?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
               <Play className="w-5 h-5 mr-2" />
               Start Listening
             </Button>
             
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="glass-button border-glass-border px-8 py-4 text-lg font-medium"
-            >
-              <Zap className="w-5 h-5 mr-2" />
-              Connect TON Wallet
-            </Button>
+            <WalletButton />
           </div>
           
           {/* Features Highlight */}

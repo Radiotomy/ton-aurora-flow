@@ -73,7 +73,10 @@ export const WalletButton: React.FC = () => {
           )}
         </div>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
+        <DropdownMenuItem onClick={() => {
+          // Open profile modal - this would need to be implemented
+          console.log('Open profile modal');
+        }}>
           <User className="h-4 w-4" />
           <span>Profile</span>
         </DropdownMenuItem>

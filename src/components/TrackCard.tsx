@@ -1,12 +1,16 @@
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useTrackInteractions } from '@/hooks/useTrackInteractions';
 import { 
   Play, 
   Heart, 
   Share2, 
   Zap,
   Users,
-  Gem
+  Gem,
+  Loader2,
+  ShoppingCart
 } from 'lucide-react';
 
 interface TrackCardProps {
@@ -16,7 +20,7 @@ interface TrackCardProps {
   duration: string;
   likes: number;
   isNft?: boolean;
-  price?: string;
+  price?: number;
   fanClubOnly?: boolean;
 }
 
@@ -30,6 +34,33 @@ const TrackCard = ({
   price,
   fanClubOnly = false 
 }: TrackCardProps) => {
+  const { playTrack, likeTrack, collectTrack, shareTrack, isConnected } = useTrackInteractions();
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const [isCollecting, setIsCollecting] = React.useState(false);
+
+  const trackId = `${artist}-${title}`.toLowerCase().replace(/\s+/g, '-');
+  const artistId = artist.toLowerCase().replace(/\s+/g, '-');
+
+  const handlePlay = async () => {
+    setIsPlaying(true);
+    await playTrack(trackId, artistId);
+    setTimeout(() => setIsPlaying(false), 1000); // Simulate play start
+  };
+
+  const handleLike = async () => {
+    await likeTrack(trackId, artistId);
+  };
+
+  const handleCollect = async () => {
+    if (!isNft || !price) return;
+    setIsCollecting(true);
+    await collectTrack(trackId, `nft-contract-${trackId}`, price);
+    setIsCollecting(false);
+  };
+
+  const handleShare = async () => {
+    await shareTrack(trackId);
+  };
   return (
     <div className="glass-panel rounded-2xl overflow-hidden group hover:scale-[1.02] transition-all duration-300">
       {/* Artwork */}
@@ -43,14 +74,33 @@ const TrackCard = ({
         {/* Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
           <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-            <Button size="sm" className="glass-button bg-primary/20 hover:bg-primary/30">
-              <Play className="w-4 h-4" />
+            <Button 
+              size="sm" 
+              className="glass-button bg-primary/20 hover:bg-primary/30"
+              onClick={handlePlay}
+              disabled={isPlaying}
+            >
+              {isPlaying ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4" />
+              )}
             </Button>
             <div className="flex items-center space-x-2">
-              <Button size="sm" variant="ghost" className="text-white hover:text-primary">
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="text-white hover:text-primary"
+                onClick={handleLike}
+              >
                 <Heart className="w-4 h-4" />
               </Button>
-              <Button size="sm" variant="ghost" className="text-white hover:text-primary">
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                className="text-white hover:text-primary"
+                onClick={handleShare}
+              >
                 <Share2 className="w-4 h-4" />
               </Button>
             </div>
@@ -78,7 +128,7 @@ const TrackCard = ({
           <div className="absolute top-3 right-3">
             <Badge variant="outline" className="glass-panel bg-background/20 text-foreground">
               <Zap className="w-3 h-3 mr-1" />
-              {price}
+              {price} TON
             </Badge>
           </div>
         )}
@@ -93,6 +143,8 @@ const TrackCard = ({
           <p className="text-muted-foreground text-xs">{artist}</p>
         </div>
         
+        {/* ... keep existing code */}
+        
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center space-x-4">
             <span>{duration}</span>
@@ -102,9 +154,25 @@ const TrackCard = ({
             </div>
           </div>
           
-          {isNft && (
-            <Button size="sm" variant="outline" className="text-xs px-2 py-1 h-6 glass-button">
-              Collect
+          {isNft && price && (
+            <Button 
+              size="sm" 
+              variant="aurora" 
+              className="text-xs px-3 py-1 h-7"
+              onClick={handleCollect}
+              disabled={isCollecting || !isConnected}
+            >
+              {isCollecting ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin mr-1" />
+                  Collecting...
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="w-3 h-3 mr-1" />
+                  Collect
+                </>
+              )}
             </Button>
           )}
         </div>

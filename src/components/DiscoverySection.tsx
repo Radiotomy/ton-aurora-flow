@@ -22,7 +22,7 @@ const DiscoverySection = () => {
       duration: "3:24",
       likes: 15420,
       isNft: true,
-      price: "2.5 TON"
+      price: 2.5
     },
     {
       title: "Crystal Waves",
@@ -31,7 +31,7 @@ const DiscoverySection = () => {
       duration: "4:12",
       likes: 8934,
       isNft: true,
-      price: "1.8 TON",
+      price: 1.8,
       fanClubOnly: true
     },
     {
@@ -49,7 +49,7 @@ const DiscoverySection = () => {
       duration: "5:33",
       likes: 12045,
       isNft: true,
-      price: "3.2 TON"
+      price: 3.2
     },
     {
       title: "Digital Horizon",
@@ -67,7 +67,7 @@ const DiscoverySection = () => {
       duration: "4:05",
       likes: 18432,
       isNft: true,
-      price: "1.5 TON"
+      price: 1.5
     }
   ];
 
