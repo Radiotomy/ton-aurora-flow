@@ -7,6 +7,10 @@ import { TonConnectProvider } from "@/providers/TonConnectProvider";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
+import Dashboard from "./pages/Dashboard";
+import ArtistDetail from "./pages/ArtistDetail";
+import TrackDetail from "./pages/TrackDetail";
 import NotFound from "./pages/NotFound";
 import Navigation from "./components/Navigation";
 
@@ -25,6 +29,10 @@ const App = () => (
               <ErrorBoundary>
                 <Routes>
                   <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/artist/:artistId" element={<ArtistDetail />} />
+                  <Route path="/track/:trackId" element={<TrackDetail />} />
                   <Route path="/tracks" element={<Index />} />
                   <Route path="/fan-clubs" element={<Index />} />
                   <Route path="/creator-studio" element={<Index />} />

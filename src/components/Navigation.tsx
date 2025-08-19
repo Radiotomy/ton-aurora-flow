@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { WalletButton } from '@/components/WalletButton';
 import { SearchModal } from '@/components/SearchModal';
 import { VoiceSearch } from '@/components/VoiceSearch';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   Home, 
   Music, 
@@ -13,7 +14,9 @@ import {
   Search,
   Mic,
   Menu,
-  X 
+  X,
+  User,
+  LogOut
 } from 'lucide-react';
 
 const Navigation = () => {
@@ -21,6 +24,8 @@ const Navigation = () => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isVoiceSearchOpen, setIsVoiceSearchOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated, user, signOut } = useAuth();
 
   const navItems = [
     { icon: Home, label: 'Discovery', href: '/' },
@@ -91,7 +96,40 @@ const Navigation = () => {
               </DialogContent>
             </Dialog>
             
-            <WalletButton />
+            {/* Auth Buttons */}
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/dashboard')}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <User className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={signOut}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut className="w-4 h-4" />
+                </Button>
+                <WalletButton />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate('/auth')}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  Sign In
+                </Button>
+                <WalletButton />
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -167,7 +205,50 @@ const Navigation = () => {
               </div>
               
               <div className="pt-2 border-t border-glass-border">
-                <WalletButton />
+                {isAuthenticated ? (
+                  <div className="space-y-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        navigate('/dashboard');
+                      }}
+                      className="w-full justify-start"
+                    >
+                      <User className="w-4 h-4 mr-2" />
+                      Dashboard
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        signOut();
+                      }}
+                      className="w-full justify-start"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
+                    <WalletButton />
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        navigate('/auth');
+                      }}
+                      className="w-full justify-start"
+                    >
+                      Sign In
+                    </Button>
+                    <WalletButton />
+                  </div>
+                )}
               </div>
             </div>
           </div>
