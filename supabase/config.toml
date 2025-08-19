@@ -1,1 +1,4 @@
 project_id = "cpjjaglmqvcwpzrdoyul"
+
+[functions.audius-api]
+verify_jwt = false

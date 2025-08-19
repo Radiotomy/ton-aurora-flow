@@ -1,5 +1,5 @@
-// Mock Audius service for demo purposes
-// In production, this would integrate with the real Audius API
+// Real Audius service using Supabase Edge Function
+import { supabase } from '@/integrations/supabase/client';
 
 export interface AudiusTrack {
   id: string;
@@ -54,182 +54,172 @@ export interface AudiusUser {
   verified?: boolean;
 }
 
-// Mock data for demonstration
-const mockTracks: AudiusTrack[] = [
-  {
-    id: '1',
-    title: 'Cosmic Dreams',
-    user: { id: 'u1', name: 'Luna Waves', handle: 'lunawaves' },
-    genre: 'electronic',
-    duration: 204,
-    favorite_count: 12500,
-    play_count: 45600,
-    permalink: '/lunawaves/cosmic-dreams',
-  },
-  {
-    id: '2', 
-    title: 'Digital Sunrise',
-    user: { id: 'u2', name: 'Echo Chamber', handle: 'echochamber' },
-    genre: 'electronic',
-    duration: 252,
-    favorite_count: 8900,
-    play_count: 23400,
-    permalink: '/echochamber/digital-sunrise',
-  },
-  {
-    id: '3',
-    title: 'Neon Nights',
-    user: { id: 'u3', name: 'Synth Master', handle: 'synthmaster' },
-    genre: 'electronic',
-    duration: 235,
-    favorite_count: 15600,
-    play_count: 67800,
-    permalink: '/synthmaster/neon-nights',
-  },
-  {
-    id: '4',
-    title: 'Quantum Beats',
-    user: { id: 'u4', name: 'Future Bass', handle: 'futurebass' },
-    genre: 'hip-hop/rap',
-    duration: 189,
-    favorite_count: 22300,
-    play_count: 89500,
-    permalink: '/futurebass/quantum-beats',
-  },
-  {
-    id: '5',
-    title: 'Rock Revolution',
-    user: { id: 'u5', name: 'Thunder Strike', handle: 'thunderstrike' },
-    genre: 'rock',
-    duration: 278,
-    favorite_count: 18700,
-    play_count: 56200,
-    permalink: '/thunderstrike/rock-revolution',
-  },
-  {
-    id: '6',
-    title: 'Pop Paradise',
-    user: { id: 'u6', name: 'Melody Maker', handle: 'melodymaker' },
-    genre: 'pop',
-    duration: 215,
-    favorite_count: 31200,
-    play_count: 98700,
-    permalink: '/melodymaker/pop-paradise',
-  },
-  {
-    id: '7',
-    title: 'Web3 Anthem',
-    user: { id: 'u7', name: 'Crypto Collective', handle: 'cryptocollective' },
-    genre: 'electronic',
-    duration: 213,
-    favorite_count: 28900,
-    play_count: 76400,
-    permalink: '/cryptocollective/web3-anthem',
-  },
-  {
-    id: '8',
-    title: 'Blockchain Blues',
-    user: { id: 'u8', name: 'Decentralized Band', handle: 'decentband' },
-    genre: 'rock',
-    duration: 268,
-    favorite_count: 9800,
-    play_count: 34500,
-    permalink: '/decentband/blockchain-blues',
-  },
-];
-
 export class AudiusService {
+  /**
+   * Helper method to call our Audius Edge Function
+   */
+  private static async callAudiusAPI(endpoint: string, params?: Record<string, string>) {
+    try {
+      const queryParams = new URLSearchParams(params);
+      const url = `${endpoint}${params ? `?${queryParams}` : ''}`;
+      
+      const { data, error } = await supabase.functions.invoke('audius-api', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: { path: url }
+      });
+
+      if (error) {
+        console.error('Audius API error:', error);
+        throw new Error(error.message || 'Failed to fetch from Audius API');
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Audius API request failed');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error calling Audius API:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Direct fetch to edge function (alternative approach)
+   */
+  private static async fetchFromEdgeFunction(endpoint: string) {
+    try {
+      const response = await fetch(`https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/audius-api${endpoint}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Audius API request failed');
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error fetching from edge function:', error);
+      throw error;
+    }
+  }
+
   /**
    * Get trending tracks
    */
   static async getTrendingTracks(genre?: string, limit = 20): Promise<AudiusTrack[]> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    let filteredTracks = mockTracks;
-    
-    if (genre && genre !== 'all') {
-      filteredTracks = mockTracks.filter(track => track.genre === genre);
+    try {
+      const params = new URLSearchParams({ limit: limit.toString() });
+      if (genre && genre !== 'all') {
+        params.append('genre', genre);
+      }
+
+      const data = await this.fetchFromEdgeFunction(`/trending-tracks?${params}`);
+      return data.tracks || [];
+    } catch (error) {
+      console.error('Error fetching trending tracks:', error);
+      // Return empty array on error instead of throwing
+      return [];
     }
-    
-    return filteredTracks.slice(0, limit);
   }
 
   /**
    * Search tracks
    */
   static async searchTracks(query: string, limit = 20): Promise<AudiusTrack[]> {
-    await new Promise(resolve => setTimeout(resolve, 800));
+    if (!query.trim()) return [];
     
-    const filteredTracks = mockTracks.filter(track => 
-      track.title.toLowerCase().includes(query.toLowerCase()) ||
-      track.user.name.toLowerCase().includes(query.toLowerCase())
-    );
-    
-    return filteredTracks.slice(0, limit);
+    try {
+      const params = new URLSearchParams({ 
+        query: query.trim(),
+        limit: limit.toString() 
+      });
+
+      const data = await this.fetchFromEdgeFunction(`/search-tracks?${params}`);
+      return data.tracks || [];
+    } catch (error) {
+      console.error('Error searching tracks:', error);
+      return [];
+    }
   }
 
   /**
    * Get track by ID
    */
   static async getTrack(trackId: string): Promise<AudiusTrack | null> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return mockTracks.find(track => track.id === trackId) || null;
+    try {
+      const data = await this.fetchFromEdgeFunction(`/track/${trackId}`);
+      return data.track || null;
+    } catch (error) {
+      console.error('Error fetching track:', error);
+      return null;
+    }
   }
 
   /**
    * Get tracks by user
    */
   static async getUserTracks(userId: string, limit = 20): Promise<AudiusTrack[]> {
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const userTracks = mockTracks.filter(track => track.user.id === userId);
-    return userTracks.slice(0, limit);
+    try {
+      const params = new URLSearchParams({ limit: limit.toString() });
+      const data = await this.fetchFromEdgeFunction(`/user/${userId}/tracks?${params}`);
+      return data.tracks || [];
+    } catch (error) {
+      console.error('Error fetching user tracks:', error);
+      return [];
+    }
   }
 
   /**
    * Get user profile
    */
   static async getUser(userId: string): Promise<AudiusUser | null> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const track = mockTracks.find(t => t.user.id === userId);
-    if (!track) return null;
-    
-    return {
-      ...track.user,
-      follower_count: Math.floor(Math.random() * 10000),
-      followee_count: Math.floor(Math.random() * 1000),
-      track_count: mockTracks.filter(t => t.user.id === userId).length,
-      playlist_count: Math.floor(Math.random() * 50),
-      verified: Math.random() > 0.7,
-    };
+    try {
+      const data = await this.fetchFromEdgeFunction(`/user/${userId}`);
+      return data.user || null;
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      return null;
+    }
   }
 
   /**
    * Search users
    */
   static async searchUsers(query: string, limit = 20): Promise<AudiusUser[]> {
-    await new Promise(resolve => setTimeout(resolve, 600));
+    if (!query.trim()) return [];
     
-    const uniqueUsers = Array.from(new Set(mockTracks.map(t => t.user.id)))
-      .map(id => mockTracks.find(t => t.user.id === id)?.user)
-      .filter(Boolean) as AudiusUser[];
-    
-    const filteredUsers = uniqueUsers.filter(user =>
-      user.name.toLowerCase().includes(query.toLowerCase()) ||
-      user.handle.toLowerCase().includes(query.toLowerCase())
-    );
-    
-    return filteredUsers.slice(0, limit);
+    try {
+      const params = new URLSearchParams({ 
+        query: query.trim(),
+        limit: limit.toString() 
+      });
+
+      const data = await this.fetchFromEdgeFunction(`/search-users?${params}`);
+      return data.users || [];
+    } catch (error) {
+      console.error('Error searching users:', error);
+      return [];
+    }
   }
 
   /**
-   * Stream track URL
+   * Stream track URL - get direct stream URL
    */
   static getStreamUrl(trackId: string): string {
-    return `https://audius-discovery-1.altego.net/v1/tracks/${trackId}/stream`;
+    return `https://discoveryprovider.audius.co/v1/tracks/${trackId}/stream`;
   }
 
   /**
@@ -290,7 +280,7 @@ export class AudiusService {
       artwork: this.getArtworkUrl(track.artwork),
       duration: this.formatDuration(track.duration),
       likes: track.favorite_count || 0,
-      streamUrl: this.getStreamUrl(track.id),
+      streamUrl: `https://discoveryprovider.audius.co/v1/tracks/${track.id}/stream`,
       permalink: track.permalink || '',
       // Web3 enhancements (would be determined by additional logic)
       isNft: Math.random() > 0.7, // Placeholder: 30% chance
