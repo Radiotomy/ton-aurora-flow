@@ -103,22 +103,44 @@ export const useWeb3 = () => {
     }
   }, [setProfile, setLoadingProfile]);
 
-  // Connect wallet function
+  // Connect wallet function with timeout and debugging
   const connectWallet = useCallback(async () => {
     if (connectingWallet) return;
     
+    console.log('🔵 Starting wallet connection...');
     setConnectingWallet(true);
     
     try {
-      await tonConnectUI.connectWallet();
+      // Set up connection timeout (30 seconds)
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Connection timeout')), 30000);
+      });
+      
+      const connectionPromise = tonConnectUI.connectWallet();
+      
+      console.log('🔵 Waiting for wallet connection...');
+      await Promise.race([connectionPromise, timeoutPromise]);
+      
+      console.log('🟢 Wallet connected successfully');
     } catch (error) {
-      console.error('Wallet connection error:', error);
+      console.error('🔴 Wallet connection error:', error);
+      
+      let errorMessage = "Failed to connect your TON wallet";
+      if (error.message === 'Connection timeout') {
+        errorMessage = "Connection timed out. Please try again.";
+      } else if (error.message.includes('User rejected')) {
+        errorMessage = "Connection was cancelled";
+      } else if (error.message.includes('manifest')) {
+        errorMessage = "Wallet configuration error. Please try again.";
+      }
+      
       toast({
         title: "Connection failed",
-        description: "Failed to connect your TON wallet",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
+      console.log('🔵 Connection attempt finished');
       setConnectingWallet(false);
     }
   }, [tonConnectUI, connectingWallet, setConnectingWallet]);

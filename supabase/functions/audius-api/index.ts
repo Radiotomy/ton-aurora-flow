@@ -106,7 +106,7 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const path = url.pathname;
+    const path = url.pathname.replace('/audius-api', ''); // Remove function name prefix
     const searchParams = url.searchParams;
 
     console.log(`Audius API request: ${req.method} ${path}`);

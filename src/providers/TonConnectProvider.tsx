@@ -8,9 +8,9 @@ interface TonConnectProviderProps {
 export const TonConnectProvider: React.FC<TonConnectProviderProps> = ({ children }) => {
   return (
     <TonConnectUIProvider 
-      manifestUrl="https://cpjjaglmqvcwpzrdoyul.supabase.co/storage/v1/object/public/tonconnect-manifest.json"
+      manifestUrl="https://082eb0ee-579e-46a8-a35f-2d335fe4e344.lovableproject.com/tonconnect-manifest.json"
       actionsConfiguration={{
-        twaReturnUrl: 'https://t.me/your_bot_name'
+        twaReturnUrl: 'https://082eb0ee-579e-46a8-a35f-2d335fe4e344.lovableproject.com'
       }}
     >
       {children}
