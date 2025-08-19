@@ -33,7 +33,7 @@ function AppContent() {
   }, [isInTWA, colorScheme]);
 
   return (
-    <div className="min-h-screen bg-subtle pb-20">
+    <div className="min-h-screen bg-background pb-20">
       <BrowserRouter>
         <Navigation />
         <ErrorBoundaryWithTWA>

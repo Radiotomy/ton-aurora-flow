@@ -147,7 +147,7 @@
 
   body {
     @apply bg-background text-foreground;
-    background: var(--gradient-subtle);
+    background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(220 30% 8%) 100%);
   }
 }
 
