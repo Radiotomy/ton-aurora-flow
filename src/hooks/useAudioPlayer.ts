@@ -14,21 +14,41 @@ export interface CurrentTrack {
 
 export const useAudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  
   const [currentTrack, setCurrentTrack] = useState<CurrentTrack | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const [error, setError] = useState<string | null>(null);
 
   const { isConnected, profile } = useWeb3();
 
-  // Initialize audio element
+  // Initialize audio element and Web Audio API
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio();
       audioRef.current.preload = 'metadata';
+      audioRef.current.crossOrigin = 'anonymous';
+      
+      // Initialize Web Audio API for effects
+      try {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        gainNodeRef.current = audioContextRef.current.createGain();
+        sourceNodeRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
+        
+        // Connect audio nodes
+        sourceNodeRef.current.connect(gainNodeRef.current);
+        gainNodeRef.current.connect(audioContextRef.current.destination);
+      } catch (error) {
+        console.warn('Web Audio API not supported:', error);
+      }
       
       // Set up event listeners
       const audio = audioRef.current;
@@ -83,7 +103,27 @@ export const useAudioPlayer = () => {
     }
   }, [volume]);
 
-  // Play track
+  // Clean shutdown of current audio session
+  const cleanupCurrentSession = useCallback(() => {
+    if (audioRef.current) {
+      // Fade out current audio
+      if (gainNodeRef.current && !isMuted) {
+        gainNodeRef.current.gain.setValueAtTime(gainNodeRef.current.gain.value, audioContextRef.current?.currentTime || 0);
+        gainNodeRef.current.gain.linearRampToValueAtTime(0, (audioContextRef.current?.currentTime || 0) + 0.1);
+      }
+      
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+          setCurrentTime(0);
+          setIsPlaying(false);
+        }
+      }, 100);
+    }
+  }, [isMuted]);
+
+  // Play track with proper cleanup
   const playTrack = useCallback(async (track: CurrentTrack) => {
     if (!audioRef.current) return;
 
@@ -95,6 +135,10 @@ export const useAudioPlayer = () => {
         audioRef.current.pause();
       } else {
         try {
+          // Resume audio context if suspended
+          if (audioContextRef.current?.state === 'suspended') {
+            await audioContextRef.current.resume();
+          }
           await audioRef.current.play();
         } catch (error) {
           console.error('Playback failed:', error);
@@ -104,11 +148,28 @@ export const useAudioPlayer = () => {
       return;
     }
 
+    // Clean up current session before loading new track
+    if (currentTrack) {
+      cleanupCurrentSession();
+      await new Promise(resolve => setTimeout(resolve, 150)); // Wait for cleanup
+    }
+
     // Load new track
     setCurrentTrack(track);
     audioRef.current.src = track.streamUrl;
+    audioRef.current.playbackRate = playbackRate;
     
     try {
+      // Resume audio context if suspended
+      if (audioContextRef.current?.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+      
+      // Restore volume after cleanup
+      if (gainNodeRef.current) {
+        gainNodeRef.current.gain.setValueAtTime(isMuted ? 0 : volume, audioContextRef.current?.currentTime || 0);
+      }
+      
       await audioRef.current.play();
       
       // Record play in database if user is connected
@@ -130,7 +191,7 @@ export const useAudioPlayer = () => {
       console.error('Playback failed:', error);
       setError('Playback failed');
     }
-  }, [currentTrack, isPlaying, isConnected, profile]);
+  }, [currentTrack, isPlaying, isConnected, profile, cleanupCurrentSession, playbackRate, volume, isMuted]);
 
   // Pause track
   const pauseTrack = useCallback(() => {
@@ -139,14 +200,11 @@ export const useAudioPlayer = () => {
     }
   }, []);
 
-  // Stop track
+  // Stop track with cleanup
   const stopTrack = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setCurrentTime(0);
-    }
-  }, []);
+    cleanupCurrentSession();
+    setCurrentTrack(null);
+  }, [cleanupCurrentSession]);
 
   // Seek to position
   const seekTo = useCallback((time: number) => {
@@ -156,12 +214,45 @@ export const useAudioPlayer = () => {
     }
   }, []);
 
-  // Change volume
+  // Change volume with Web Audio API
   const changeVolume = useCallback((newVolume: number) => {
     const clampedVolume = Math.max(0, Math.min(1, newVolume));
     setVolume(clampedVolume);
+    
     if (audioRef.current) {
       audioRef.current.volume = clampedVolume;
+    }
+    
+    // Also update gain node for effects
+    if (gainNodeRef.current && !isMuted) {
+      gainNodeRef.current.gain.setValueAtTime(clampedVolume, audioContextRef.current?.currentTime || 0);
+    }
+  }, [isMuted]);
+
+  // Toggle mute
+  const toggleMute = useCallback(() => {
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    
+    if (gainNodeRef.current) {
+      gainNodeRef.current.gain.setValueAtTime(
+        newMutedState ? 0 : volume, 
+        audioContextRef.current?.currentTime || 0
+      );
+    }
+    
+    if (audioRef.current) {
+      audioRef.current.muted = newMutedState;
+    }
+  }, [isMuted, volume]);
+
+  // Change playback rate
+  const changePlaybackRate = useCallback((rate: number) => {
+    const clampedRate = Math.max(0.25, Math.min(2, rate));
+    setPlaybackRate(clampedRate);
+    
+    if (audioRef.current) {
+      audioRef.current.playbackRate = clampedRate;
     }
   }, []);
 
@@ -183,12 +274,12 @@ export const useAudioPlayer = () => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
+      cleanupCurrentSession();
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
       }
     };
-  }, []);
+  }, [cleanupCurrentSession]);
 
   return {
     // State
@@ -198,6 +289,8 @@ export const useAudioPlayer = () => {
     currentTime,
     duration,
     volume,
+    isMuted,
+    playbackRate,
     error,
     
     // Actions
@@ -206,10 +299,17 @@ export const useAudioPlayer = () => {
     stopTrack,
     seekTo,
     changeVolume,
+    toggleMute,
+    changePlaybackRate,
     skipTime,
+    cleanupCurrentSession,
     
     // Utilities
     formatTime,
     progress: duration > 0 ? (currentTime / duration) * 100 : 0,
+    
+    // Web Audio API context (for future effects)
+    audioContext: audioContextRef.current,
+    gainNode: gainNodeRef.current,
   };
 };
