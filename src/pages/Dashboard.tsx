@@ -6,7 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Music, Users, Heart, Trophy, Wallet, Settings } from 'lucide-react';
+import { TokenEconomicsDashboard } from '@/components/TokenEconomicsDashboard';
+import { FanClubCard } from '@/components/FanClubCard';
+import { Music, Users, Heart, Trophy, Wallet, Settings, Coins, Star, Award } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 
 const Dashboard = () => {
@@ -90,6 +92,7 @@ const Dashboard = () => {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="glass-panel">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="web3">Web3 & Tokens</TabsTrigger>
             <TabsTrigger value="collection">My Collection</TabsTrigger>
             <TabsTrigger value="fanclubs">Fan Clubs</TabsTrigger>
             <TabsTrigger value="activity">Activity</TabsTrigger>
@@ -163,7 +166,78 @@ const Dashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="collection">
+          <TabsContent value="web3" className="space-y-6">
+            <TokenEconomicsDashboard 
+              userStats={{
+                tonBalance: tonBalance,
+                reputationScore: profile?.reputation_score || 0,
+                totalEarned: 12.5, // Mock data - would come from backend
+                totalSpent: 8.2,
+                nftsOwned: assets.filter(a => a.asset_type === 'nft').length,
+                fanClubMemberships: fanClubMemberships.length,
+                listeningHours: 142, // Mock data
+                artistsSupported: 8 // Mock data
+              }}
+              achievements={[
+                {
+                  id: '1',
+                  title: 'First Collection',
+                  description: 'Collect your first music NFT',
+                  progress: assets.filter(a => a.asset_type === 'nft').length,
+                  maxProgress: 1,
+                  reward: 0.5,
+                  unlocked: assets.filter(a => a.asset_type === 'nft').length >= 1,
+                  icon: 'award'
+                },
+                {
+                  id: '2',
+                  title: 'Music Supporter',
+                  description: 'Support 5 different artists with tips',
+                  progress: 3, // Mock data
+                  maxProgress: 5,
+                  reward: 1.0,
+                  unlocked: false,
+                  icon: 'heart'
+                },
+                {
+                  id: '3',
+                  title: 'Fan Club VIP',
+                  description: 'Join 3 fan clubs',
+                  progress: fanClubMemberships.length,
+                  maxProgress: 3,
+                  reward: 2.0,
+                  unlocked: fanClubMemberships.length >= 3,
+                  icon: 'crown'
+                }
+              ]}
+              rewardOpportunities={[
+                {
+                  id: '1',
+                  title: 'Daily Listening',
+                  description: 'Listen to music for 30 minutes today',
+                  reward: 0.1,
+                  type: 'listening',
+                  timeLeft: '18h'
+                },
+                {
+                  id: '2',
+                  title: 'Social Share',
+                  description: 'Share your favorite track on social media',
+                  reward: 0.2,
+                  type: 'social'
+                },
+                {
+                  id: '3',
+                  title: 'New Artist Support',
+                  description: 'Tip an artist you haven\'t supported before',
+                  reward: 0.5,
+                  type: 'supporting'
+                }
+              ]}
+            />
+          </TabsContent>
+
+          <TabsContent value="collection">{/* ... keep existing collection content ... */}
             <Card className="glass-panel border-glass">
               <CardHeader>
                 <CardTitle>My Collection</CardTitle>
@@ -194,60 +268,90 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="fanclubs">
-            <Card className="glass-panel border-glass">
-              <CardHeader>
-                <CardTitle>Fan Club Memberships</CardTitle>
-                <CardDescription>Your active fan club memberships</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {fanClubMemberships.length > 0 ? (
-                  <div className="space-y-4">
-                    {fanClubMemberships.map((membership) => (
-                      <div key={membership.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border">
-                        <div>
-                          <p className="font-medium">Artist ID: {membership.artist_id}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="secondary" className="capitalize">
-                              {membership.membership_tier}
-                            </Badge>
-                            {membership.expires_at && (
-                              <span className="text-sm text-muted-foreground">
-                                Expires: {new Date(membership.expires_at).toLocaleDateString()}
-                              </span>
-                            )}
+            <div className="space-y-6">
+              {/* Featured Fan Club Example */}
+              <FanClubCard 
+                artistId="aurora-artist"
+                artistName="Aurora Digital"
+                artistAvatar="https://ui-avatars.com/api/?name=Aurora+Digital&background=6366f1&color=fff"
+                membership={fanClubMemberships.length > 0 ? {
+                  tier: fanClubMemberships[0].membership_tier,
+                  expiresAt: fanClubMemberships[0].expires_at || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                  nftTokenId: fanClubMemberships[0].nft_token_id
+                } : undefined}
+                stats={{
+                  totalMembers: 1247,
+                  monthlyListeners: 45600,
+                  exclusiveContent: 12
+                }}
+                tiers={[
+                  {
+                    name: 'Supporter',
+                    price: 2,
+                    duration: 1,
+                    benefits: ['Exclusive content access', 'Member-only chat', 'Early track releases'],
+                    maxSupply: 1000,
+                    currentSupply: 234
+                  },
+                  {
+                    name: 'Premium',
+                    price: 5,
+                    duration: 3,
+                    benefits: ['All Supporter benefits', 'Monthly live sessions', 'Voting on setlists', 'Signed digital artwork'],
+                    maxSupply: 500,
+                    currentSupply: 123
+                  },
+                  {
+                    name: 'VIP',
+                    price: 15,
+                    duration: 12,
+                    benefits: ['All Premium benefits', 'Direct artist messages', 'Meet & greet invites', 'Exclusive merchandise', 'Royalty sharing'],
+                    maxSupply: 50,
+                    currentSupply: 12
+                  }
+                ]}
+              />
+              
+              {/* Existing Fan Club Memberships */}
+              <Card className="glass-panel border-glass">
+                <CardHeader>
+                  <CardTitle>Your Fan Club Memberships</CardTitle>
+                  <CardDescription>Manage your active memberships</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {fanClubMemberships.length > 0 ? (
+                    <div className="space-y-4">
+                      {fanClubMemberships.map((membership) => (
+                        <div key={membership.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border">
+                          <div>
+                            <p className="font-medium">Artist ID: {membership.artist_id}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="secondary" className="capitalize">
+                                {membership.membership_tier}
+                              </Badge>
+                              {membership.expires_at && (
+                                <span className="text-sm text-muted-foreground">
+                                  Expires: {new Date(membership.expires_at).toLocaleDateString()}
+                                </span>
+                              )}
+                            </div>
                           </div>
+                          <Button variant="ghost" size="sm">
+                            View
+                          </Button>
                         </div>
-                        <Button variant="ghost" size="sm">
-                          View
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">No fan club memberships yet</p>
-                    <p className="text-sm text-muted-foreground">Join fan clubs to connect with your favorite artists</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="activity">
-            <Card className="glass-panel border-glass">
-              <CardHeader>
-                <CardTitle>Activity History</CardTitle>
-                <CardDescription>Your complete activity timeline</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">Activity tracking coming soon</p>
-                  <p className="text-sm text-muted-foreground">We'll show your complete history here</p>
-                </div>
-              </CardContent>
-            </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">No fan club memberships yet</p>
+                      <p className="text-sm text-muted-foreground">Join fan clubs to connect with your favorite artists</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
