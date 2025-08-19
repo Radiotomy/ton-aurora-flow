@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { WalletButton } from '@/components/WalletButton';
 import { 
   Home, 
   Music, 
   Users, 
   Palette, 
-  Wallet,
   Search,
   Menu,
   X 
@@ -52,10 +52,7 @@ const Navigation = () => {
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               <Search className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="sm" className="glass-button border-glass-border">
-              <Wallet className="w-4 h-4" />
-              <span>Connect</span>
-            </Button>
+            <WalletButton />
           </div>
 
           {/* Mobile Menu Button */}
@@ -89,10 +86,7 @@ const Navigation = () => {
                 </a>
               ))}
               <div className="pt-2 border-t border-glass-border">
-                <Button variant="outline" size="sm" className="glass-button border-glass-border w-full">
-                  <Wallet className="w-4 h-4" />
-                  <span>Connect Wallet</span>
-                </Button>
+                <WalletButton />
               </div>
             </div>
           </div>
