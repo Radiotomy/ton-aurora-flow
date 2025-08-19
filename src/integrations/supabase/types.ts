@@ -167,6 +167,63 @@ export type Database = {
           },
         ]
       }
+      transactions: {
+        Row: {
+          amount_ton: number
+          created_at: string
+          fee_ton: number | null
+          from_profile_id: string | null
+          id: string
+          metadata: Json | null
+          status: string
+          to_profile_id: string | null
+          transaction_hash: string
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          amount_ton: number
+          created_at?: string
+          fee_ton?: number | null
+          from_profile_id?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          to_profile_id?: string | null
+          transaction_hash: string
+          transaction_type: string
+          updated_at?: string
+        }
+        Update: {
+          amount_ton?: number
+          created_at?: string
+          fee_ton?: number | null
+          from_profile_id?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          to_profile_id?: string | null
+          transaction_hash?: string
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_from_profile_id_fkey"
+            columns: ["from_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_to_profile_id_fkey"
+            columns: ["to_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_assets: {
         Row: {
           asset_type: string

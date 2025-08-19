@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useWeb3 } from '@/hooks/useWeb3';
 import { useToast } from '@/hooks/use-toast';
+import { tonPaymentService } from '@/services/tonPaymentService';
 import { Heart, Coins, Zap, Star, Gift } from 'lucide-react';
 
 interface TipModalProps {
@@ -41,7 +42,7 @@ export const TipModal: React.FC<TipModalProps> = ({ open, onClose, artist, track
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const { isConnected, sendTransaction, connectWallet } = useWeb3();
+  const { isConnected, connectWallet, walletAddress } = useWeb3();
   const { toast } = useToast();
 
   const tipAmount = selectedAmount || parseFloat(customAmount) || 0;
@@ -61,36 +62,44 @@ export const TipModal: React.FC<TipModalProps> = ({ open, onClose, artist, track
       return;
     }
 
+    if (!artist.walletAddress) {
+      toast({
+        title: "Artist Wallet Not Found",
+        description: "This artist hasn't set up their wallet yet.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsProcessing(true);
     try {
-      const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 60,
-        messages: [{
-          address: artist.walletAddress || 'EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t',
-          amount: (tipAmount * 1e9).toString(), // Convert TON to nanoTON
-          payload: btoa(JSON.stringify({
-            type: 'tip',
-            artist_id: artist.id,
-            track_id: track?.id,
-            message: message,
-            amount: tipAmount
-          }))
-        }]
-      };
-
-      await sendTransaction(transaction);
-      
-      toast({
-        title: getTipMessage(tipAmount),
-        description: `${tipAmount} TON sent to ${artist.name}`,
+      // Use the real TON payment service
+      const result = await tonPaymentService.sendTip(walletAddress, {
+        recipientAddress: artist.walletAddress,
+        amount: tipAmount.toString(),
+        message: message || `Tip for ${track?.title || 'your music'}`,
       });
-      
-      onClose();
+
+      if (result.success) {
+        toast({
+          title: getTipMessage(tipAmount),
+          description: `${tipAmount} TON sent to ${artist.name} successfully!`,
+        });
+        
+        onClose();
+        
+        // Reset form
+        setSelectedAmount(null);
+        setCustomAmount('');
+        setMessage('');
+      } else {
+        throw new Error(result.error || 'Transaction failed');
+      }
     } catch (error) {
       console.error('Tip failed:', error);
       toast({
         title: "Tip Failed",
-        description: "Please try again or check your wallet connection.",
+        description: error instanceof Error ? error.message : "Please try again or check your wallet connection.",
         variant: "destructive",
       });
     } finally {
