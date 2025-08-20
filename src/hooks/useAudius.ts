@@ -2,20 +2,44 @@ import { useState, useEffect, useCallback } from 'react';
 import { AudiusService, AudiusTrack, AudiusUser } from '@/services/audiusService';
 import { toast } from '@/hooks/use-toast';
 
-export const useAudiusTracks = (genre?: string, autoFetch = true) => {
+export const useAudiusTracks = (
+  genre?: string, 
+  time: 'week' | 'month' | 'allTime' = 'week',
+  autoFetch = true
+) => {
   const [tracks, setTracks] = useState<AudiusTrack[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const limit = 20;
 
-  const fetchTracks = useCallback(async () => {
+  const fetchTracks = useCallback(async (resetTracks = false) => {
     if (!autoFetch) return;
     
-    setLoading(true);
+    const currentOffset = resetTracks ? 0 : offset;
+    const isInitialLoad = currentOffset === 0;
+    
+    if (isInitialLoad) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     setError(null);
     
     try {
-      const data = await AudiusService.getTrendingTracks(genre, 20);
-      setTracks(data);
+      const data = await AudiusService.getTrendingTracks(genre, limit, currentOffset, time);
+      
+      if (resetTracks || isInitialLoad) {
+        setTracks(data.tracks);
+        setOffset(limit);
+      } else {
+        setTracks(prev => [...prev, ...data.tracks]);
+        setOffset(prev => prev + limit);
+      }
+      
+      setHasMore(data.hasMore);
     } catch (err) {
       const errorMessage = 'Failed to fetch tracks from Audius';
       setError(errorMessage);
@@ -26,22 +50,36 @@ export const useAudiusTracks = (genre?: string, autoFetch = true) => {
       });
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [genre, autoFetch]);
+  }, [genre, time, autoFetch, offset, limit]);
+
+  const loadMoreTracks = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      fetchTracks(false);
+    }
+  }, [fetchTracks, loadingMore, hasMore]);
 
   const refreshTracks = useCallback(() => {
-    fetchTracks();
+    setOffset(0);
+    setHasMore(true);
+    fetchTracks(true);
   }, [fetchTracks]);
 
   useEffect(() => {
-    fetchTracks();
-  }, [fetchTracks]);
+    setOffset(0);
+    setHasMore(true);
+    fetchTracks(true);
+  }, [genre, time]);
 
   return {
     tracks,
     loading,
+    loadingMore,
     error,
+    hasMore,
     refreshTracks,
+    loadMoreTracks,
   };
 };
 

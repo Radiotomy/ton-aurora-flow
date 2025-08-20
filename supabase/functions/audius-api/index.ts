@@ -115,16 +115,36 @@ serve(async (req) => {
       case '/trending-tracks': {
         const genre = searchParams.get('genre') || undefined;
         const limit = parseInt(searchParams.get('limit') || '20');
+        const offset = parseInt(searchParams.get('offset') || '0');
+        const time = searchParams.get('time') || 'week'; // week, month, allTime
+        const sortMethod = searchParams.get('sort_method') || undefined;
 
-        const params: Record<string, string> = { limit: limit.toString() };
+        const params: Record<string, string> = { 
+          limit: limit.toString(),
+          offset: offset.toString()
+        };
+        
         if (genre && genre !== 'all') {
           params.genre = genre;
+        }
+        
+        // Add time parameter - Audius typically uses 'time' for trending periods
+        if (time && time !== 'week') {
+          params.time = time;
+        }
+        
+        // Add sort method if specified
+        if (sortMethod) {
+          params.sort_method = sortMethod;
         }
 
         const data = await makeAudiusRequest('/v1/tracks/trending', params);
         
         return new Response(JSON.stringify({ 
           tracks: data.data || [],
+          hasMore: (data.data || []).length === limit, // Indicate if more tracks available
+          offset: offset,
+          limit: limit,
           success: true 
         }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

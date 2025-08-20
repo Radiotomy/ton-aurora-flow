@@ -117,21 +117,46 @@ export class AudiusService {
   }
 
   /**
-   * Get trending tracks
+   * Get trending tracks with pagination and time filtering
    */
-  static async getTrendingTracks(genre?: string, limit = 20): Promise<AudiusTrack[]> {
+  static async getTrendingTracks(
+    genre?: string, 
+    limit = 20, 
+    offset = 0, 
+    time: 'week' | 'month' | 'allTime' = 'week',
+    sortMethod?: string
+  ): Promise<{ tracks: AudiusTrack[]; hasMore: boolean; offset: number; limit: number }> {
     try {
-      const params = new URLSearchParams({ limit: limit.toString() });
+      const params = new URLSearchParams({ 
+        limit: limit.toString(),
+        offset: offset.toString(),
+        time: time
+      });
+      
       if (genre && genre !== 'all') {
         params.append('genre', genre);
       }
+      
+      if (sortMethod) {
+        params.append('sort_method', sortMethod);
+      }
 
       const data = await this.fetchFromEdgeFunction(`/trending-tracks?${params}`);
-      return data.tracks || [];
+      return {
+        tracks: data.tracks || [],
+        hasMore: data.hasMore || false,
+        offset: data.offset || offset,
+        limit: data.limit || limit
+      };
     } catch (error) {
       console.error('Error fetching trending tracks:', error);
-      // Return empty array on error instead of throwing
-      return [];
+      // Return empty result on error instead of throwing
+      return {
+        tracks: [],
+        hasMore: false,
+        offset: 0,
+        limit: limit
+      };
     }
   }
 
@@ -290,38 +315,42 @@ export class AudiusService {
   }
 
   /**
-   * Get genres list
+   * Get genres list (verified Audius genres)
    */
-  static getGenres(): string[] {
+  static getGenres(): { id: string; label: string }[] {
     return [
-      'all',
-      'electronic',
-      'rock', 
-      'metal',
-      'alternative',
-      'hip-hop/rap',
-      'experimental',
-      'punk',
-      'folk',
-      'pop',
-      'ambient',
-      'soundtrack',
-      'world',
-      'jazz',
-      'acoustic',
-      'funk',
-      'r&b/soul',
-      'devotional',
-      'classical',
-      'reggae',
-      'podcasts',
-      'country',
-      'spoken word',
-      'comedy',
-      'blues',
-      'kids',
-      'audiobooks',
-      'latin',
+      { id: 'all', label: 'All Genres' },
+      { id: 'Electronic', label: 'Electronic' },
+      { id: 'Hip-Hop/Rap', label: 'Hip-Hop/Rap' },
+      { id: 'Alternative', label: 'Alternative' },
+      { id: 'Rock', label: 'Rock' },
+      { id: 'Pop', label: 'Pop' },
+      { id: 'Ambient', label: 'Ambient' },
+      { id: 'Soundtrack', label: 'Soundtrack' },
+      { id: 'World', label: 'World' },
+      { id: 'Jazz', label: 'Jazz' },
+      { id: 'Acoustic', label: 'Acoustic' },
+      { id: 'Funk', label: 'Funk' },
+      { id: 'R&B/Soul', label: 'R&B/Soul' },
+      { id: 'Experimental', label: 'Experimental' },
+      { id: 'Punk', label: 'Punk' },
+      { id: 'Folk', label: 'Folk' },
+      { id: 'Classical', label: 'Classical' },
+      { id: 'Country', label: 'Country' },
+      { id: 'Latin', label: 'Latin' },
+      { id: 'Reggae', label: 'Reggae' },
+      { id: 'Metal', label: 'Metal' },
+    ];
+  }
+
+  /**
+   * Get time range options
+   */
+  static getTimeRanges(): { id: 'week' | 'month' | 'allTime'; label: string }[] {
+    return [
+      { id: 'week', label: 'This Week' },
+      { id: 'month', label: 'This Month' },
+      { id: 'allTime', label: 'All Time' },
     ];
   }
 }
