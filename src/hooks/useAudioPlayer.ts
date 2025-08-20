@@ -106,22 +106,19 @@ export const useAudioPlayer = () => {
   // Clean shutdown of current audio session
   const cleanupCurrentSession = useCallback(() => {
     if (audioRef.current) {
-      // Fade out current audio
-      if (gainNodeRef.current && !isMuted) {
-        gainNodeRef.current.gain.setValueAtTime(gainNodeRef.current.gain.value, audioContextRef.current?.currentTime || 0);
-        gainNodeRef.current.gain.linearRampToValueAtTime(0, (audioContextRef.current?.currentTime || 0) + 0.1);
-      }
+      // Immediately pause and reset
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setCurrentTime(0);
+      setIsPlaying(false);
+      setIsLoading(false);
       
-      setTimeout(() => {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-          setCurrentTime(0);
-          setIsPlaying(false);
-        }
-      }, 100);
+      // Reset gain for smooth transitions
+      if (gainNodeRef.current) {
+        gainNodeRef.current.gain.setValueAtTime(0, audioContextRef.current?.currentTime || 0);
+      }
     }
-  }, [isMuted]);
+  }, []);
 
   // Play track with proper cleanup
   const playTrack = useCallback(async (track: CurrentTrack) => {
@@ -151,11 +148,13 @@ export const useAudioPlayer = () => {
     // Clean up current session before loading new track
     if (currentTrack) {
       cleanupCurrentSession();
-      await new Promise(resolve => setTimeout(resolve, 150)); // Wait for cleanup
+      // Small delay to ensure cleanup is complete
+      await new Promise(resolve => setTimeout(resolve, 50));
     }
 
     // Load new track
     setCurrentTrack(track);
+    setIsLoading(true);
     audioRef.current.src = track.streamUrl;
     audioRef.current.playbackRate = playbackRate;
     
@@ -170,7 +169,9 @@ export const useAudioPlayer = () => {
         gainNodeRef.current.gain.setValueAtTime(isMuted ? 0 : volume, audioContextRef.current?.currentTime || 0);
       }
       
+      // Load and play new track
       await audioRef.current.play();
+      setIsLoading(false);
       
       // Record play in database if user is connected
       if (isConnected && profile) {
@@ -190,6 +191,8 @@ export const useAudioPlayer = () => {
     } catch (error) {
       console.error('Playback failed:', error);
       setError('Playback failed');
+      setIsLoading(false);
+      setIsPlaying(false);
     }
   }, [currentTrack, isPlaying, isConnected, profile, cleanupCurrentSession, playbackRate, volume, isMuted]);
 
