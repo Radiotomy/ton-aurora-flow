@@ -6,11 +6,13 @@ interface TonConnectProviderProps {
 }
 
 export const TonConnectProvider: React.FC<TonConnectProviderProps> = ({ children }) => {
+  const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  
   return (
     <TonConnectUIProvider 
-      manifestUrl="https://082eb0ee-579e-46a8-a35f-2d335fe4e344.sandbox.lovable.dev/tonconnect-manifest.json"
+      manifestUrl={`${currentOrigin}/tonconnect-manifest.json`}
       actionsConfiguration={{
-        twaReturnUrl: 'https://082eb0ee-579e-46a8-a35f-2d335fe4e344.sandbox.lovable.dev'
+        twaReturnUrl: currentOrigin as `${string}://${string}`
       }}
     >
       {children}

@@ -111,9 +111,9 @@ export const useWeb3 = () => {
     setConnectingWallet(true);
     
     try {
-      // Set up connection timeout (30 seconds)
+      // Set up connection timeout (45 seconds for better reliability)
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Connection timeout')), 30000);
+        setTimeout(() => reject(new Error('Connection timeout')), 45000);
       });
       
       const connectionPromise = tonConnectUI.connectWallet();
