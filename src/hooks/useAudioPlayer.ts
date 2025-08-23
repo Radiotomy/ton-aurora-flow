@@ -30,6 +30,18 @@ export const useAudioPlayer = () => {
 
   const { isConnected, profile } = useWeb3();
 
+  // Performance-optimized time updates
+  const updateTimeThrottled = useCallback((time: number) => {
+    // Use requestAnimationFrame for smooth updates
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => {
+        setCurrentTime(time);
+      });
+    } else {
+      setCurrentTime(time);
+    }
+  }, []);
+
   // Initialize audio element and Web Audio API
   useEffect(() => {
     if (!audioRef.current) {
@@ -62,7 +74,7 @@ export const useAudioPlayer = () => {
         setCurrentTime(0);
       };
       const handleTimeUpdate = () => {
-        setCurrentTime(audio.currentTime);
+        updateTimeThrottled(audio.currentTime);
       };
       const handleDurationChange = () => {
         setDuration(audio.duration || 0);
@@ -101,7 +113,7 @@ export const useAudioPlayer = () => {
         audio.removeEventListener('error', handleError);
       };
     }
-  }, [volume]);
+  }, [volume, updateTimeThrottled]);
 
   // Clean shutdown of current audio session
   const cleanupCurrentSession = useCallback(() => {

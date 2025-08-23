@@ -6,6 +6,21 @@ import { toast } from 'sonner';
 import { Address, fromNano } from '@ton/core';
 import { useNavigationStability } from '@/hooks/useNavigationStability';
 
+// Performance optimization: debounce hook
+const useDebounce = <T>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  
+  return debouncedValue;
+};
+
 export const useWeb3 = () => {
   const [tonConnectUI] = useTonConnectUI();
   const wallet = useTonWallet();
@@ -14,6 +29,9 @@ export const useWeb3 = () => {
   const [isCheckingDns, setIsCheckingDns] = useState(false);
   const lastConnectedAddress = useRef<string | null>(null);
   const hasShownWelcomeToast = useRef<boolean>(false);
+  
+  // Debounce wallet address changes to prevent excessive updates
+  const debouncedWalletAddress = useDebounce(wallet?.account.address || null, 200);
   const { isNavigating, createStableCallback } = useNavigationStability();
   
   // Use a try-catch wrapper for the store to prevent crashes
@@ -202,8 +220,8 @@ export const useWeb3 = () => {
     // Don't process wallet changes during navigation
     if (isNavigating) return;
     
-    if (wallet?.account) {
-      const currentAddress = wallet.account.address;
+    if (debouncedWalletAddress && wallet?.account) {
+      const currentAddress = debouncedWalletAddress;
       
       // Only proceed if this is a new connection or different address
       if (lastConnectedAddress.current !== currentAddress) {
@@ -229,7 +247,7 @@ export const useWeb3 = () => {
         setTonDnsName(null);
       }
     }
-  }, [wallet?.account?.address, isNavigating, setConnected, setWalletAddress, setProfile, loadUserProfile, loadWalletBalance, checkTonDnsName]);
+  }, [debouncedWalletAddress, wallet?.account, isNavigating, setConnected, setWalletAddress, setProfile, loadUserProfile, loadWalletBalance, checkTonDnsName]);
 
   // Enhanced wallet connection with better UX
   const connectWallet = useCallback(async () => {
