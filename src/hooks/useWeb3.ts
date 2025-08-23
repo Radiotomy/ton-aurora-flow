@@ -128,6 +128,32 @@ export const useWeb3 = () => {
           .single();
 
         if (createError) {
+          // If it's a duplicate key error, the profile already exists - fetch it instead
+          if (createError.code === '23505') {
+            console.log('Profile already exists, fetching existing profile');
+            const { data: existingProfile, error: refetchError } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('wallet_address', address)
+              .single();
+            
+            if (refetchError) {
+              console.error('Error refetching existing profile:', refetchError);
+              throw new Error('Profile exists but failed to fetch it');
+            }
+            
+            setProfile(existingProfile);
+            if (existingProfile.ton_dns_name) {
+              setTonDnsName(existingProfile.ton_dns_name);
+            }
+            
+            toast({
+              title: "Welcome back! 👋",
+              description: `Connected as ${existingProfile.display_name}`,
+            });
+            return;
+          }
+          
           console.error('Error creating profile:', createError);
           throw new Error('Failed to create new profile');
         }
