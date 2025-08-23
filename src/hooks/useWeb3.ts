@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { useWalletStore } from '@/stores/walletStore';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +11,8 @@ export const useWeb3 = () => {
   const [balance, setBalance] = useState<string>('0');
   const [tonDnsName, setTonDnsName] = useState<string | null>(null);
   const [isCheckingDns, setIsCheckingDns] = useState(false);
+  const lastConnectedAddress = useRef<string | null>(null);
+  const hasShownWelcomeToast = useRef<boolean>(false);
   
   const {
     isConnected,
@@ -26,22 +28,36 @@ export const useWeb3 = () => {
     disconnectWallet: storeDisconnectWallet,
   } = useWalletStore();
 
-  // Handle wallet connection state changes
+  // Handle wallet connection state changes with debouncing
   useEffect(() => {
     if (wallet?.account) {
-      setConnected(true);
-      setWalletAddress(wallet.account.address);
-      loadUserProfile(wallet.account.address);
-      loadWalletBalance(wallet.account.address);
-      checkTonDnsName(wallet.account.address);
+      const currentAddress = wallet.account.address;
+      
+      // Only proceed if this is a new connection or different address
+      if (lastConnectedAddress.current !== currentAddress) {
+        lastConnectedAddress.current = currentAddress;
+        hasShownWelcomeToast.current = false; // Reset toast flag for new address
+        
+        setConnected(true);
+        setWalletAddress(currentAddress);
+        loadUserProfile(currentAddress);
+        loadWalletBalance(currentAddress);
+        checkTonDnsName(currentAddress);
+      }
     } else {
-      setConnected(false);
-      setWalletAddress(null);
-      setProfile(null);
-      setBalance('0');
-      setTonDnsName(null);
+      // Only reset if we were previously connected
+      if (lastConnectedAddress.current !== null) {
+        lastConnectedAddress.current = null;
+        hasShownWelcomeToast.current = false;
+        
+        setConnected(false);
+        setWalletAddress(null);
+        setProfile(null);
+        setBalance('0');
+        setTonDnsName(null);
+      }
     }
-  }, [wallet]);
+  }, [wallet?.account?.address]); // Only depend on address, not entire wallet object
 
   // Load wallet balance
   const loadWalletBalance = useCallback(async (address: string) => {
@@ -108,10 +124,14 @@ export const useWeb3 = () => {
           setTonDnsName(existingProfile.ton_dns_name);
         }
         
-        toast({
-          title: "Welcome back! 👋",
-          description: `Connected as ${existingProfile.display_name}`,
-        });
+        // Only show toast if we haven't shown it yet for this connection
+        if (!hasShownWelcomeToast.current) {
+          hasShownWelcomeToast.current = true;
+          toast({
+            title: "Welcome back! 👋",
+            description: `Connected as ${existingProfile.display_name}`,
+          });
+        }
       } else {
         // Create new profile for this wallet
         const newProfile = {
@@ -147,10 +167,14 @@ export const useWeb3 = () => {
               setTonDnsName(existingProfile.ton_dns_name);
             }
             
-            toast({
-              title: "Welcome back! 👋",
-              description: `Connected as ${existingProfile.display_name}`,
-            });
+            // Only show toast if we haven't shown it yet for this connection
+            if (!hasShownWelcomeToast.current) {
+              hasShownWelcomeToast.current = true;
+              toast({
+                title: "Welcome back! 👋",
+                description: `Connected as ${existingProfile.display_name}`,
+              });
+            }
             return;
           }
           
@@ -160,10 +184,14 @@ export const useWeb3 = () => {
 
         setProfile(createdProfile);
         
-        toast({
-          title: "Welcome to Web3 Music! 🎵",
-          description: "Your profile has been created. Complete your setup in Dashboard.",
-        });
+        // Only show toast if we haven't shown it yet for this connection
+        if (!hasShownWelcomeToast.current) {
+          hasShownWelcomeToast.current = true;
+          toast({
+            title: "Welcome to Web3 Music! 🎵",
+            description: "Your profile has been created. Complete your setup in Dashboard.",
+          });
+        }
       }
     } catch (error) {
       console.error('Profile loading error:', error);
