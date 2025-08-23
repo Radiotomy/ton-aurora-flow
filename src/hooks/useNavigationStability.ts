@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
+import { batchUpdates } from '@/utils/performance';
 
 interface NavigationStabilityOptions {
   debounceMs?: number;
@@ -28,16 +29,16 @@ export const useNavigationStability = (options: NavigationStabilityOptions = {})
       }
 
       // Mark as navigating
-      setIsNavigating(true);
+      batchUpdates(() => setIsNavigating(true));
 
       // Debounce navigation state
       navigationTimerRef.current = setTimeout(() => {
-        setIsNavigating(false);
+        batchUpdates(() => setIsNavigating(false));
       }, debounceMs);
 
       // Additional stability window
       stabilityTimerRef.current = setTimeout(() => {
-        setIsNavigating(false);
+        batchUpdates(() => setIsNavigating(false));
       }, stabilityWindow);
     }
   }, [location.pathname, debounceMs, stabilityWindow]);

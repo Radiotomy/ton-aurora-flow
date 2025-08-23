@@ -14,6 +14,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { batchUpdates } from '@/utils/performance';
 
 interface TransactionStatusModalProps {
   open: boolean;
@@ -43,13 +44,16 @@ export const TransactionStatusModal: React.FC<TransactionStatusModalProps> = ({
       const now = new Date();
       const diff = Math.floor((now.getTime() - transaction.timestamp.getTime()) / 1000);
       
+      let timeString = '';
       if (diff < 60) {
-        setTimeElapsed(`${diff}s`);
+        timeString = `${diff}s`;
       } else if (diff < 3600) {
-        setTimeElapsed(`${Math.floor(diff / 60)}m`);
+        timeString = `${Math.floor(diff / 60)}m`;
       } else {
-        setTimeElapsed(`${Math.floor(diff / 3600)}h`);
+        timeString = `${Math.floor(diff / 3600)}h`;
       }
+      
+      batchUpdates(() => setTimeElapsed(timeString));
     };
 
     updateTimeElapsed();

@@ -18,6 +18,7 @@ import { useWeb3 } from '@/hooks/useWeb3';
 import { useWalletStore } from '@/stores/walletStore';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { batchUpdates, throttleRAF } from '@/utils/performance';
 
 import {
   User,
@@ -72,6 +73,15 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
   // Refs to prevent excessive re-renders and debouncing
   const loadingTimeoutRef = useRef<NodeJS.Timeout>();
   const debounceTimeoutRef = useRef<NodeJS.Timeout>();
+  
+  // Performance optimized input handlers
+  const debouncedSetDisplayName = useMemo(() => throttleRAF((value: string) => {
+    batchUpdates(() => setDisplayName(value));
+  }, 100), []);
+  
+  const debouncedSetBio = useMemo(() => throttleRAF((value: string) => {
+    batchUpdates(() => setBio(value));
+  }, 100), []);
   
   // Memoize web3 data to prevent re-renders
   const {
@@ -138,11 +148,8 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
         variant: "destructive"
       });
     } finally {
-      // Debounce the loading state to prevent flickering
-      clearTimeout(loadingTimeoutRef.current);
-      loadingTimeoutRef.current = setTimeout(() => {
-        setIsLoading(false);
-      }, 300);
+      // Use RAF for state updates to prevent forced reflows
+      batchUpdates(() => setIsLoading(false));
     }
   }, [user?.id, open, toast]);
 
@@ -381,12 +388,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
                 <Input
                   id="displayName"
                   value={displayName}
-                  onChange={(e) => {
-                    clearTimeout(debounceInputRef.current);
-                    debounceInputRef.current = setTimeout(() => {
-                      setDisplayName(e.target.value);
-                    }, 150);
-                  }}
+                  onChange={(e) => debouncedSetDisplayName(e.target.value)}
                   disabled={!isEditing}
                   className="mt-1"
                 />
@@ -399,12 +401,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
                 <Textarea
                   id="bio"
                   value={bio}
-                  onChange={(e) => {
-                    clearTimeout(debounceInputRef.current);
-                    debounceInputRef.current = setTimeout(() => {
-                      setBio(e.target.value);
-                    }, 150);
-                  }}
+                  onChange={(e) => debouncedSetBio(e.target.value)}
                   disabled={!isEditing}
                   className="mt-1 min-h-[100px]"
                   placeholder="Tell us about yourself..."

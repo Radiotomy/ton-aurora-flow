@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { batchUpdates } from '@/utils/performance';
 
 interface TelegramWebApp {
   initData: string;
@@ -103,15 +104,21 @@ export const useTelegramWebApp = () => {
         setColorScheme(tg.colorScheme);
       };
 
-      // Note: Telegram WebApp doesn't have a direct theme change event
-      // but we can check periodically or on visibility change
-      const interval = setInterval(() => {
+      // Use optimized theme checking
+      let intervalId: NodeJS.Timeout | null = null;
+      
+      const checkTheme = () => {
         if (tg.colorScheme !== colorScheme) {
-          handleThemeChange();
+          batchUpdates(() => handleThemeChange());
         }
-      }, 1000);
+      };
 
-      return () => clearInterval(interval);
+      // Check theme less frequently to reduce performance impact
+      intervalId = setInterval(checkTheme, 2000);
+
+      return () => {
+        if (intervalId) clearInterval(intervalId);
+      };
     }
   }, [colorScheme]);
 

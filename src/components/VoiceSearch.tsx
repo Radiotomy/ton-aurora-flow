@@ -100,7 +100,10 @@ export const VoiceSearch = ({ onResults, onClose }: VoiceSearchProps) => {
           
           // If it's a "play" command and we get results, play the first track
           if (command.startsWith('play ') && tracks.length > 0) {
-            setTimeout(async () => {
+            // Use RAF for better performance instead of setTimeout
+            requestAnimationFrame(async () => {
+              // Add a small delay for user experience
+              await new Promise(resolve => setTimeout(resolve, 1000));
               const firstTrack = tracks[0];
               const trackData = {
                 id: firstTrack.id,
@@ -117,7 +120,7 @@ export const VoiceSearch = ({ onResults, onClose }: VoiceSearchProps) => {
                 title: "Now Playing",
                 description: `${firstTrack.title} by ${firstTrack.user.name}`,
               });
-            }, 1000);
+            });
           }
           
           toast({

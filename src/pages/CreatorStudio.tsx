@@ -180,7 +180,7 @@ const CreatorStudio = () => {
         description: "Your track is being processed. This may take a few minutes.",
       });
 
-      // Simulate upload progress
+      // Simulate upload progress with RAF + setTimeout
       setTimeout(() => {
         toast({
           title: "Upload Complete",

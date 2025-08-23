@@ -160,8 +160,8 @@ export const useAudioPlayer = () => {
     // Clean up current session before loading new track
     if (currentTrack) {
       cleanupCurrentSession();
-      // Small delay to ensure cleanup is complete
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Small delay to ensure cleanup is complete using RAF
+      await new Promise(resolve => requestAnimationFrame(() => resolve(void 0)));
     }
 
     // Load new track
