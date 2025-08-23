@@ -370,7 +370,7 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({ open, 
                         </span>
                       </div>
                     </div>
-                    {user.is_verified && (
+                    {user.verified && (
                       <Badge variant="secondary" className="text-xs">
                         Verified
                       </Badge>

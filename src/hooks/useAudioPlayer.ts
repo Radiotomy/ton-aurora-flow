@@ -27,6 +27,8 @@ export const useAudioPlayer = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [error, setError] = useState<string | null>(null);
+  const [queue, setQueue] = useState<CurrentTrack[]>([]);
+  const [queueIndex, setQueueIndex] = useState(-1);
 
   const { isConnected, profile } = useWeb3();
 
@@ -313,6 +315,69 @@ export const useAudioPlayer = () => {
     }
   }, [currentTime, duration, seekTo]);
 
+  // Queue management functions
+  const addToQueue = useCallback((track: CurrentTrack) => {
+    setQueue(prev => [...prev, track]);
+  }, []);
+
+  const removeFromQueue = useCallback((index: number) => {
+    setQueue(prev => prev.filter((_, i) => i !== index));
+    if (queueIndex === index) {
+      setQueueIndex(-1);
+    } else if (queueIndex > index) {
+      setQueueIndex(prev => prev - 1);
+    }
+  }, [queueIndex]);
+
+  const clearQueue = useCallback(() => {
+    setQueue([]);
+    setQueueIndex(-1);
+  }, []);
+
+  const skipToNext = useCallback(() => {
+    if (queue.length > 0 && queueIndex < queue.length - 1) {
+      const nextIndex = queueIndex + 1;
+      setQueueIndex(nextIndex);
+      playTrack(queue[nextIndex]);
+    }
+  }, [queue, queueIndex, playTrack]);
+
+  const skipToPrevious = useCallback(() => {
+    if (queue.length > 0 && queueIndex > 0) {
+      const prevIndex = queueIndex - 1;
+      setQueueIndex(prevIndex);
+      playTrack(queue[prevIndex]);
+    }
+  }, [queue, queueIndex, playTrack]);
+
+  const skipToQueueIndex = useCallback((index: number) => {
+    if (queue[index]) {
+      setQueueIndex(index);
+      playTrack(queue[index]);
+    }
+  }, [queue, playTrack]);
+
+  const moveQueueItem = useCallback((fromIndex: number, toIndex: number) => {
+    setQueue(prev => {
+      const newQueue = [...prev];
+      const item = newQueue.splice(fromIndex, 1)[0];
+      newQueue.splice(toIndex, 0, item);
+      return newQueue;
+    });
+  }, []);
+
+  const shuffleQueue = useCallback(() => {
+    setQueue(prev => {
+      const newQueue = [...prev];
+      for (let i = newQueue.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newQueue[i], newQueue[j]] = [newQueue[j], newQueue[i]];
+      }
+      return newQueue;
+    });
+    setQueueIndex(0); // Reset to first track after shuffle
+  }, []);
+
   // Format time for display
   const formatTime = useCallback((time: number): string => {
     const minutes = Math.floor(time / 60);
@@ -341,6 +406,8 @@ export const useAudioPlayer = () => {
     isMuted,
     playbackRate,
     error,
+    queue,
+    queueIndex,
     
     // Actions
     playTrack,
@@ -352,6 +419,16 @@ export const useAudioPlayer = () => {
     changePlaybackRate,
     skipTime,
     cleanupCurrentSession,
+    
+    // Queue management
+    addToQueue,
+    removeFromQueue,
+    clearQueue,
+    skipToNext,
+    skipToPrevious,
+    skipToQueueIndex,
+    moveQueueItem,
+    shuffleQueue,
     
     // Utilities
     formatTime,
