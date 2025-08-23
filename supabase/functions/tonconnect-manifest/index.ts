@@ -13,8 +13,13 @@ serve(async (req) => {
   }
 
   try {
-    // Get the origin from the request or use a fallback
-    const origin = req.headers.get('origin') || 'https://id-preview--082eb0ee-579e-46a8-a35f-2d335fe4e344.lovable.app';
+    // Get the origin from the request headers or referrer
+    const origin = req.headers.get('origin') || 
+                   req.headers.get('referer')?.replace(/\/$/, '') || 
+                   new URL(req.url).origin;
+    
+    console.log('Request origin:', origin);
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
     
     const manifest = {
       url: origin,
@@ -31,7 +36,7 @@ serve(async (req) => {
       { 
         headers: {
           ...corsHeaders,
-          'Cache-Control': 'public, max-age=300' // Cache for 5 minutes
+          'Cache-Control': 'no-cache' // Don't cache to ensure fresh URLs
         }
       }
     );
