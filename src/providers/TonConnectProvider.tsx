@@ -12,6 +12,19 @@ export const TonConnectProvider: React.FC<TonConnectProviderProps> = ({ children
   // Pass the current origin as a parameter to ensure correct domain matching
   const manifestUrl = `https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/tonconnect-manifest?origin=${encodeURIComponent(currentOrigin)}`;
   
+  // Add error handling for TON Connect
+  React.useEffect(() => {
+    const handleTonConnectError = (event: ErrorEvent) => {
+      if (event.message?.includes('postMessage') || event.message?.includes('target origin')) {
+        // Suppress TON Connect postMessage errors that don't affect functionality
+        event.preventDefault();
+      }
+    };
+    
+    window.addEventListener('error', handleTonConnectError);
+    return () => window.removeEventListener('error', handleTonConnectError);
+  }, []);
+  
   return (
     <TonConnectUIProvider 
       manifestUrl={manifestUrl}

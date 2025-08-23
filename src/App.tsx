@@ -37,7 +37,12 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true
+        }}
+      >
         <Navigation />
         <ErrorBoundaryWithTWA>
           <Routes>
