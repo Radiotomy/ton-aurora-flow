@@ -16,7 +16,8 @@ import {
   Menu,
   X,
   User,
-  LogOut
+  LogOut,
+  Radio
 } from 'lucide-react';
 
 const Navigation = () => {
@@ -30,6 +31,7 @@ const Navigation = () => {
   const navItems = [
     { icon: Home, label: 'Discovery', href: '/' },
     { icon: Music, label: 'Playlists', href: '/playlists' },
+    { icon: Radio, label: 'Live Events', href: '/live-events' },
     { icon: Users, label: 'Fan Clubs', href: '/fan-clubs' },
     { icon: Palette, label: 'Creator Studio', href: '/creator-studio' },
   ];
