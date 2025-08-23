@@ -162,7 +162,16 @@ export const EventTicketing: React.FC<EventTicketingProps> = ({
     setLoading(true);
 
     try {
-      await sendTransaction(totalCost, event.artist_id, {
+      // Create proper TON transaction object
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 60,
+        messages: [{
+          address: event.artist_id,
+          amount: (totalCost * 1000000000).toString(), // Convert TON to nanoTON
+        }]
+      };
+
+      await sendTransaction(transaction, {
         showToast: false
       });
 
