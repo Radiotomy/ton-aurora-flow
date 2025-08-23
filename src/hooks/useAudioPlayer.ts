@@ -44,6 +44,9 @@ export const useAudioPlayer = () => {
 
   // Initialize audio element and Web Audio API
   useEffect(() => {
+    // Only initialize in browser environment
+    if (typeof window === 'undefined') return;
+    
     if (!audioRef.current) {
       audioRef.current = new Audio();
       audioRef.current.preload = 'metadata';
@@ -51,13 +54,16 @@ export const useAudioPlayer = () => {
       
       // Initialize Web Audio API for effects
       try {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-        gainNodeRef.current = audioContextRef.current.createGain();
-        sourceNodeRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
-        
-        // Connect audio nodes
-        sourceNodeRef.current.connect(gainNodeRef.current);
-        gainNodeRef.current.connect(audioContextRef.current.destination);
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContext) {
+          audioContextRef.current = new AudioContext();
+          gainNodeRef.current = audioContextRef.current.createGain();
+          sourceNodeRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
+          
+          // Connect audio nodes
+          sourceNodeRef.current.connect(gainNodeRef.current);
+          gainNodeRef.current.connect(audioContextRef.current.destination);
+        }
       } catch (error) {
         console.warn('Web Audio API not supported:', error);
       }
