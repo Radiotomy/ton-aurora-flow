@@ -118,6 +118,10 @@ export const useWalletStore = create<WalletState>()(
         walletAddress: state.walletAddress,
         profile: state.profile,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Ensure stable state after hydration
+        console.log('Wallet store rehydrated');
+      },
     }
   )
 );

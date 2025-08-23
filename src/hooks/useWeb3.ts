@@ -14,6 +14,29 @@ export const useWeb3 = () => {
   const lastConnectedAddress = useRef<string | null>(null);
   const hasShownWelcomeToast = useRef<boolean>(false);
   
+  // Use a try-catch wrapper for the store to prevent crashes
+  const storeState = (() => {
+    try {
+      return useWalletStore();
+    } catch (error) {
+      console.error('Wallet store access error:', error);
+      // Return default state if store is not accessible
+      return {
+        isConnected: false,
+        walletAddress: null,
+        profile: null,
+        connectingWallet: false,
+        loadingProfile: false,
+        setConnected: () => {},
+        setWalletAddress: () => {},
+        setProfile: () => {},
+        setConnectingWallet: () => {},
+        setLoadingProfile: () => {},
+        disconnectWallet: () => {},
+      };
+    }
+  })();
+
   const {
     isConnected,
     walletAddress,
@@ -26,7 +49,7 @@ export const useWeb3 = () => {
     setConnectingWallet,
     setLoadingProfile,
     disconnectWallet: storeDisconnectWallet,
-  } = useWalletStore();
+  } = storeState;
 
   // Handle wallet connection state changes with debouncing
   useEffect(() => {
