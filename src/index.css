@@ -270,3 +270,41 @@
     box-shadow: 0 0 40px hsl(var(--primary) / 0.6);
   }
 }
+
+/* Performance optimizations to prevent forced reflows */
+* {
+  will-change: auto;
+}
+
+/* Optimize animations to use transforms only */
+.transform-gpu {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Prevent layout thrashing in audio controls */
+input[type="range"] {
+  will-change: transform;
+}
+
+/* Optimize slider animations */
+[data-radix-slider-root] {
+  contain: layout style;
+}
+
+/* Prevent reflow from dynamic text changes */
+.time-display {
+  font-variant-numeric: tabular-nums;
+  width: 3ch;
+  text-align: center;
+}
+
+/* Optimize modal animations */
+[data-radix-dialog-overlay] {
+  will-change: opacity;
+}
+
+[data-radix-dialog-content] {
+  will-change: transform, opacity;
+}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -14,7 +14,7 @@ import {
   Maximize2,
 } from 'lucide-react';
 
-export const AudioPlayer: React.FC = () => {
+export const AudioPlayer: React.FC = React.memo(() => {
   const {
     currentTrack,
     isPlaying,
@@ -35,18 +35,22 @@ export const AudioPlayer: React.FC = () => {
     return null;
   }
 
-  const handleProgressChange = (value: number[]) => {
+  const handleProgressChange = useCallback((value: number[]) => {
     const newTime = (value[0] / 100) * duration;
     seekTo(newTime);
-  };
+  }, [duration, seekTo]);
 
-  const handleVolumeChange = (value: number[]) => {
+  const handleVolumeChange = useCallback((value: number[]) => {
     changeVolume(value[0] / 100);
-  };
+  }, [changeVolume]);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     changeVolume(volume > 0 ? 0 : 1);
-  };
+  }, [volume, changeVolume]);
+
+  // Memoize formatted times to prevent constant recalculation
+  const formattedCurrentTime = useMemo(() => formatTime(currentTime), [currentTime, formatTime]);
+  const formattedDuration = useMemo(() => formatTime(duration), [duration, formatTime]);
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 glass-panel border-0 border-t border-glass-border">
@@ -106,7 +110,7 @@ export const AudioPlayer: React.FC = () => {
             {/* Progress Bar - Hidden on very small screens */}
             <div className="hidden xs:flex items-center gap-2 w-full">
               <span className="text-xs text-muted-foreground min-w-[35px] sm:min-w-[40px]">
-                {formatTime(currentTime)}
+                {formattedCurrentTime}
               </span>
               <Slider
                 value={[progress]}
@@ -116,7 +120,7 @@ export const AudioPlayer: React.FC = () => {
                 className="flex-1"
               />
               <span className="text-xs text-muted-foreground min-w-[35px] sm:min-w-[40px]">
-                {formatTime(duration)}
+                {formattedDuration}
               </span>
             </div>
           </div>
@@ -172,4 +176,4 @@ export const AudioPlayer: React.FC = () => {
       </div>
     </div>
   );
-};
+});
