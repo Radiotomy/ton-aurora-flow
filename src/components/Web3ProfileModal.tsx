@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -66,21 +66,38 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Refs to prevent excessive re-renders and debouncing
+  const loadingTimeoutRef = useRef<NodeJS.Timeout>();
+  const lastProfileLoadRef = useRef<string>();
+  const debounceInputRef = useRef<NodeJS.Timeout>();
+  
   const { user, isAuthenticated } = useAuth();
-  const { isConnected, walletAddress, shortAddress, disconnectWallet } = useWeb3();
+  
+  // Memoize web3 data to prevent excessive re-renders
+  const web3Data = useMemo(() => {
+    try {
+      const { isConnected, walletAddress, shortAddress } = useWeb3();
+      return { isConnected, walletAddress, shortAddress };
+    } catch (error) {
+      console.warn('Web3 hook error in profile modal:', error);
+      return { isConnected: false, walletAddress: null, shortAddress: 'N/A' };
+    }
+  }, []);
+  
   const { assets, fanClubMemberships } = useWalletStore();
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (open && isAuthenticated && user) {
-      loadUserProfile();
-    }
-  }, [open, isAuthenticated, user]);
-
-  const loadUserProfile = async () => {
+  // Debounced profile loading to prevent excessive calls
+  const loadUserProfile = useCallback(async () => {
     if (!user?.id) return;
     
+    // Prevent duplicate loads
+    const currentKey = `${user.id}-${open}`;
+    if (lastProfileLoadRef.current === currentKey) return;
+    lastProfileLoadRef.current = currentKey;
+    
     setIsLoading(true);
+    
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -109,9 +126,25 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      // Debounce the loading state to prevent flickering
+      clearTimeout(loadingTimeoutRef.current);
+      loadingTimeoutRef.current = setTimeout(() => {
+        setIsLoading(false);
+      }, 300);
     }
-  };
+  }, [user?.id, open, toast]);
+
+  useEffect(() => {
+    if (open && isAuthenticated && user) {
+      loadUserProfile();
+    }
+    
+    return () => {
+      clearTimeout(loadingTimeoutRef.current);
+      clearTimeout(debounceInputRef.current);
+    };
+  }, [open, isAuthenticated, loadUserProfile]);
+
 
   const createUserProfile = async () => {
     if (!user?.id) return;
@@ -122,7 +155,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
         .insert([{
           auth_user_id: user.id,
           display_name: user.email?.split('@')[0] || 'Anonymous User',
-          wallet_address: walletAddress || null,
+          wallet_address: web3Data.walletAddress || null,
           reputation_score: 0
         }])
         .select()
@@ -155,7 +188,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
         bio: bio,
         avatar_url: avatarUrl,
         ton_dns_name: tonDnsName,
-        wallet_address: walletAddress || null,
+        wallet_address: web3Data.walletAddress || null,
         updated_at: new Date().toISOString()
       };
 
@@ -236,7 +269,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
               <h3 className="text-xl font-bold">{userProfile?.display_name}</h3>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-sm text-muted-foreground">
-                  {userProfile?.wallet_address ? shortAddress : "No wallet connected"}
+                  {userProfile?.wallet_address ? web3Data.shortAddress : "No wallet connected"}
                 </span>
                 {userProfile?.wallet_address && (
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={copyAddress}>
@@ -254,7 +287,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
                   <Star className="h-3 w-3 mr-1" />
                   Rep: {userProfile?.reputation_score || 0}
                 </Badge>
-                {isConnected && (
+                {web3Data.isConnected && (
                   <Badge variant="default">
                     <Wallet className="h-3 w-3 mr-1" />
                     Connected
@@ -336,7 +369,12 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
                 <Input
                   id="displayName"
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  onChange={(e) => {
+                    clearTimeout(debounceInputRef.current);
+                    debounceInputRef.current = setTimeout(() => {
+                      setDisplayName(e.target.value);
+                    }, 150);
+                  }}
                   disabled={!isEditing}
                   className="mt-1"
                 />
@@ -349,7 +387,12 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
                 <Textarea
                   id="bio"
                   value={bio}
-                  onChange={(e) => setBio(e.target.value)}
+                  onChange={(e) => {
+                    clearTimeout(debounceInputRef.current);
+                    debounceInputRef.current = setTimeout(() => {
+                      setBio(e.target.value);
+                    }, 150);
+                  }}
                   disabled={!isEditing}
                   className="mt-1 min-h-[100px]"
                   placeholder="Tell us about yourself..."
