@@ -18,6 +18,8 @@ import TrackDetail from "./pages/TrackDetail";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import NotFound from "./pages/NotFound";
+import FanClubs from "./pages/FanClubs";
+import CreatorStudio from "./pages/CreatorStudio";
 import Navigation from "./components/Navigation";
 
 const queryClient = new QueryClient();
@@ -48,8 +50,8 @@ function AppContent() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/tracks" element={<Index />} />
-            <Route path="/fan-clubs" element={<Index />} />
-            <Route path="/creator-studio" element={<Index />} />
+            <Route path="/fan-clubs" element={<FanClubs />} />
+            <Route path="/creator-studio" element={<CreatorStudio />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
