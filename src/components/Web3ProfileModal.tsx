@@ -57,6 +57,9 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
   open,
   onClose,
 }) => {
+  // Move useWeb3 to the top level to fix hooks rule violation
+  const web3Data = useWeb3();
+  
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState('');
@@ -68,22 +71,31 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
   
   // Refs to prevent excessive re-renders and debouncing
   const loadingTimeoutRef = useRef<NodeJS.Timeout>();
+  const debounceTimeoutRef = useRef<NodeJS.Timeout>();
+  
+  // Memoize web3 data to prevent re-renders
+  const {
+    isConnected,
+    walletAddress,
+    profile,
+    loadingProfile,
+    balance,
+    formattedBalance,
+    shortAddress,
+    tonDnsName: web3TonDnsName,
+    updateTonDnsName,
+  } = useMemo(() => web3Data, [
+    web3Data.isConnected,
+    web3Data.walletAddress,
+    web3Data.profile?.id,
+    web3Data.loadingProfile,
+    web3Data.balance,
+    web3Data.tonDnsName,
+  ]);
   const lastProfileLoadRef = useRef<string>();
   const debounceInputRef = useRef<NodeJS.Timeout>();
   
   const { user, isAuthenticated } = useAuth();
-  
-  // Memoize web3 data to prevent excessive re-renders
-  const web3Data = useMemo(() => {
-    try {
-      const { isConnected, walletAddress, shortAddress } = useWeb3();
-      return { isConnected, walletAddress, shortAddress };
-    } catch (error) {
-      console.warn('Web3 hook error in profile modal:', error);
-      return { isConnected: false, walletAddress: null, shortAddress: 'N/A' };
-    }
-  }, []);
-  
   const { assets, fanClubMemberships } = useWalletStore();
   const { toast } = useToast();
 
@@ -155,7 +167,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
         .insert([{
           auth_user_id: user.id,
           display_name: user.email?.split('@')[0] || 'Anonymous User',
-          wallet_address: web3Data.walletAddress || null,
+          wallet_address: walletAddress || null,
           reputation_score: 0
         }])
         .select()
@@ -188,7 +200,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
         bio: bio,
         avatar_url: avatarUrl,
         ton_dns_name: tonDnsName,
-        wallet_address: web3Data.walletAddress || null,
+        wallet_address: walletAddress || null,
         updated_at: new Date().toISOString()
       };
 
@@ -269,7 +281,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
               <h3 className="text-xl font-bold">{userProfile?.display_name}</h3>
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-sm text-muted-foreground">
-                  {userProfile?.wallet_address ? web3Data.shortAddress : "No wallet connected"}
+                  {userProfile?.wallet_address ? shortAddress : "No wallet connected"}
                 </span>
                 {userProfile?.wallet_address && (
                   <Button size="icon" variant="ghost" className="h-6 w-6" onClick={copyAddress}>
@@ -287,7 +299,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
                   <Star className="h-3 w-3 mr-1" />
                   Rep: {userProfile?.reputation_score || 0}
                 </Badge>
-                {web3Data.isConnected && (
+                {isConnected && (
                   <Badge variant="default">
                     <Wallet className="h-3 w-3 mr-1" />
                     Connected

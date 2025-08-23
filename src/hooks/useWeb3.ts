@@ -2,8 +2,9 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { useWalletStore } from '@/stores/walletStore';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Address, fromNano } from '@ton/core';
+import { useNavigationStability } from '@/hooks/useNavigationStability';
 
 export const useWeb3 = () => {
   const [tonConnectUI] = useTonConnectUI();
@@ -13,6 +14,7 @@ export const useWeb3 = () => {
   const [isCheckingDns, setIsCheckingDns] = useState(false);
   const lastConnectedAddress = useRef<string | null>(null);
   const hasShownWelcomeToast = useRef<boolean>(false);
+  const { isNavigating, createStableCallback } = useNavigationStability();
   
   // Use a try-catch wrapper for the store to prevent crashes
   const storeState = (() => {
@@ -50,37 +52,6 @@ export const useWeb3 = () => {
     setLoadingProfile,
     disconnectWallet: storeDisconnectWallet,
   } = storeState;
-
-  // Handle wallet connection state changes with debouncing
-  useEffect(() => {
-    if (wallet?.account) {
-      const currentAddress = wallet.account.address;
-      
-      // Only proceed if this is a new connection or different address
-      if (lastConnectedAddress.current !== currentAddress) {
-        lastConnectedAddress.current = currentAddress;
-        hasShownWelcomeToast.current = false; // Reset toast flag for new address
-        
-        setConnected(true);
-        setWalletAddress(currentAddress);
-        loadUserProfile(currentAddress);
-        loadWalletBalance(currentAddress);
-        checkTonDnsName(currentAddress);
-      }
-    } else {
-      // Only reset if we were previously connected
-      if (lastConnectedAddress.current !== null) {
-        lastConnectedAddress.current = null;
-        hasShownWelcomeToast.current = false;
-        
-        setConnected(false);
-        setWalletAddress(null);
-        setProfile(null);
-        setBalance('0');
-        setTonDnsName(null);
-      }
-    }
-  }, [wallet?.account?.address]); // Only depend on address, not entire wallet object
 
   // Load wallet balance
   const loadWalletBalance = useCallback(async (address: string) => {
@@ -150,10 +121,7 @@ export const useWeb3 = () => {
         // Only show toast if we haven't shown it yet for this connection
         if (!hasShownWelcomeToast.current) {
           hasShownWelcomeToast.current = true;
-          toast({
-            title: "Welcome back! 👋",
-            description: `Connected as ${existingProfile.display_name}`,
-          });
+          toast.success(`Welcome back, ${existingProfile.display_name}! 👋`);
         }
       } else {
         // Create new profile for this wallet
@@ -193,10 +161,7 @@ export const useWeb3 = () => {
             // Only show toast if we haven't shown it yet for this connection
             if (!hasShownWelcomeToast.current) {
               hasShownWelcomeToast.current = true;
-              toast({
-                title: "Welcome back! 👋",
-                description: `Connected as ${existingProfile.display_name}`,
-              });
+              toast.success(`Welcome back, ${existingProfile.display_name}! 👋`);
             }
             return;
           }
@@ -210,19 +175,12 @@ export const useWeb3 = () => {
         // Only show toast if we haven't shown it yet for this connection
         if (!hasShownWelcomeToast.current) {
           hasShownWelcomeToast.current = true;
-          toast({
-            title: "Welcome to Web3 Music! 🎵",
-            description: "Your profile has been created. Complete your setup in Dashboard.",
-          });
+          toast.success('Welcome to Web3 Music! 🎵 Complete your setup in Dashboard.');
         }
       }
     } catch (error) {
       console.error('Profile loading error:', error);
-      toast({
-        title: "Profile Error",
-        description: error.message || "Failed to load your profile",
-        variant: "destructive",
-      });
+      toast.error(error.message || "Failed to load your profile");
       
       // Set basic profile even on error to prevent blocking the UI
       const fallbackProfile = {
@@ -239,6 +197,40 @@ export const useWeb3 = () => {
     }
   }, [setProfile, setLoadingProfile]);
 
+  // Handle wallet connection state changes with navigation stability
+  useEffect(() => {
+    // Don't process wallet changes during navigation
+    if (isNavigating) return;
+    
+    if (wallet?.account) {
+      const currentAddress = wallet.account.address;
+      
+      // Only proceed if this is a new connection or different address
+      if (lastConnectedAddress.current !== currentAddress) {
+        lastConnectedAddress.current = currentAddress;
+        hasShownWelcomeToast.current = false; // Reset toast flag for new address
+        
+        setConnected(true);
+        setWalletAddress(currentAddress);
+        loadUserProfile(currentAddress);
+        loadWalletBalance(currentAddress);
+        checkTonDnsName(currentAddress);
+      }
+    } else {
+      // Only reset if we were previously connected
+      if (lastConnectedAddress.current !== null) {
+        lastConnectedAddress.current = null;
+        hasShownWelcomeToast.current = false;
+        
+        setConnected(false);
+        setWalletAddress(null);
+        setProfile(null);
+        setBalance('0');
+        setTonDnsName(null);
+      }
+    }
+  }, [wallet?.account?.address, isNavigating, setConnected, setWalletAddress, setProfile, loadUserProfile, loadWalletBalance, checkTonDnsName]);
+
   // Enhanced wallet connection with better UX
   const connectWallet = useCallback(async () => {
     if (connectingWallet) return;
@@ -253,10 +245,7 @@ export const useWeb3 = () => {
       }
 
       // Show connecting toast
-      toast({
-        title: "Connecting Wallet...",
-        description: "Please approve the connection in your TON wallet",
-      });
+      toast.loading('Connecting wallet... Please approve the connection in your TON wallet');
       
       // Set up connection timeout (60 seconds for better UX)
       const timeoutPromise = new Promise((_, reject) => {
@@ -270,37 +259,24 @@ export const useWeb3 = () => {
       
       console.log('🟢 Wallet connected successfully');
       
-      toast({
-        title: "Wallet Connected! 🎉",
-        description: "Your TON wallet has been successfully connected",
-      });
+      toast.success('Wallet Connected! 🎉 Your TON wallet has been successfully connected');
       
     } catch (error) {
       console.error('🔴 Wallet connection error:', error);
       
-      let errorTitle = "Connection Failed";
       let errorMessage = "Failed to connect your TON wallet";
       
       if (error.message.includes('timeout')) {
-        errorTitle = "Connection Timeout";
-        errorMessage = "The connection took too long. Please check your wallet and try again.";
+        errorMessage = "Connection timeout. Please check your wallet and try again.";
       } else if (error.message.includes('rejected') || error.message.includes('cancelled')) {
-        errorTitle = "Connection Cancelled";
-        errorMessage = "Wallet connection was cancelled by user.";
         return; // Don't show error toast for user cancellation
       } else if (error.message.includes('manifest')) {
-        errorTitle = "Configuration Error";
-        errorMessage = "There's an issue with the wallet configuration. Please contact support.";
+        errorMessage = "Configuration error. Please contact support.";
       } else if (error.message.includes('network')) {
-        errorTitle = "Network Error";
-        errorMessage = "Please check your internet connection and try again.";
+        errorMessage = "Network error. Please check your connection and try again.";
       }
       
-      toast({
-        title: errorTitle,
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(errorMessage);
     } finally {
       console.log('🔵 Connection attempt finished');
       setConnectingWallet(false);
@@ -312,10 +288,7 @@ export const useWeb3 = () => {
     try {
       await tonConnectUI.disconnect();
       storeDisconnectWallet();
-      toast({
-        title: "Wallet disconnected",
-        description: "Your TON wallet has been disconnected",
-      });
+      toast.success('Wallet disconnected successfully');
     } catch (error) {
       console.error('Wallet disconnection error:', error);
     }
@@ -328,11 +301,7 @@ export const useWeb3 = () => {
     toastDescription?: string;
   }) => {
     if (!wallet) {
-      toast({
-        title: "Wallet Not Connected",
-        description: "Please connect your TON wallet first",
-        variant: "destructive",
-      });
+      toast.error('Please connect your TON wallet first');
       return null;
     }
 
@@ -340,45 +309,30 @@ export const useWeb3 = () => {
 
     try {
       if (showToast) {
-        toast({
-          title: toastTitle,
-          description: toastDescription,
-        });
+        toast.loading(`${toastTitle} ${toastDescription}`);
       }
 
       const result = await tonConnectUI.sendTransaction(transaction);
       
       if (showToast) {
-        toast({
-          title: "Transaction Sent! ✅",
-          description: "Your transaction has been submitted to the network",
-        });
+        toast.success('Transaction sent! ✅ Your transaction has been submitted to the network');
       }
 
       return result;
     } catch (error) {
       console.error('Transaction error:', error);
       
-      let errorTitle = "Transaction Failed";
       let errorMessage = "Failed to send transaction";
       
       if (error.message.includes('insufficient')) {
-        errorTitle = "Insufficient Balance";
-        errorMessage = "You don't have enough TON to complete this transaction";
+        errorMessage = "Insufficient balance. You don't have enough TON to complete this transaction";
       } else if (error.message.includes('rejected') || error.message.includes('cancelled')) {
-        errorTitle = "Transaction Cancelled";
-        errorMessage = "Transaction was cancelled by user";
         return null; // Don't show error for user cancellation
       } else if (error.message.includes('network')) {
-        errorTitle = "Network Error";
         errorMessage = "Network error occurred. Please try again";
       }
       
-      toast({
-        title: errorTitle,
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast.error(errorMessage);
       
       return null;
     }
@@ -402,19 +356,12 @@ export const useWeb3 = () => {
       setTonDnsName(dnsName);
       setProfile({ ...profile, ton_dns_name: dnsName });
       
-      toast({
-        title: "TON DNS Updated",
-        description: `Your TON DNS name has been set to ${dnsName}`,
-      });
+      toast.success(`TON DNS updated to ${dnsName}`);
 
       return true;
     } catch (error) {
       console.error('Error updating TON DNS:', error);
-      toast({
-        title: "Update Failed",
-        description: "Failed to update your TON DNS name",
-        variant: "destructive",
-      });
+      toast.error('Failed to update your TON DNS name');
       return false;
     }
   }, [profile]);
