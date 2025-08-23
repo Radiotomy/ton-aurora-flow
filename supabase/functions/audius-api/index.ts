@@ -252,11 +252,14 @@ serve(async (req) => {
 
         if (streamMatch) {
           const trackId = streamMatch[1];
-          // Get track stream URL
-          const streamUrl = `${AUDIUS_DISCOVERY_HOST}/v1/tracks/${trackId}/stream`;
+          // Get track stream URL with app_name parameter for authentication
+          const streamUrl = `${AUDIUS_DISCOVERY_HOST}/v1/tracks/${trackId}/stream?app_name=${AUDIUS_API_KEY}`;
+          
+          console.log(`Providing stream URL for track ${trackId}: ${streamUrl}`);
           
           return new Response(JSON.stringify({ 
             streamUrl,
+            trackId,
             success: true 
           }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },

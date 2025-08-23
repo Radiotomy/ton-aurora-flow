@@ -120,7 +120,7 @@ export const useAudioPlayer = () => {
     }
   }, []);
 
-  // Play track with proper cleanup
+  // Play track with proper cleanup and stream URL resolution
   const playTrack = useCallback(async (track: CurrentTrack) => {
     if (!audioRef.current) return;
 
@@ -155,10 +155,27 @@ export const useAudioPlayer = () => {
     // Load new track
     setCurrentTrack(track);
     setIsLoading(true);
-    audioRef.current.src = track.streamUrl;
-    audioRef.current.playbackRate = playbackRate;
     
     try {
+      // Get the actual stream URL if not provided or if it's a placeholder
+      let streamUrl = track.streamUrl;
+      if (!streamUrl || streamUrl.includes('placeholder') || !streamUrl.startsWith('http')) {
+        console.log('Fetching real stream URL for track:', track.id);
+        const response = await supabase.functions.invoke('audius-api', {
+          body: { path: `stream-url/${track.id}` }
+        });
+        
+        if (response.data?.streamUrl) {
+          streamUrl = response.data.streamUrl;
+          console.log('Got stream URL:', streamUrl);
+        } else {
+          throw new Error('No stream URL available');
+        }
+      }
+      
+      audioRef.current.src = streamUrl;
+      audioRef.current.playbackRate = playbackRate;
+      
       // Resume audio context if suspended
       if (audioContextRef.current?.state === 'suspended') {
         await audioContextRef.current.resume();
@@ -172,6 +189,11 @@ export const useAudioPlayer = () => {
       // Load and play new track
       await audioRef.current.play();
       setIsLoading(false);
+      
+      toast({
+        title: "Now Playing",
+        description: `${track.title} by ${track.artist}`,
+      });
       
       // Record play in database if user is connected
       if (isConnected && profile) {
@@ -190,9 +212,15 @@ export const useAudioPlayer = () => {
       }
     } catch (error) {
       console.error('Playback failed:', error);
-      setError('Playback failed');
+      setError('Failed to load track');
       setIsLoading(false);
       setIsPlaying(false);
+      
+      toast({
+        title: "Playback Error", 
+        description: `Could not play "${track.title}". The track may not be available for streaming.`,
+        variant: "destructive",
+      });
     }
   }, [currentTrack, isPlaying, isConnected, profile, cleanupCurrentSession, playbackRate, volume, isMuted]);
 

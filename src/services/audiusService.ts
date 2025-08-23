@@ -305,7 +305,7 @@ export class AudiusService {
       artwork: this.getArtworkUrl(track.artwork),
       duration: this.formatDuration(track.duration),
       likes: track.favorite_count || 0,
-      streamUrl: `https://discoveryprovider.audius.co/v1/tracks/${track.id}/stream`,
+      streamUrl: `audius-stream://${track.id}`, // Placeholder to be resolved dynamically
       permalink: track.permalink || '',
       // Web3 enhancements (would be determined by additional logic)
       isNft: Math.random() > 0.7, // Placeholder: 30% chance
