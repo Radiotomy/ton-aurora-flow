@@ -3,9 +3,11 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { useAuth } from '@/hooks/useAuth';
 import { useWeb3 } from '@/hooks/useWeb3';
 import { useToast } from '@/hooks/use-toast';
-import { Crown, Users, Clock, Star, Zap, Music } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Crown, Users, Clock, Star, Zap, Music, CheckCircle } from 'lucide-react';
 
 interface FanClubCardProps {
   artistId: string;
@@ -24,27 +26,30 @@ interface FanClubCardProps {
   tiers: Array<{
     name: string;
     price: number;
-    duration: number; // in months
+    duration: number; // in days
     benefits: string[];
     maxSupply?: number;
     currentSupply?: number;
   }>;
+  onMembershipChange?: () => void;
 }
 
 const getTierIcon = (tierName: string) => {
   switch (tierName.toLowerCase()) {
-    case 'vip': return Crown;
-    case 'premium': return Star;
-    case 'supporter': return Zap;
+    case 'platinum': return Crown;
+    case 'gold': return Star;
+    case 'silver': return Zap;
+    case 'bronze': return Music;
     default: return Music;
   }
 };
 
 const getTierColor = (tierName: string) => {
   switch (tierName.toLowerCase()) {
-    case 'vip': return 'bg-aurora';
-    case 'premium': return 'bg-primary';
-    case 'supporter': return 'bg-secondary';
+    case 'platinum': return 'bg-gradient-to-r from-purple-600 to-pink-600';
+    case 'gold': return 'bg-gradient-to-r from-yellow-400 to-orange-500';
+    case 'silver': return 'bg-gradient-to-r from-gray-300 to-gray-500';
+    case 'bronze': return 'bg-gradient-to-r from-orange-400 to-red-500';
     default: return 'bg-muted';
   }
 };
@@ -55,14 +60,25 @@ export const FanClubCard: React.FC<FanClubCardProps> = ({
   artistAvatar, 
   membership,
   stats,
-  tiers 
+  tiers,
+  onMembershipChange
 }) => {
   const [selectedTier, setSelectedTier] = useState(tiers[0]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { isAuthenticated, user } = useAuth();
   const { isConnected, sendTransaction, connectWallet } = useWeb3();
   const { toast } = useToast();
 
   const handleJoinFanClub = async () => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to join fan clubs.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!isConnected) {
       await connectWallet();
       return;
@@ -70,8 +86,20 @@ export const FanClubCard: React.FC<FanClubCardProps> = ({
 
     setIsProcessing(true);
     try {
+      // Get user profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('auth_user_id', user?.id)
+        .maybeSingle();
+
+      if (!profile) {
+        throw new Error('User profile not found');
+      }
+
+      // Create TON transaction
       const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 60,
+        validUntil: Math.floor(Date.now() / 1000) + 300, // 5 minutes
         messages: [{
           address: 'EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t', // Fan club contract
           amount: (selectedTier.price * 1e9).toString(),
@@ -80,18 +108,42 @@ export const FanClubCard: React.FC<FanClubCardProps> = ({
             params: {
               artist_id: artistId,
               tier: selectedTier.name,
-              duration: selectedTier.duration
+              duration_days: selectedTier.duration,
+              profile_id: profile.id
             }
           }))
         }]
       };
 
-      await sendTransaction(transaction);
+      const result = await sendTransaction(transaction);
       
-      toast({
-        title: "Welcome to the Fan Club! 🎉",
-        description: `You're now a ${selectedTier.name} member of ${artistName}'s fan club`,
-      });
+      if (result) {
+        // Store membership in database
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + selectedTier.duration);
+
+        const { error: insertError } = await supabase
+          .from('fan_club_memberships')
+          .insert({
+            profile_id: profile.id,
+            artist_id: artistId,
+            membership_tier: selectedTier.name,
+            expires_at: expiresAt.toISOString(),
+            nft_token_id: `fc_${artistId}_${Date.now()}`
+          });
+
+        if (insertError) {
+          console.error('Error storing membership:', insertError);
+        }
+
+        toast({
+          title: "Welcome to the Fan Club! 🎉",
+          description: `You're now a ${selectedTier.name} member of ${artistName}'s fan club`,
+        });
+
+        // Call the callback to refresh data
+        onMembershipChange?.();
+      }
       
     } catch (error) {
       console.error('Fan club join failed:', error);
@@ -218,10 +270,10 @@ export const FanClubCard: React.FC<FanClubCardProps> = ({
                             <TierIcon className="h-5 w-5 text-primary" />
                           </div>
                           <div>
-                            <div className="font-semibold">{tier.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {tier.duration} month{tier.duration > 1 ? 's' : ''}
-                            </div>
+                           <div className="font-semibold">{tier.name.charAt(0).toUpperCase() + tier.name.slice(1)} Tier</div>
+                           <div className="text-sm text-muted-foreground">
+                             {Math.round(tier.duration / 30)} month{Math.round(tier.duration / 30) > 1 ? 's' : ''}
+                           </div>
                           </div>
                         </div>
                         <div className="text-right">
@@ -267,11 +319,19 @@ export const FanClubCard: React.FC<FanClubCardProps> = ({
           {/* Join Button */}
           <Button 
             onClick={handleJoinFanClub}
-            disabled={isProcessing}
+            disabled={isProcessing || !isAuthenticated}
             className="w-full"
             variant="aurora"
           >
-            {isProcessing ? 'Processing...' : isConnected ? `Join for ${selectedTier.price} TON` : 'Connect Wallet'}
+            {isProcessing ? (
+              'Processing...'
+            ) : !isAuthenticated ? (
+              'Sign In Required'
+            ) : !isConnected ? (
+              'Connect Wallet'
+            ) : (
+              `Join for ${selectedTier.price} TON`
+            )}
           </Button>
         </>
       )}

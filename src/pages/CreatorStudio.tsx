@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useWeb3 } from '@/hooks/useWeb3';
+import FanClubManagement from '@/components/FanClubManagement';
 import { 
   Upload,
   Music,
@@ -120,9 +121,9 @@ const CreatorStudio = () => {
   };
 
   const fanClubTiers = [
-    { name: 'Bronze', members: 850, monthlyRevenue: 4250, price: 5 },
-    { name: 'Silver', members: 300, monthlyRevenue: 4500, price: 15 },
-    { name: 'Gold', members: 100, monthlyRevenue: 2500, price: 25 }
+    { name: 'Bronze', members: 850, price: 5, monthlyRevenue: 4250 },
+    { name: 'Silver', members: 300, price: 15, monthlyRevenue: 4500 },
+    { name: 'Gold', members: 100, price: 25, monthlyRevenue: 2500 }
   ];
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -550,43 +551,7 @@ const CreatorStudio = () => {
           </TabsContent>
 
           <TabsContent value="fan-clubs" className="space-y-6">
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle>Fan Club Management</CardTitle>
-                <CardDescription>Configure your fan club tiers and benefits</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-6">
-                  {fanClubTiers.map((tier) => (
-                    <div key={tier.name} className="p-4 rounded-lg bg-background/50">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center space-x-3">
-                          <Crown className="w-6 h-6 text-yellow-400" />
-                          <h3 className="text-lg font-semibold">{tier.name} Tier</h3>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          Edit Tier
-                        </Button>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <p className="text-muted-foreground">Members</p>
-                          <p className="font-medium">{tier.members}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Price</p>
-                          <p className="font-medium">{tier.price} TON/month</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Monthly Revenue</p>
-                          <p className="font-medium">{tier.monthlyRevenue} TON</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <FanClubManagement />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
