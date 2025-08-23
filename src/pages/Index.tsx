@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import HeroSection from '@/components/HeroSection';
 import DiscoverySection from '@/components/DiscoverySection';
+import { UserFeedSection } from '@/components/UserFeedSection';
 import { WalletButton } from '@/components/WalletButton';
 import { useWeb3 } from '@/hooks/useWeb3';
 import { Play, Wallet, Crown, Star, DollarSign, Music, Users, Zap } from 'lucide-react';
@@ -14,6 +15,8 @@ const Index = () => {
   return (
     <main className="pt-16">
         <HeroSection />
+        
+        <UserFeedSection />
 
         {/* Web3 Integration Section */}
         {!isConnected && (

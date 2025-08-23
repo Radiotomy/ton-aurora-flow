@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { WalletButton } from '@/components/WalletButton';
 import { SearchModal } from '@/components/SearchModal';
 import { VoiceSearch } from '@/components/VoiceSearch';
+import { AudiusLoginButton } from '@/components/AudiusLoginButton';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   Home, 
@@ -97,6 +98,9 @@ const Navigation = () => {
                 />
               </DialogContent>
             </Dialog>
+            
+            {/* Audius Login */}
+            <AudiusLoginButton />
             
             {/* Auth Buttons */}
             {isAuthenticated ? (

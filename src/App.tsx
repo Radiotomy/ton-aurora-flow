@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 import FanClubs from "./pages/FanClubs";
 import CreatorStudio from "./pages/CreatorStudio";
 import LiveEvents from "./pages/LiveEvents";
+import AudiusCallback from "./pages/AudiusCallback";
 import Navigation from "./components/Navigation";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/audius/callback" element={<AudiusCallback />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/playlists" element={<Playlists />} />
             <Route path="/artist/:artistId" element={<ArtistDetail />} />
