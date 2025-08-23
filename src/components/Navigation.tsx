@@ -115,7 +115,7 @@ const Navigation = () => {
                 >
                   <LogOut className="w-4 h-4" />
                 </Button>
-                <WalletButton />
+      <WalletButton />
               </div>
             ) : (
               <div className="flex items-center gap-2">
