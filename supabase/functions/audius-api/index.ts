@@ -106,8 +106,39 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    const path = url.pathname.replace('/audius-api', ''); // Remove function name prefix
+    let path = url.pathname.replace('/audius-api', ''); // Remove function name prefix
     const searchParams = url.searchParams;
+
+    // Handle POST requests with JSON body
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        if (body.path) {
+          path = body.path;
+          console.log(`Audius API request: POST ${path}`);
+          
+          // Handle stream URL requests
+          const streamMatch = path.match(/^stream-url\/(.+)$/);
+          if (streamMatch) {
+            const trackId = streamMatch[1];
+            // Get track stream URL with app_name parameter for authentication
+            const streamUrl = `${AUDIUS_DISCOVERY_HOST}/v1/tracks/${trackId}/stream?app_name=${AUDIUS_API_KEY}`;
+            
+            console.log(`Providing stream URL for track ${trackId}: ${streamUrl}`);
+            
+            return new Response(JSON.stringify({ 
+              streamUrl,
+              trackId,
+              success: true 
+            }), {
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing POST body:', e);
+      }
+    }
 
     console.log(`Audius API request: ${req.method} ${path}`);
 
