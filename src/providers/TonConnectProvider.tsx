@@ -9,7 +9,8 @@ export const TonConnectProvider: React.FC<TonConnectProviderProps> = ({ children
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
   
   // Use dynamic Supabase edge function manifest that adapts to deployment environment
-  const manifestUrl = `https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/tonconnect-manifest`;
+  // Pass the current origin as a parameter to ensure correct domain matching
+  const manifestUrl = `https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/tonconnect-manifest?origin=${encodeURIComponent(currentOrigin)}`;
   
   return (
     <TonConnectUIProvider 

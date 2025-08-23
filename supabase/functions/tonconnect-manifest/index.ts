@@ -13,13 +13,15 @@ serve(async (req) => {
   }
 
   try {
-    // Get the origin from the request headers or referrer
-    const origin = req.headers.get('origin') || 
+    // Get the origin from query parameter first, then fallback to headers
+    const url = new URL(req.url);
+    const origin = url.searchParams.get('origin') || 
+                   req.headers.get('origin') || 
                    req.headers.get('referer')?.replace(/\/$/, '') || 
-                   new URL(req.url).origin;
+                   'https://082eb0ee-579e-46a8-a35f-2d335fe4e344.sandbox.lovable.dev';
     
     console.log('Request origin:', origin);
-    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+    console.log('Query params:', Object.fromEntries(url.searchParams.entries()));
     
     const manifest = {
       url: origin,
