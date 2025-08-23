@@ -12,6 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Web3ProfileModal } from '@/components/Web3ProfileModal';
+import { UnifiedWalletDisplay } from '@/components/UnifiedWalletDisplay';
 import { useWeb3 } from '@/hooks/useWeb3';
 import { useToast } from '@/hooks/use-toast';
 
@@ -172,6 +173,13 @@ export const WalletButton: React.FC = () => {
         open={showProfileModal}
         onClose={() => setShowProfileModal(false)}
       />
+      
+      {/* Unified Wallet Display for testing */}
+      {isConnected && (
+        <div className="fixed bottom-4 right-4 w-80 z-50">
+          <UnifiedWalletDisplay />
+        </div>
+      )}
     </>
   );
 };

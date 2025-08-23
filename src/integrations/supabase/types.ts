@@ -14,6 +14,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      cross_token_transactions: {
+        Row: {
+          completed_at: string | null
+          conversion_rate: number
+          created_at: string | null
+          fees: number | null
+          from_amount: number
+          from_token: string
+          id: string
+          profile_id: string | null
+          status: string | null
+          to_amount: number
+          to_token: string
+        }
+        Insert: {
+          completed_at?: string | null
+          conversion_rate: number
+          created_at?: string | null
+          fees?: number | null
+          from_amount: number
+          from_token: string
+          id?: string
+          profile_id?: string | null
+          status?: string | null
+          to_amount: number
+          to_token: string
+        }
+        Update: {
+          completed_at?: string | null
+          conversion_rate?: number
+          created_at?: string | null
+          fees?: number | null
+          from_amount?: number
+          from_token?: string
+          id?: string
+          profile_id?: string | null
+          status?: string | null
+          to_amount?: number
+          to_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cross_token_transactions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fan_club_memberships: {
         Row: {
           artist_id: string
@@ -83,6 +133,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "listening_history_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_preferences: {
+        Row: {
+          action_type: string
+          auto_select: boolean | null
+          created_at: string | null
+          id: string
+          preferred_token: string
+          profile_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_type: string
+          auto_select?: boolean | null
+          created_at?: string | null
+          id?: string
+          preferred_token: string
+          profile_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          auto_select?: boolean | null
+          created_at?: string | null
+          id?: string
+          preferred_token?: string
+          profile_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_preferences_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -160,40 +248,105 @@ export type Database = {
       }
       profiles: {
         Row: {
+          audio_token_balance: number | null
           auth_user_id: string | null
           avatar_url: string | null
           bio: string | null
           created_at: string
           display_name: string | null
           id: string
+          preferred_payment_token: string | null
           reputation_score: number | null
           ton_dns_name: string | null
           updated_at: string
           wallet_address: string | null
         }
         Insert: {
+          audio_token_balance?: number | null
           auth_user_id?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          preferred_payment_token?: string | null
           reputation_score?: number | null
           ton_dns_name?: string | null
           updated_at?: string
           wallet_address?: string | null
         }
         Update: {
+          audio_token_balance?: number | null
           auth_user_id?: string | null
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
           display_name?: string | null
           id?: string
+          preferred_payment_token?: string | null
           reputation_score?: number | null
           ton_dns_name?: string | null
           updated_at?: string
           wallet_address?: string | null
+        }
+        Relationships: []
+      }
+      token_balances: {
+        Row: {
+          balance: number
+          id: string
+          last_updated: string | null
+          profile_id: string | null
+          token_type: string
+        }
+        Insert: {
+          balance?: number
+          id?: string
+          last_updated?: string | null
+          profile_id?: string | null
+          token_type: string
+        }
+        Update: {
+          balance?: number
+          id?: string
+          last_updated?: string | null
+          profile_id?: string | null
+          token_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "token_balances_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      token_conversion_rates: {
+        Row: {
+          created_at: string | null
+          from_token: string
+          id: string
+          rate: number
+          source: string
+          to_token: string
+        }
+        Insert: {
+          created_at?: string | null
+          from_token: string
+          id?: string
+          rate: number
+          source: string
+          to_token: string
+        }
+        Update: {
+          created_at?: string | null
+          from_token?: string
+          id?: string
+          rate?: number
+          source?: string
+          to_token?: string
         }
         Relationships: []
       }
@@ -238,6 +391,8 @@ export type Database = {
       transactions: {
         Row: {
           amount_ton: number
+          audio_amount: number | null
+          conversion_rate: number | null
           created_at: string
           fee_ton: number | null
           from_profile_id: string | null
@@ -245,12 +400,15 @@ export type Database = {
           metadata: Json | null
           status: string
           to_profile_id: string | null
+          token_type: string | null
           transaction_hash: string
           transaction_type: string
           updated_at: string
         }
         Insert: {
           amount_ton: number
+          audio_amount?: number | null
+          conversion_rate?: number | null
           created_at?: string
           fee_ton?: number | null
           from_profile_id?: string | null
@@ -258,12 +416,15 @@ export type Database = {
           metadata?: Json | null
           status?: string
           to_profile_id?: string | null
+          token_type?: string | null
           transaction_hash: string
           transaction_type: string
           updated_at?: string
         }
         Update: {
           amount_ton?: number
+          audio_amount?: number | null
+          conversion_rate?: number | null
           created_at?: string
           fee_ton?: number | null
           from_profile_id?: string | null
@@ -271,6 +432,7 @@ export type Database = {
           metadata?: Json | null
           status?: string
           to_profile_id?: string | null
+          token_type?: string | null
           transaction_hash?: string
           transaction_type?: string
           updated_at?: string

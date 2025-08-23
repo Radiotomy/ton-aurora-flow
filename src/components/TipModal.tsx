@@ -9,6 +9,10 @@ import { Separator } from '@/components/ui/separator';
 import { useWeb3 } from '@/hooks/useWeb3';
 import { useToast } from '@/hooks/use-toast';
 import { tonPaymentService } from '@/services/tonPaymentService';
+import { SmartPaymentSelector } from '@/components/SmartPaymentSelector';
+import { TokenConversionModal } from '@/components/TokenConversionModal';
+import { UnifiedPaymentService, TokenType } from '@/services/unifiedPaymentService';
+import { useTokenBalances } from '@/hooks/useTokenBalances';
 import { Heart, Coins, Zap, Star, Gift } from 'lucide-react';
 
 interface TipModalProps {
@@ -42,30 +46,29 @@ export const TipModal: React.FC<TipModalProps> = ({ open, onClose, artist, track
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [message, setMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const { isConnected, connectWallet, walletAddress } = useWeb3();
+  const [conversionModalOpen, setConversionModalOpen] = useState(false);
+  const [pendingConversion, setPendingConversion] = useState<{
+    fromToken: TokenType;
+    toToken: TokenType;
+    amount: number;
+  } | null>(null);
+  
+  const { isConnected, connectWallet, walletAddress, profile } = useWeb3();
+  const { balances, refreshBalances } = useTokenBalances();
   const { toast } = useToast();
 
   const tipAmount = selectedAmount || parseFloat(customAmount) || 0;
 
-  const handleTip = async () => {
+  const handlePaymentSelect = async (token: TokenType, amount: number) => {
     if (!isConnected) {
       await connectWallet();
       return;
     }
 
-    if (tipAmount <= 0) {
+    if (!profile?.id) {
       toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid tip amount.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!artist.walletAddress) {
-      toast({
-        title: "Artist Wallet Not Found",
-        description: "This artist hasn't set up their wallet yet.",
+        title: "Profile Required",
+        description: "Please complete your profile setup first.",
         variant: "destructive",
       });
       return;
@@ -73,19 +76,24 @@ export const TipModal: React.FC<TipModalProps> = ({ open, onClose, artist, track
 
     setIsProcessing(true);
     try {
-      // Use the real TON payment service
-      const result = await tonPaymentService.sendTip(walletAddress, {
-        recipientAddress: artist.walletAddress,
-        amount: tipAmount.toString(),
-        message: message || `Tip for ${track?.title || 'your music'}`,
+      const result = await UnifiedPaymentService.processPayment({
+        profileId: profile.id,
+        context: {
+          contentType: 'tip',
+          artistId: artist.id,
+          amount: amount
+        },
+        preferredToken: token,
+        recipientId: artist.id
       });
 
       if (result.success) {
         toast({
-          title: getTipMessage(tipAmount),
-          description: `${tipAmount} TON sent to ${artist.name} successfully!`,
+          title: getTipMessage(amount),
+          description: `${amount} ${result.tokenUsed} sent to ${artist.name} successfully!`,
         });
         
+        await refreshBalances();
         onClose();
         
         // Reset form
@@ -104,6 +112,22 @@ export const TipModal: React.FC<TipModalProps> = ({ open, onClose, artist, track
       });
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleConversionNeeded = (fromToken: TokenType, toToken: TokenType, amount: number) => {
+    setPendingConversion({ fromToken, toToken, amount });
+    setConversionModalOpen(true);
+  };
+
+  const handleConversionComplete = async () => {
+    setConversionModalOpen(false);
+    await refreshBalances();
+    
+    if (pendingConversion) {
+      // Proceed with payment after conversion
+      await handlePaymentSelect(pendingConversion.toToken, pendingConversion.amount);
+      setPendingConversion(null);
     }
   };
 
@@ -210,6 +234,23 @@ export const TipModal: React.FC<TipModalProps> = ({ open, onClose, artist, track
           </Card>
         )}
 
+        {/* Smart Payment Options */}
+        {tipAmount > 0 && (
+          <>
+            <Separator />
+            <SmartPaymentSelector
+              context={{
+                contentType: 'tip',
+                artistId: artist.id,
+                amount: tipAmount
+              }}
+              onPaymentSelect={handlePaymentSelect}
+              onConversionNeeded={handleConversionNeeded}
+              disabled={isProcessing}
+            />
+          </>
+        )}
+
         <Separator />
 
         {/* Action Buttons */}
@@ -217,15 +258,23 @@ export const TipModal: React.FC<TipModalProps> = ({ open, onClose, artist, track
           <Button variant="outline" onClick={onClose} className="flex-1">
             Cancel
           </Button>
-          <Button 
-            onClick={handleTip} 
-            disabled={isProcessing || tipAmount <= 0}
-            className="flex-1"
-            variant="aurora"
-          >
-            {isProcessing ? 'Sending...' : isConnected ? `Tip ${tipAmount || 0} TON` : 'Connect Wallet'}
-          </Button>
+          {tipAmount <= 0 && (
+            <Button 
+              disabled
+              className="flex-1"
+              variant="outline"
+            >
+              Enter Amount
+            </Button>
+          )}
         </div>
+        
+        <TokenConversionModal
+          open={conversionModalOpen}
+          onOpenChange={setConversionModalOpen}
+          balances={balances}
+          onConversionComplete={handleConversionComplete}
+        />
       </DialogContent>
     </Dialog>
   );
