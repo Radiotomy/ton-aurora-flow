@@ -15,7 +15,8 @@ const Dashboard = () => {
   const { user, isAuthenticated } = useAuth();
   const { profile, assets, fanClubMemberships, isConnected, tonBalance } = useWalletStore();
 
-  if (!isAuthenticated) {
+  // Allow access with either Supabase auth OR wallet connection
+  if (!isAuthenticated && !isConnected) {
     return <Navigate to="/auth" replace />;
   }
 

@@ -152,8 +152,8 @@ export const useWeb3 = () => {
           setTonDnsName(existingProfile.ton_dns_name);
         }
         
-        // Only show toast if we haven't shown it yet for this session
-        if (!hasShownWelcomeToast.current && lastConnectedAddress.current === address) {
+        // Only show welcome toast for new connections, not reconnections
+        if (!hasShownWelcomeToast.current && lastConnectedAddress.current !== address) {
           hasShownWelcomeToast.current = true;
           toast.success(`Welcome back, ${existingProfile.display_name}! 👋`);
         }
@@ -192,8 +192,8 @@ export const useWeb3 = () => {
               setTonDnsName(existingProfile.ton_dns_name);
             }
             
-            // Only show toast if we haven't shown it yet for this session
-            if (!hasShownWelcomeToast.current && lastConnectedAddress.current === address) {
+            // Only show welcome toast for new connections, not reconnections
+            if (!hasShownWelcomeToast.current && lastConnectedAddress.current !== address) {
               hasShownWelcomeToast.current = true;
               toast.success(`Welcome back, ${existingProfile.display_name}! 👋`);
             }
@@ -206,8 +206,8 @@ export const useWeb3 = () => {
 
         setProfileRef.current(createdProfile);
         
-        // Only show toast if we haven't shown it yet for this session
-        if (!hasShownWelcomeToast.current && lastConnectedAddress.current === address) {
+        // Only show welcome toast for first-time users
+        if (!hasShownWelcomeToast.current) {
           hasShownWelcomeToast.current = true;
           toast.success('Welcome to Web3 Music! 🎵 Complete your setup in Dashboard.');
         }
@@ -243,8 +243,14 @@ export const useWeb3 = () => {
         // Only proceed if this is a new connection or different address
         if (lastConnectedAddress.current !== currentAddress) {
           isProcessingConnection.current = true;
+          
+          // Only reset welcome toast for actually different addresses
+          const shouldResetToast = lastConnectedAddress.current && lastConnectedAddress.current !== currentAddress;
+          if (shouldResetToast) {
+            hasShownWelcomeToast.current = false;
+          }
+          
           lastConnectedAddress.current = currentAddress;
-          hasShownWelcomeToast.current = false; // Reset toast flag for new address
           
           // Use the refs to avoid circular dependencies
           setConnectedRef.current(true);
