@@ -87,7 +87,7 @@ export const ProfileEditModal = ({ open, onOpenChange }: ProfileEditModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md glass-panel">
+      <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto glass-panel fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] z-50">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-aurora">
             <Music className="h-5 w-5" />
@@ -95,18 +95,19 @@ export const ProfileEditModal = ({ open, onOpenChange }: ProfileEditModalProps) 
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6 p-1">
           {/* Avatar Section */}
           <div className="flex flex-col items-center space-y-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={formData.avatar_url} />
-              <AvatarFallback>
-                <Music className="h-8 w-8" />
-              </AvatarFallback>
-            </Avatar>
-            
+            <div className="relative">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={formData.avatar_url} />
+                <AvatarFallback>
+                  <Music className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
+            </div>
             <div className="w-full space-y-2">
-              <Label htmlFor="avatar_url">Avatar URL</Label>
+              <Label htmlFor="avatar_url" className="text-sm font-medium">Avatar URL</Label>
               <div className="flex gap-2">
                 <Input
                   id="avatar_url"
@@ -114,9 +115,9 @@ export const ProfileEditModal = ({ open, onOpenChange }: ProfileEditModalProps) 
                   placeholder="https://example.com/avatar.jpg"
                   value={formData.avatar_url}
                   onChange={(e) => handleInputChange('avatar_url', e.target.value)}
-                  className="flex-1"
+                  className="flex-1 bg-background/50"
                 />
-                <Button type="button" variant="outline" size="sm">
+                <Button type="button" variant="outline" size="sm" className="shrink-0">
                   <Upload className="h-4 w-4" />
                 </Button>
               </div>
@@ -125,40 +126,42 @@ export const ProfileEditModal = ({ open, onOpenChange }: ProfileEditModalProps) 
 
           {/* Display Name */}
           <div className="space-y-2">
-            <Label htmlFor="display_name">Display Name</Label>
+            <Label htmlFor="display_name" className="text-sm font-medium">Display Name</Label>
             <Input
               id="display_name"
               placeholder="Your display name"
               value={formData.display_name}
               onChange={(e) => handleInputChange('display_name', e.target.value)}
+              className="bg-background/50"
               required
             />
           </div>
 
           {/* Bio */}
           <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
+            <Label htmlFor="bio" className="text-sm font-medium">Bio</Label>
             <Textarea
               id="bio"
               placeholder="Tell us about yourself..."
               value={formData.bio}
               onChange={(e) => handleInputChange('bio', e.target.value)}
+              className="bg-background/50 min-h-[80px] resize-none"
               rows={3}
             />
           </div>
 
           {/* TON DNS Name */}
           <div className="space-y-2">
-            <Label htmlFor="ton_dns_name">TON DNS Name</Label>
-            <div className="flex gap-2">
+            <Label htmlFor="ton_dns_name" className="text-sm font-medium">TON DNS Name</Label>
+            <div className="flex gap-2 items-center">
               <Input
                 id="ton_dns_name"
                 placeholder="yourname"
                 value={formData.ton_dns_name}
                 onChange={(e) => handleInputChange('ton_dns_name', e.target.value)}
-                className="flex-1"
+                className="flex-1 bg-background/50"
               />
-              <span className="flex items-center text-sm text-muted-foreground">.ton</span>
+              <span className="text-sm text-muted-foreground shrink-0">.ton</span>
             </div>
             <p className="text-xs text-muted-foreground">
               Your custom TON DNS name for easy identification
