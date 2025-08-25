@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { useWeb3 } from '@/hooks/useWeb3';
 import { useWalletStore } from '@/stores/walletStore';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,6 +7,10 @@ import { toast } from '@/hooks/use-toast';
 export const useTrackInteractions = () => {
   const { isConnected, profile, sendTransaction } = useWeb3();
   const { setProfile } = useWalletStore();
+  
+  // Use ref to avoid circular dependency
+  const setProfileRef = useRef(setProfile);
+  setProfileRef.current = setProfile;
 
   // Play track with Web3 benefits
   const playTrack = useCallback(async (trackId: string, artistId: string) => {
@@ -132,7 +136,7 @@ export const useTrackInteractions = () => {
             .update({ reputation_score: updatedProfile.reputation_score })
             .eq('id', profile.id);
             
-          setProfile(updatedProfile);
+          setProfileRef.current(updatedProfile);
         }
 
         toast({
@@ -143,7 +147,7 @@ export const useTrackInteractions = () => {
         console.error('Error recording collection:', error);
       }
     }
-  }, [isConnected, profile, sendTransaction, setProfile]);
+  }, [isConnected, profile, sendTransaction]);
 
   // Share track with referral benefits
   const shareTrack = useCallback(async (trackId: string) => {

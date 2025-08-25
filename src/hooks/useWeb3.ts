@@ -73,6 +73,20 @@ export const useWeb3 = () => {
     disconnectWallet: storeDisconnectWallet,
   } = storeState;
 
+  // Refs to store functions to prevent circular dependencies
+  const setConnectedRef = useRef(setConnected);
+  const setWalletAddressRef = useRef(setWalletAddress);
+  const setProfileRef = useRef(setProfile);
+  const setLoadingProfileRef = useRef(setLoadingProfile);
+
+  // Update refs when functions change
+  useEffect(() => {
+    setConnectedRef.current = setConnected;
+    setWalletAddressRef.current = setWalletAddress;
+    setProfileRef.current = setProfile;
+    setLoadingProfileRef.current = setLoadingProfile;
+  }, [setConnected, setWalletAddress, setProfile, setLoadingProfile]);
+
   // Load wallet balance
   const loadWalletBalance = useCallback(async (address: string) => {
     try {
@@ -110,7 +124,7 @@ export const useWeb3 = () => {
 
   // Enhanced profile loading with better error handling
   const loadUserProfile = useCallback(async (address: string) => {
-    setLoadingProfile(true);
+    setLoadingProfileRef.current(true);
     
     try {
       // Validate address format
@@ -133,7 +147,7 @@ export const useWeb3 = () => {
       }
 
       if (existingProfile) {
-        setProfile(existingProfile);
+        setProfileRef.current(existingProfile);
         if (existingProfile.ton_dns_name) {
           setTonDnsName(existingProfile.ton_dns_name);
         }
@@ -173,7 +187,7 @@ export const useWeb3 = () => {
               throw new Error('Profile exists but failed to fetch it');
             }
             
-            setProfile(existingProfile);
+            setProfileRef.current(existingProfile);
             if (existingProfile.ton_dns_name) {
               setTonDnsName(existingProfile.ton_dns_name);
             }
@@ -190,7 +204,7 @@ export const useWeb3 = () => {
           throw new Error('Failed to create new profile');
         }
 
-        setProfile(createdProfile);
+        setProfileRef.current(createdProfile);
         
         // Only show toast if we haven't shown it yet for this session
         if (!hasShownWelcomeToast.current && lastConnectedAddress.current === address) {
@@ -211,52 +225,60 @@ export const useWeb3 = () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      setProfile(fallbackProfile);
+      setProfileRef.current(fallbackProfile);
     } finally {
-      setLoadingProfile(false);
+      setLoadingProfileRef.current(false);
     }
-  }, [setProfile, setLoadingProfile]);
+  }, []);
 
   // Handle wallet connection state changes with navigation stability
   useEffect(() => {
     // Don't process wallet changes during navigation or if already processing
     if (isNavigating || isProcessingConnection.current) return;
     
-    if (debouncedWalletAddress && wallet?.account) {
-      const currentAddress = debouncedWalletAddress;
-      
-      // Only proceed if this is a new connection or different address
-      if (lastConnectedAddress.current !== currentAddress) {
-        isProcessingConnection.current = true;
-        lastConnectedAddress.current = currentAddress;
-        hasShownWelcomeToast.current = false; // Reset toast flag for new address
+    const processWalletConnection = async () => {
+      if (debouncedWalletAddress && wallet?.account) {
+        const currentAddress = debouncedWalletAddress;
         
-        setConnected(true);
-        setWalletAddress(currentAddress);
-        
-        // Process profile loading with delay to prevent multiple calls
-        setTimeout(() => {
-          loadUserProfile(currentAddress);
-          loadWalletBalance(currentAddress);
-          checkTonDnsName(currentAddress);
-          isProcessingConnection.current = false;
-        }, 100);
-      }
-    } else if (!connectingWallet) {
-      // Only reset if we were previously connected and not in middle of connecting
-      if (lastConnectedAddress.current !== null) {
+        // Only proceed if this is a new connection or different address
+        if (lastConnectedAddress.current !== currentAddress) {
+          isProcessingConnection.current = true;
+          lastConnectedAddress.current = currentAddress;
+          hasShownWelcomeToast.current = false; // Reset toast flag for new address
+          
+          // Use the refs to avoid circular dependencies
+          setConnectedRef.current(true);
+          setWalletAddressRef.current(currentAddress);
+          
+          // Process profile loading asynchronously
+          try {
+            await Promise.all([
+              loadUserProfile(currentAddress),
+              loadWalletBalance(currentAddress),
+              checkTonDnsName(currentAddress)
+            ]);
+          } catch (error) {
+            console.error('Error processing wallet connection:', error);
+          } finally {
+            isProcessingConnection.current = false;
+          }
+        }
+      } else if (!connectingWallet && lastConnectedAddress.current !== null) {
+        // Reset state when wallet disconnects
         lastConnectedAddress.current = null;
         hasShownWelcomeToast.current = false;
         isProcessingConnection.current = false;
         
-        setConnected(false);
-        setWalletAddress(null);
-        setProfile(null);
+        setConnectedRef.current(false);
+        setWalletAddressRef.current(null);
+        setProfileRef.current(null);
         setBalance('0');
         setTonDnsName(null);
       }
-    }
-  }, [debouncedWalletAddress, wallet?.account, isNavigating, connectingWallet]);
+    };
+
+    processWalletConnection();
+  }, [debouncedWalletAddress, wallet?.account, isNavigating, connectingWallet, loadUserProfile, loadWalletBalance, checkTonDnsName]);
 
   // Enhanced wallet connection with better UX
   const connectWallet = useCallback(async () => {
