@@ -31,12 +31,12 @@ class AnalyticsService {
     // Initialize Google Analytics if gtag is available
     if ((window as any).gtag) {
       this.isInitialized = true;
-      console.log('Analytics initialized with Google Analytics');
+      // Analytics initialized with Google Analytics
     }
 
     // Initialize Telegram Analytics if in TWA
     if ((window as any).Telegram?.WebApp) {
-      console.log('Analytics initialized for Telegram Web App');
+      // Analytics initialized for Telegram Web App
     }
 
     // Track initial page view
@@ -80,7 +80,7 @@ class AnalyticsService {
 
     // Console logging for development
     if (process.env.NODE_ENV === 'development') {
-      console.log('Analytics Event:', event);
+      // Development mode analytics event tracking
     }
 
     // Send to custom analytics endpoint (if available)

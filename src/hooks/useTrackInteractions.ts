@@ -26,8 +26,8 @@ export const useTrackInteractions = () => {
       }
     }
     
-    // Implement actual track playback here
-    console.log('Playing track:', trackId);
+    // Track playback implementation
+    // This would integrate with the audio player
   }, [isConnected, profile]);
 
   // Like track with optional micro-tip

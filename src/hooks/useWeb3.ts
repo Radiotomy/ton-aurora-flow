@@ -159,7 +159,7 @@ export const useWeb3 = () => {
         if (createError) {
           // If it's a duplicate key error, the profile already exists - fetch it instead
           if (createError.code === '23505') {
-            console.log('Profile already exists, fetching existing profile');
+            // Profile already exists, fetching existing profile
             const { data: existingProfile, error: refetchError } = await supabase
               .from('profiles')
               .select('*')
@@ -253,7 +253,7 @@ export const useWeb3 = () => {
   const connectWallet = useCallback(async () => {
     if (connectingWallet) return;
     
-    console.log('🔵 Starting enhanced wallet connection...');
+    // Starting enhanced wallet connection
     setConnectingWallet(true);
     
     try {
@@ -272,10 +272,10 @@ export const useWeb3 = () => {
       
       const connectionPromise = tonConnectUI.connectWallet();
       
-      console.log('🔵 Waiting for wallet connection...');
+      // Waiting for wallet connection
       await Promise.race([connectionPromise, timeoutPromise]);
       
-      console.log('🟢 Wallet connected successfully');
+      // Wallet connected successfully
       
       toast.success('Wallet Connected! 🎉 Your TON wallet has been successfully connected');
       
@@ -296,7 +296,7 @@ export const useWeb3 = () => {
       
       toast.error(errorMessage);
     } finally {
-      console.log('🔵 Connection attempt finished');
+      // Connection attempt finished
       setConnectingWallet(false);
     }
   }, [tonConnectUI, connectingWallet, setConnectingWallet]);

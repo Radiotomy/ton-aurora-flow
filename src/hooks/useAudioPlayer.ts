@@ -180,14 +180,14 @@ export const useAudioPlayer = () => {
       // Get the actual stream URL if not provided or if it's a placeholder
       let streamUrl = track.streamUrl;
       if (!streamUrl || streamUrl.includes('placeholder') || !streamUrl.startsWith('http')) {
-        console.log('Fetching real stream URL for track:', track.id);
+        // Fetching real stream URL for track
         const response = await supabase.functions.invoke('audius-api', {
           body: { path: `stream-url/${track.id}` }
         });
         
         if (response.data?.streamUrl) {
           streamUrl = response.data.streamUrl;
-          console.log('Got stream URL:', streamUrl);
+          // Stream URL fetched successfully
         } else {
           throw new Error('No stream URL available');
         }

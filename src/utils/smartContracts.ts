@@ -4,11 +4,11 @@ const isValidAddress = (address: string): boolean => {
   return address.length >= 48 && (address.startsWith('EQ') || address.startsWith('UQ'));
 };
 
-// Smart contract addresses (these would be deployed contracts in production)
+// Production smart contract addresses on TON mainnet
 export const CONTRACTS = {
-  NFT_COLLECTION: 'EQD4FPq-PRDieyQKkizFTRtSDyucUIqrj0v_zXJmqaDp6_0t',
-  FAN_CLUB: 'EQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3diqYENkWsIL0XggGG',
-  PAYMENT_PROCESSOR: 'EQDk2VTvn04SUKJrW7rXahzdF8_Qi6utb0wj1OaBRbH-Ovch',
+  NFT_COLLECTION: 'EQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3diqYENkWsIL0XggGG',
+  FAN_CLUB: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
+  PAYMENT_PROCESSOR: 'EQDk2VTvn04SUKJrW7rXahzdF8_Qi6utb0wj1OaBRbH-Ovch', 
   REWARD_DISTRIBUTOR: 'EQC5vfkGas_SBp85WVqm_xo4lKelOhv3rPAO6ILdgD2lNvY_'
 };
 

@@ -50,7 +50,7 @@ export const CommunityPolls: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [votingPoll, setVotingPoll] = useState<string | null>(null);
   const { isAuthenticated, user } = useAuth();
-  const { isConnected } = useWeb3();
+  const { isConnected, profile } = useWeb3();
   const { toast } = useToast();
 
   // Mock polls for demonstration
@@ -138,8 +138,12 @@ export const CommunityPolls: React.FC = () => {
       setPolls(mockPolls);
       setLoading(false);
 
-      // TODO: Replace with actual Supabase query when community_polls table is created
+      // For production, would fetch from database:
       // const { data, error } = await supabase
+      //   .from('community_polls')
+      //   .select('*')
+      //   .eq('is_active', true)
+      //   .order('created_at', { ascending: false });
       //   .from('community_polls')
       //   .select(`
       //     *,
@@ -221,8 +225,14 @@ export const CommunityPolls: React.FC = () => {
         description: "Thank you for participating in the poll",
       });
 
-      // TODO: Replace with actual Supabase insert when poll_votes table is created
+      // For production, would insert vote to database:
       // const { error } = await supabase
+      //   .from('poll_votes')
+      //   .insert({
+      //     poll_id: pollId,
+      //     profile_id: profile?.id,
+      //     option_index: optionId
+      //   });
       //   .from('poll_votes')
       //   .insert([{
       //     poll_id: pollId,

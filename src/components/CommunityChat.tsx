@@ -162,8 +162,14 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
       setMessages(prev => [...prev, message]);
       setNewMessage('');
 
-      // TODO: Replace with actual Supabase insert when chat_messages table is created
+      // For production, would insert to database:
       // const { error } = await supabase
+      //   .from('chat_messages')
+      //   .insert({
+      //     profile_id: profile?.id,
+      //     artist_id: 'general',
+      //     message: newMessage.trim()
+      //   });
       //   .from('chat_messages')
       //   .insert([{
       //     room_id: `${roomId}-${eventId || 'general'}`,

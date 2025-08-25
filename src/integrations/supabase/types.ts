@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_messages: {
+        Row: {
+          artist_id: string
+          created_at: string
+          id: string
+          is_deleted: boolean | null
+          message: string
+          profile_id: string | null
+          reply_to_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean | null
+          message: string
+          profile_id?: string | null
+          reply_to_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean | null
+          message?: string
+          profile_id?: string | null
+          reply_to_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      community_polls: {
+        Row: {
+          artist_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          is_active: boolean | null
+          options: Json
+          profile_id: string | null
+          question: string
+          total_votes: number | null
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          is_active?: boolean | null
+          options: Json
+          profile_id?: string | null
+          question: string
+          total_votes?: number | null
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          is_active?: boolean | null
+          options?: Json
+          profile_id?: string | null
+          question?: string
+          total_votes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_polls_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cross_token_transactions: {
         Row: {
           completed_at: string | null
@@ -140,6 +232,57 @@ export type Database = {
           },
         ]
       }
+      live_events: {
+        Row: {
+          artist_id: string
+          created_at: string
+          current_attendees: number | null
+          description: string | null
+          id: string
+          is_live: boolean | null
+          max_attendees: number | null
+          scheduled_end: string | null
+          scheduled_start: string
+          stream_url: string | null
+          thumbnail_url: string | null
+          ticket_price: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          current_attendees?: number | null
+          description?: string | null
+          id?: string
+          is_live?: boolean | null
+          max_attendees?: number | null
+          scheduled_end?: string | null
+          scheduled_start: string
+          stream_url?: string | null
+          thumbnail_url?: string | null
+          ticket_price?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          current_attendees?: number | null
+          description?: string | null
+          id?: string
+          is_live?: boolean | null
+          max_attendees?: number | null
+          scheduled_end?: string | null
+          scheduled_start?: string
+          stream_url?: string | null
+          thumbnail_url?: string | null
+          ticket_price?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payment_preferences: {
         Row: {
           action_type: string
@@ -245,6 +388,45 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_index: number
+          poll_id: string | null
+          profile_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_index: number
+          poll_id?: string | null
+          profile_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_index?: number
+          poll_id?: string | null
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "community_polls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

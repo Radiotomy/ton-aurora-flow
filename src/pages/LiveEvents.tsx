@@ -109,8 +109,11 @@ const LiveEvents = () => {
       setEvents(mockEvents);
       setLoading(false);
       
-      // TODO: Replace with actual Supabase query when live_events table is created
+      // For production, would fetch from database:
       // const { data, error } = await supabase
+      //   .from('live_events')
+      //   .select('*')
+      //   .order('scheduled_start', { ascending: true });
       //   .from('live_events')
       //   .select('*')
       //   .order('scheduled_start', { ascending: true });

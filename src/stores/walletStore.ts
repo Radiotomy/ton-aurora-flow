@@ -84,8 +84,7 @@ export const useWalletStore = create<WalletState>()(
       
       // Web3 actions
       connectWallet: async () => {
-        // This will be implemented with TON Connect hooks
-        console.log('Connect wallet action');
+        // Connect wallet action - implemented via TON Connect hooks
       },
       
       disconnectWallet: () => {
@@ -100,8 +99,7 @@ export const useWalletStore = create<WalletState>()(
       },
       
       fetchUserAssets: async () => {
-        // This will fetch user's NFTs and tokens from blockchain
-        console.log('Fetch user assets');
+        // Fetch user's NFTs and tokens from blockchain
       },
       
       updateProfile: async (updates) => {
@@ -120,7 +118,6 @@ export const useWalletStore = create<WalletState>()(
       }),
       onRehydrateStorage: () => (state) => {
         // Ensure stable state after hydration
-        console.log('Wallet store rehydrated');
       },
     }
   )

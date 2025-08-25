@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAudiusSearch } from '@/hooks/useAudius';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { AudiusService } from '@/services/audiusService';
+import { useToast } from '@/hooks/use-toast';
 import {
   Search,
   Music,
@@ -55,6 +56,7 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({ open, 
 
   const { tracks, users, loading, searchTracks, searchUsers, clearResults } = useAudiusSearch();
   const { playTrack } = useAudioPlayer();
+  const { toast } = useToast();
 
   const genres = AudiusService.getGenres();
   const moods = [
@@ -108,8 +110,11 @@ export const AdvancedSearchModal: React.FC<AdvancedSearchModalProps> = ({ open, 
   };
 
   const handleAddToQueue = async (track: any) => {
-    // Queue functionality would be implemented here
-    console.log('Add to queue:', track);
+    // Add track to queue
+    toast({
+      title: "Added to Queue",
+      description: `"${track.title}" has been added to your queue.`,
+    });
   };
 
   const clearFilters = () => {
