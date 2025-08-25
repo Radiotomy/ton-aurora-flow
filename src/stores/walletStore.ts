@@ -72,15 +72,15 @@ export const useWalletStore = create<WalletState>()(
       connectingWallet: false,
       loadingProfile: false,
       
-      // Basic setters
-      setConnected: (connected) => set({ isConnected: connected }),
-      setWalletAddress: (address) => set({ walletAddress: address }),
-      setTonBalance: (balance) => set({ tonBalance: balance }),
-      setProfile: (profile) => set({ profile }),
-      setAssets: (assets) => set({ assets }),
-      setFanClubMemberships: (memberships) => set({ fanClubMemberships: memberships }),
-      setConnectingWallet: (connecting) => set({ connectingWallet: connecting }),
-      setLoadingProfile: (loading) => set({ loadingProfile: loading }),
+      // Basic setters - wrapped to ensure stability
+      setConnected: (connected) => set(() => ({ isConnected: connected })),
+      setWalletAddress: (address) => set(() => ({ walletAddress: address })),
+      setTonBalance: (balance) => set(() => ({ tonBalance: balance })),
+      setProfile: (profile) => set(() => ({ profile })),
+      setAssets: (assets) => set(() => ({ assets })),
+      setFanClubMemberships: (memberships) => set(() => ({ fanClubMemberships: memberships })),
+      setConnectingWallet: (connecting) => set(() => ({ connectingWallet: connecting })),
+      setLoadingProfile: (loading) => set(() => ({ loadingProfile: loading })),
       
       // Web3 actions
       connectWallet: async () => {
@@ -88,14 +88,14 @@ export const useWalletStore = create<WalletState>()(
       },
       
       disconnectWallet: () => {
-        set({
+        set(() => ({
           isConnected: false,
           walletAddress: null,
           tonBalance: 0,
           profile: null,
           assets: [],
           fanClubMemberships: [],
-        });
+        }));
       },
       
       fetchUserAssets: async () => {
@@ -103,9 +103,9 @@ export const useWalletStore = create<WalletState>()(
       },
       
       updateProfile: async (updates) => {
-        const { profile } = get();
-        if (profile) {
-          set({ profile: { ...profile, ...updates } });
+        const state = get();
+        if (state.profile) {
+          set(() => ({ profile: { ...state.profile, ...updates } }));
         }
       },
     }),

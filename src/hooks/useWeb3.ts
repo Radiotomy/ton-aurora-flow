@@ -256,7 +256,7 @@ export const useWeb3 = () => {
         setTonDnsName(null);
       }
     }
-  }, [debouncedWalletAddress, wallet?.account, isNavigating, connectingWallet, setConnected, setWalletAddress, setProfile, loadUserProfile, loadWalletBalance, checkTonDnsName]);
+  }, [debouncedWalletAddress, wallet?.account, isNavigating, connectingWallet]);
 
   // Enhanced wallet connection with better UX
   const connectWallet = useCallback(async () => {
