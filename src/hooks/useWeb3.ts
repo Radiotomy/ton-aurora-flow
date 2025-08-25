@@ -29,6 +29,8 @@ export const useWeb3 = () => {
   const [isCheckingDns, setIsCheckingDns] = useState(false);
   const lastConnectedAddress = useRef<string | null>(null);
   const hasShownWelcomeToast = useRef<boolean>(false);
+  const connectionToastId = useRef<string | null>(null);
+  const isProcessingConnection = useRef<boolean>(false);
   
   // Debounce wallet address changes to prevent excessive updates
   const debouncedWalletAddress = useDebounce(wallet?.account.address || null, 200);
@@ -136,8 +138,8 @@ export const useWeb3 = () => {
           setTonDnsName(existingProfile.ton_dns_name);
         }
         
-        // Only show toast if we haven't shown it yet for this connection
-        if (!hasShownWelcomeToast.current) {
+        // Only show toast if we haven't shown it yet for this session
+        if (!hasShownWelcomeToast.current && lastConnectedAddress.current === address) {
           hasShownWelcomeToast.current = true;
           toast.success(`Welcome back, ${existingProfile.display_name}! 👋`);
         }
@@ -176,8 +178,8 @@ export const useWeb3 = () => {
               setTonDnsName(existingProfile.ton_dns_name);
             }
             
-            // Only show toast if we haven't shown it yet for this connection
-            if (!hasShownWelcomeToast.current) {
+            // Only show toast if we haven't shown it yet for this session
+            if (!hasShownWelcomeToast.current && lastConnectedAddress.current === address) {
               hasShownWelcomeToast.current = true;
               toast.success(`Welcome back, ${existingProfile.display_name}! 👋`);
             }
@@ -190,8 +192,8 @@ export const useWeb3 = () => {
 
         setProfile(createdProfile);
         
-        // Only show toast if we haven't shown it yet for this connection
-        if (!hasShownWelcomeToast.current) {
+        // Only show toast if we haven't shown it yet for this session
+        if (!hasShownWelcomeToast.current && lastConnectedAddress.current === address) {
           hasShownWelcomeToast.current = true;
           toast.success('Welcome to Web3 Music! 🎵 Complete your setup in Dashboard.');
         }
@@ -217,28 +219,35 @@ export const useWeb3 = () => {
 
   // Handle wallet connection state changes with navigation stability
   useEffect(() => {
-    // Don't process wallet changes during navigation
-    if (isNavigating) return;
+    // Don't process wallet changes during navigation or if already processing
+    if (isNavigating || isProcessingConnection.current) return;
     
     if (debouncedWalletAddress && wallet?.account) {
       const currentAddress = debouncedWalletAddress;
       
       // Only proceed if this is a new connection or different address
       if (lastConnectedAddress.current !== currentAddress) {
+        isProcessingConnection.current = true;
         lastConnectedAddress.current = currentAddress;
         hasShownWelcomeToast.current = false; // Reset toast flag for new address
         
         setConnected(true);
         setWalletAddress(currentAddress);
-        loadUserProfile(currentAddress);
-        loadWalletBalance(currentAddress);
-        checkTonDnsName(currentAddress);
+        
+        // Process profile loading with delay to prevent multiple calls
+        setTimeout(() => {
+          loadUserProfile(currentAddress);
+          loadWalletBalance(currentAddress);
+          checkTonDnsName(currentAddress);
+          isProcessingConnection.current = false;
+        }, 100);
       }
-    } else {
-      // Only reset if we were previously connected
+    } else if (!connectingWallet) {
+      // Only reset if we were previously connected and not in middle of connecting
       if (lastConnectedAddress.current !== null) {
         lastConnectedAddress.current = null;
         hasShownWelcomeToast.current = false;
+        isProcessingConnection.current = false;
         
         setConnected(false);
         setWalletAddress(null);
@@ -247,13 +256,12 @@ export const useWeb3 = () => {
         setTonDnsName(null);
       }
     }
-  }, [debouncedWalletAddress, wallet?.account, isNavigating, setConnected, setWalletAddress, setProfile, loadUserProfile, loadWalletBalance, checkTonDnsName]);
+  }, [debouncedWalletAddress, wallet?.account, isNavigating, connectingWallet, setConnected, setWalletAddress, setProfile, loadUserProfile, loadWalletBalance, checkTonDnsName]);
 
   // Enhanced wallet connection with better UX
   const connectWallet = useCallback(async () => {
     if (connectingWallet) return;
     
-    // Starting enhanced wallet connection
     setConnectingWallet(true);
     
     try {
@@ -262,31 +270,45 @@ export const useWeb3 = () => {
         throw new Error('TON Connect UI not initialized');
       }
 
-      // Show connecting toast
-      toast.loading('Connecting wallet... Please approve the connection in your TON wallet');
+      // Dismiss any existing connection toasts
+      if (connectionToastId.current) {
+        toast.dismiss(connectionToastId.current);
+      }
+
+      // Show connecting toast and store the ID
+      connectionToastId.current = String(toast.loading('Connecting wallet... Please approve the connection in your TON wallet'));
       
-      // Set up connection timeout (60 seconds for better UX)
+      // Set up connection timeout (30 seconds)
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Connection timeout - please try again')), 60000);
+        setTimeout(() => reject(new Error('Connection timeout - please try again')), 30000);
       });
       
       const connectionPromise = tonConnectUI.connectWallet();
       
-      // Waiting for wallet connection
       await Promise.race([connectionPromise, timeoutPromise]);
       
-      // Wallet connected successfully
+      // Dismiss connecting toast
+      if (connectionToastId.current) {
+        toast.dismiss(connectionToastId.current);
+        connectionToastId.current = null;
+      }
       
-      toast.success('Wallet Connected! 🎉 Your TON wallet has been successfully connected');
+      // Don't show success toast here - it will be shown in loadUserProfile
       
     } catch (error) {
-      console.error('🔴 Wallet connection error:', error);
+      console.error('Wallet connection error:', error);
+      
+      // Dismiss connecting toast
+      if (connectionToastId.current) {
+        toast.dismiss(connectionToastId.current);
+        connectionToastId.current = null;
+      }
       
       let errorMessage = "Failed to connect your TON wallet";
       
       if (error.message.includes('timeout')) {
         errorMessage = "Connection timeout. Please check your wallet and try again.";
-      } else if (error.message.includes('rejected') || error.message.includes('cancelled')) {
+      } else if (error.message.includes('rejected') || error.message.includes('cancelled') || error.message.includes('not connected')) {
         return; // Don't show error toast for user cancellation
       } else if (error.message.includes('manifest')) {
         errorMessage = "Configuration error. Please contact support.";
@@ -296,7 +318,6 @@ export const useWeb3 = () => {
       
       toast.error(errorMessage);
     } finally {
-      // Connection attempt finished
       setConnectingWallet(false);
     }
   }, [tonConnectUI, connectingWallet, setConnectingWallet]);

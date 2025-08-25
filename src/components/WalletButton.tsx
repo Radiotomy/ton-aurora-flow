@@ -173,13 +173,6 @@ export const WalletButton: React.FC = () => {
         open={showProfileModal}
         onClose={() => setShowProfileModal(false)}
       />
-      
-      {/* Unified Wallet Display for testing */}
-      {isConnected && (
-        <div className="fixed bottom-4 right-4 w-80 z-50">
-          <UnifiedWalletDisplay />
-        </div>
-      )}
     </>
   );
 };
