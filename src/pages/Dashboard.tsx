@@ -8,12 +8,15 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { TokenEconomicsDashboard } from '@/components/TokenEconomicsDashboard';
 import { FanClubCard } from '@/components/FanClubCard';
+import { ProfileEditModal } from '@/components/ProfileEditModal';
 import { Music, Users, Heart, Trophy, Wallet, Settings, Coins, Star, Award } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
+import { useState } from 'react';
 
 const Dashboard = () => {
   const { user, isAuthenticated } = useAuth();
   const { profile, assets, fanClubMemberships, isConnected, tonBalance } = useWalletStore();
+  const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
 
   // Allow access with either Supabase auth OR wallet connection
   if (!isAuthenticated && !isConnected) {
@@ -64,7 +67,11 @@ const Dashboard = () => {
                   )}
                 </div>
               </div>
-              <Button variant="glass" size="sm">
+              <Button 
+                variant="glass" 
+                size="sm"
+                onClick={() => setIsProfileEditOpen(true)}
+              >
                 <Settings className="h-4 w-4" />
                 Edit Profile
               </Button>
@@ -355,6 +362,12 @@ const Dashboard = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Profile Edit Modal */}
+        <ProfileEditModal 
+          open={isProfileEditOpen} 
+          onOpenChange={setIsProfileEditOpen} 
+        />
       </div>
     </div>
   );
