@@ -6,6 +6,8 @@ import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useWeb3 } from '@/hooks/useWeb3';
 import { NFTMintModal } from './NFTMintModal';
 import { TipModal } from './TipModal';
+import { MiniEQVisualizer } from './MiniEQVisualizer';
+import { MiniVolumeControl } from './MiniVolumeControl';
 import { 
   Play, 
   Heart, 
@@ -147,6 +149,13 @@ const TrackCard = ({
                 )}
               </Button>
               <div className="flex items-center space-x-2">
+                {/* EQ Visualizer - shows when track is playing */}
+                {isTrackPlaying && (
+                  <div className="flex items-center gap-1">
+                    <MiniEQVisualizer isPlaying={isTrackPlaying} size="sm" />
+                    <MiniVolumeControl />
+                  </div>
+                )}
                 <Button 
                   size="sm" 
                   variant="ghost" 
