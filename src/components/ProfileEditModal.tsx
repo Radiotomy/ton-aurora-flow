@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ImageUpload } from '@/components/ImageUpload';
 import { useWalletStore } from '@/stores/walletStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useWeb3 } from '@/hooks/useWeb3';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Music, Upload, Save, X } from 'lucide-react';
+import { Music, Save, X } from 'lucide-react';
 
 interface ProfileEditModalProps {
   open: boolean;
@@ -97,32 +97,13 @@ export const ProfileEditModal = ({ open, onOpenChange }: ProfileEditModalProps) 
 
         <form onSubmit={handleSubmit} className="space-y-6 p-1">
           {/* Avatar Section */}
-          <div className="flex flex-col items-center space-y-4">
-            <div className="relative">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={formData.avatar_url} />
-                <AvatarFallback>
-                  <Music className="h-8 w-8" />
-                </AvatarFallback>
-              </Avatar>
-            </div>
-            <div className="w-full space-y-2">
-              <Label htmlFor="avatar_url" className="text-sm font-medium">Avatar URL</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="avatar_url"
-                  type="url"
-                  placeholder="https://example.com/avatar.jpg"
-                  value={formData.avatar_url}
-                  onChange={(e) => handleInputChange('avatar_url', e.target.value)}
-                  className="flex-1 bg-background/50"
-                />
-                <Button type="button" variant="outline" size="sm" className="shrink-0">
-                  <Upload className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
+          <ImageUpload
+            value={formData.avatar_url}
+            onChange={(url) => handleInputChange('avatar_url', url)}
+            label="Profile Avatar"
+            placeholder="https://example.com/avatar.jpg"
+            type="avatar"
+          />
 
           {/* Display Name */}
           <div className="space-y-2">
