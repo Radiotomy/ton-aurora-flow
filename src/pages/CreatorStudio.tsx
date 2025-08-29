@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useWeb3 } from '@/hooks/useWeb3';
 import FanClubManagement from '@/components/FanClubManagement';
+import { RoleProtection } from '@/components/RoleProtection';
 import { 
   Upload,
   Music,
@@ -232,17 +233,18 @@ const CreatorStudio = () => {
   }
 
   return (
-    <div className="min-h-screen pt-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4 bg-aurora bg-clip-text text-transparent">
-            Creator Studio
-          </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl">
-            Upload music, manage your fan clubs, track earnings, and engage with your community.
-          </p>
-        </div>
+    <RoleProtection requireAnyArtistRole>
+      <div className="min-h-screen pt-20 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold mb-4 bg-aurora bg-clip-text text-transparent">
+              Creator Studio
+            </h1>
+            <p className="text-muted-foreground text-lg max-w-2xl">
+              Upload music, manage your fan clubs, track earnings, and engage with your community.
+            </p>
+          </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="glass-panel">
@@ -611,8 +613,9 @@ const CreatorStudio = () => {
             </div>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
-    </div>
+    </RoleProtection>
   );
 };
 

@@ -7,6 +7,7 @@ import { SearchModal } from '@/components/SearchModal';
 import { VoiceSearch } from '@/components/VoiceSearch';
 import { AudiusLoginButton } from '@/components/AudiusLoginButton';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserRoles } from '@/hooks/useUserRoles';
 import { 
   Home, 
   Music, 
@@ -28,14 +29,21 @@ const Navigation = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, signOut } = useAuth();
+  const { canAccessCreatorStudio } = useUserRoles(user?.id);
 
   const navItems = [
     { icon: Home, label: 'Discovery', href: '/' },
     { icon: Music, label: 'Playlists', href: '/playlists' },
     { icon: Radio, label: 'Live Events', href: '/live-events' },
     { icon: Users, label: 'Fan Clubs', href: '/fan-clubs' },
+  ];
+
+  // Only show Creator Studio for artists
+  const artistNavItems = [
     { icon: Palette, label: 'Creator Studio', href: '/creator-studio' },
   ];
+
+  const allNavItems = [...navItems, ...(canAccessCreatorStudio() ? artistNavItems : [])];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-panel border-0 border-b border-glass-border">
@@ -51,7 +59,7 @@ const Navigation = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
+            {allNavItems.map((item) => (
               <Link
                 key={item.label}
                 to={item.href}
@@ -157,7 +165,7 @@ const Navigation = () => {
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-glass-border">
             <div className="px-2 pt-2 pb-3 space-y-1">
-              {navItems.map((item) => (
+              {allNavItems.map((item) => (
                 <Link
                   key={item.label}
                   to={item.href}
