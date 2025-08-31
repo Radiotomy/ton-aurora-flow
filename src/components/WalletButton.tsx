@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export const WalletButton: React.FC = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const {
     isConnected,
     profile,
@@ -71,9 +72,18 @@ export const WalletButton: React.FC = () => {
     );
   }
 
+  const handleOpenProfileModal = () => {
+    setDropdownOpen(false); // Close dropdown first
+    setTimeout(() => setShowProfileModal(true), 50); // Small delay to ensure dropdown closes
+  };
+
+  const handleCloseProfileModal = () => {
+    setShowProfileModal(false);
+  };
+
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
         <DropdownMenuTrigger asChild>
           <Button variant="glass" className="min-w-[180px] justify-start p-3 h-auto">
             <Avatar className="h-8 w-8">
@@ -138,7 +148,7 @@ export const WalletButton: React.FC = () => {
           
           <DropdownMenuSeparator />
           
-          <DropdownMenuItem onClick={() => setShowProfileModal(true)}>
+          <DropdownMenuItem onClick={handleOpenProfileModal}>
             <User className="h-4 w-4 mr-3" />
             <span>Manage Profile</span>
           </DropdownMenuItem>
@@ -171,7 +181,7 @@ export const WalletButton: React.FC = () => {
 
       <Web3ProfileModal 
         open={showProfileModal}
-        onClose={() => setShowProfileModal(false)}
+        onClose={handleCloseProfileModal}
       />
     </>
   );
