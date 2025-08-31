@@ -48,6 +48,11 @@ export const WalletButton: React.FC = () => {
     }
   };
 
+  const handleDisconnectWallet = async () => {
+    setDropdownOpen(false); // Close dropdown first
+    await disconnectWallet();
+  };
+
   if (!isConnected) {
     return (
       <Button
@@ -172,7 +177,7 @@ export const WalletButton: React.FC = () => {
           
           <DropdownMenuSeparator />
           
-          <DropdownMenuItem onClick={disconnectWallet} className="text-destructive">
+          <DropdownMenuItem onClick={handleDisconnectWallet} className="text-destructive">
             <LogOut className="h-4 w-4 mr-3" />
             <span>Disconnect Wallet</span>
           </DropdownMenuItem>

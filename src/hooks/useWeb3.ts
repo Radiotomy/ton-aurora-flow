@@ -353,11 +353,56 @@ export const useWeb3 = () => {
   // Disconnect wallet function
   const disconnectWallet = useCallback(async () => {
     try {
-      await tonConnectUI.disconnect();
-      storeDisconnectWallet();
-      toast.success('Wallet disconnected successfully');
+      // Check if TON Connect UI is properly initialized
+      if (!tonConnectUI) {
+        console.warn('TON Connect UI not initialized, clearing local state only');
+        storeDisconnectWallet();
+        toast.success('Wallet disconnected successfully');
+        return;
+      }
+
+      // Show loading state while disconnecting
+      const disconnectToastId = String(toast.loading('Disconnecting wallet...'));
+      
+      try {
+        // Attempt to disconnect from TON Connect
+        await tonConnectUI.disconnect();
+        
+        // Clear local state
+        storeDisconnectWallet();
+        
+        // Reset internal state
+        lastConnectedAddress.current = null;
+        hasShownWelcomeToast.current = false;
+        isProcessingConnection.current = false;
+        setBalance('0');
+        setTonDnsName(null);
+        
+        // Dismiss loading toast and show success
+        toast.dismiss(disconnectToastId);
+        toast.success('Wallet disconnected successfully');
+        
+      } catch (disconnectError) {
+        // Dismiss loading toast
+        toast.dismiss(disconnectToastId);
+        
+        // Even if TON Connect disconnect fails, clear local state
+        console.warn('TON Connect disconnect failed, clearing local state:', disconnectError);
+        storeDisconnectWallet();
+        
+        // Reset internal state
+        lastConnectedAddress.current = null;  
+        hasShownWelcomeToast.current = false;
+        isProcessingConnection.current = false;
+        setBalance('0');
+        setTonDnsName(null);
+        
+        toast.success('Wallet disconnected successfully');
+      }
+      
     } catch (error) {
       console.error('Wallet disconnection error:', error);
+      toast.error('Failed to disconnect wallet completely. Please refresh the page if issues persist.');
     }
   }, [tonConnectUI, storeDisconnectWallet]);
 
