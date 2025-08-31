@@ -34,18 +34,7 @@ export const UserFeedSection: React.FC = () => {
   }, [isAuthenticated, fetchFeed]);
 
   if (!isAuthenticated) {
-    return (
-      <Card className="mx-4 mb-4">
-        <CardHeader className="text-center py-8">
-          <Music className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-lg font-semibold">Connect Your Audius Account</h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Sign in to see your personalized feed, favorites, and playlists
-          </p>
-          <AudiusLoginButton />
-        </CardHeader>
-      </Card>
-    );
+    return null;
   }
 
   const LoadingSkeleton = () => (
