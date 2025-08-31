@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,14 +22,23 @@ export const ProfileEditModal = ({ open, onOpenChange }: ProfileEditModalProps) 
   const { user } = useAuth();
   const { updateTonDnsName } = useWeb3();
   
-  const [formData, setFormData] = useState({
+  // Memoize initial form data to prevent unnecessary re-renders
+  const initialFormData = useMemo(() => ({
     display_name: profile?.display_name || user?.email?.split('@')[0] || '',
     bio: profile?.bio || '',
     ton_dns_name: profile?.ton_dns_name || '',
     avatar_url: profile?.avatar_url || '',
-  });
+  }), [profile?.display_name, profile?.bio, profile?.ton_dns_name, profile?.avatar_url, user?.email]);
   
+  const [formData, setFormData] = useState(initialFormData);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Update form data when profile changes or modal opens
+  useEffect(() => {
+    if (open) {
+      setFormData(initialFormData);
+    }
+  }, [open, initialFormData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +96,7 @@ export const ProfileEditModal = ({ open, onOpenChange }: ProfileEditModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto glass-panel fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%] z-50">
+      <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto glass-panel">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-aurora">
             <Music className="h-5 w-5" />

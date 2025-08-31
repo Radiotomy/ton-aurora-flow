@@ -288,7 +288,7 @@ export const useWeb3 = () => {
 
   // Enhanced wallet connection with better UX
   const connectWallet = useCallback(async () => {
-    if (connectingWallet) return;
+    if (connectingWallet || isProcessingConnection.current) return;
     
     setConnectingWallet(true);
     
@@ -298,13 +298,16 @@ export const useWeb3 = () => {
         throw new Error('TON Connect UI not initialized');
       }
 
-      // Dismiss any existing connection toasts
+      // Dismiss any existing connection toasts before starting
       if (connectionToastId.current) {
         toast.dismiss(connectionToastId.current);
+        connectionToastId.current = null;
       }
 
-      // Show connecting toast and store the ID
-      connectionToastId.current = String(toast.loading('Connecting wallet... Please approve the connection in your TON wallet'));
+      // Only show toast if wallet isn't already connected
+      if (!wallet) {
+        connectionToastId.current = String(toast.loading('Connecting wallet... Please approve the connection in your TON wallet'));
+      }
       
       // Set up connection timeout (30 seconds)
       const timeoutPromise = new Promise((_, reject) => {
@@ -315,18 +318,16 @@ export const useWeb3 = () => {
       
       await Promise.race([connectionPromise, timeoutPromise]);
       
-      // Dismiss connecting toast
+      // Always dismiss connecting toast on completion
       if (connectionToastId.current) {
         toast.dismiss(connectionToastId.current);
         connectionToastId.current = null;
       }
       
-      // Don't show success toast here - it will be shown in loadUserProfile
-      
     } catch (error) {
       console.error('Wallet connection error:', error);
       
-      // Dismiss connecting toast
+      // Always dismiss connecting toast on error
       if (connectionToastId.current) {
         toast.dismiss(connectionToastId.current);
         connectionToastId.current = null;
