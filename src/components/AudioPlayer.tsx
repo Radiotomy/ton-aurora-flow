@@ -57,7 +57,7 @@ export const AudioPlayer: React.FC = React.memo(() => {
       <div className="max-w-screen-2xl mx-auto px-2 sm:px-4 py-2 sm:py-3">
         <div className="flex items-center justify-between gap-2 sm:gap-4">
           {/* Track Info */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 max-w-[40%] sm:max-w-none">
             <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
               <AvatarImage src={currentTrack.artwork} alt={currentTrack.title} />
               <AvatarFallback>
@@ -71,7 +71,7 @@ export const AudioPlayer: React.FC = React.memo(() => {
           </div>
 
           {/* Player Controls - Mobile First */}
-          <div className="flex flex-col items-center gap-1 sm:gap-2 flex-1 max-w-xs sm:max-w-2xl">
+          <div className="flex flex-col items-center gap-1 sm:gap-2 flex-1 max-w-xs sm:max-w-md lg:max-w-2xl">
             {/* Control Buttons */}
             <div className="flex items-center gap-1 sm:gap-2">
               <Button
@@ -79,6 +79,7 @@ export const AudioPlayer: React.FC = React.memo(() => {
                 variant="ghost"
                 className="h-7 w-7 sm:h-8 sm:w-8 hidden sm:flex"
                 onClick={() => skipTime(-10)}
+                title="Skip back 10s"
               >
                 <SkipBack className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
@@ -86,7 +87,7 @@ export const AudioPlayer: React.FC = React.memo(() => {
               <Button
                 size="icon"
                 variant="glass"
-                className="h-8 w-8 sm:h-10 sm:w-10"
+                className="h-8 w-8 sm:h-10 sm:w-10 ring-1 ring-primary/20"
                 onClick={isPlaying ? pauseTrack : () => playTrack(currentTrack)}
                 disabled={isLoading}
               >
@@ -102,14 +103,15 @@ export const AudioPlayer: React.FC = React.memo(() => {
                 variant="ghost"
                 className="h-7 w-7 sm:h-8 sm:w-8 hidden sm:flex"
                 onClick={() => skipTime(10)}
+                title="Skip forward 10s"
               >
                 <SkipForward className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>
 
-            {/* Progress Bar - Hidden on very small screens */}
-            <div className="hidden xs:flex items-center gap-2 w-full">
-              <span className="text-xs text-muted-foreground min-w-[35px] sm:min-w-[40px]">
+            {/* Progress Bar - Improved mobile visibility */}
+            <div className="flex items-center gap-2 w-full text-xs">
+              <span className="text-muted-foreground min-w-[32px] text-center">
                 {formattedCurrentTime}
               </span>
               <Slider
@@ -119,58 +121,39 @@ export const AudioPlayer: React.FC = React.memo(() => {
                 step={0.1}
                 className="flex-1"
               />
-              <span className="text-xs text-muted-foreground min-w-[35px] sm:min-w-[40px]">
+              <span className="text-muted-foreground min-w-[32px] text-center">
                 {formattedDuration}
               </span>
             </div>
           </div>
 
           {/* Volume & Actions */}
-          <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-end">
-            {/* Volume - Hidden on mobile */}
-            <div className="hidden md:flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-end max-w-[30%] sm:max-w-none">
+            {/* Volume - Always visible but responsive */}
+            <div className="flex items-center gap-1 sm:gap-2">
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-8 w-8"
+                className="h-7 w-7 sm:h-8 sm:w-8"
                 onClick={toggleMute}
+                title={volume === 0 ? 'Unmute' : 'Mute'}
               >
                 {volume === 0 ? (
-                  <VolumeX className="h-4 w-4" />
+                  <VolumeX className="h-3 w-3 sm:h-4 sm:w-4" />
                 ) : (
-                  <Volume2 className="h-4 w-4" />
+                  <Volume2 className="h-3 w-3 sm:h-4 sm:w-4" />
                 )}
               </Button>
-              <Slider
-                value={[volume * 100]}
-                onValueChange={handleVolumeChange}
-                max={100}
-                step={1}
-                className="w-16 lg:w-20"
-              />
+              <div className="hidden sm:block">
+                <Slider
+                  value={[volume * 100]}
+                  onValueChange={handleVolumeChange}
+                  max={100}
+                  step={1}
+                  className="w-12 md:w-16 lg:w-20"
+                />
+              </div>
             </div>
-            
-            {/* Mobile volume control */}
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 sm:h-8 sm:w-8 md:hidden"
-              onClick={toggleMute}
-            >
-              {volume === 0 ? (
-                <VolumeX className="h-3 w-3 sm:h-4 sm:w-4" />
-              ) : (
-                <Volume2 className="h-3 w-3 sm:h-4 sm:w-4" />
-              )}
-            </Button>
-            
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-7 w-7 sm:h-8 sm:w-8"
-            >
-              <Maximize2 className="h-3 w-3 sm:h-4 sm:w-4" />
-            </Button>
           </div>
         </div>
       </div>

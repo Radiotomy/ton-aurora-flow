@@ -123,20 +123,27 @@ export const useAudioPlayer = () => {
     }
   }, [volume, updateTimeThrottled]);
 
-  // Clean shutdown of current audio session
+  // Clean shutdown of current audio session with improved UX
   const cleanupCurrentSession = useCallback(() => {
     if (audioRef.current) {
-      // Immediately pause and reset
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setCurrentTime(0);
-      setIsPlaying(false);
-      setIsLoading(false);
-      
-      // Reset gain for smooth transitions
-      if (gainNodeRef.current) {
-        gainNodeRef.current.gain.setValueAtTime(0, audioContextRef.current?.currentTime || 0);
+      // Create smooth fade out before stopping
+      if (gainNodeRef.current && audioContextRef.current) {
+        gainNodeRef.current.gain.linearRampToValueAtTime(
+          0, 
+          audioContextRef.current.currentTime + 0.1
+        );
       }
+      
+      // Pause after fade
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        }
+        setCurrentTime(0);
+        setIsPlaying(false);
+        setIsLoading(false);
+      }, 100);
     }
   }, []);
 
@@ -165,11 +172,11 @@ export const useAudioPlayer = () => {
       return;
     }
 
-    // Clean up current session before loading new track
+    // Clean up current session before loading new track with smooth transition
     if (currentTrack) {
       cleanupCurrentSession();
-      // Small delay to ensure cleanup is complete using RAF
-      await new Promise(resolve => requestAnimationFrame(() => resolve(void 0)));
+      // Wait for cleanup to complete
+      await new Promise(resolve => setTimeout(resolve, 150));
     }
 
     // Load new track
@@ -207,6 +214,15 @@ export const useAudioPlayer = () => {
       }
       
       // Load and play new track
+      // Smoothly fade in the new track
+      if (gainNodeRef.current && audioContextRef.current) {
+        gainNodeRef.current.gain.setValueAtTime(0, audioContextRef.current.currentTime);
+        gainNodeRef.current.gain.linearRampToValueAtTime(
+          volume, 
+          audioContextRef.current.currentTime + 0.3
+        );
+      }
+      
       await audioRef.current.play();
       setIsLoading(false);
       
@@ -265,20 +281,23 @@ export const useAudioPlayer = () => {
     }
   }, []);
 
-  // Change volume with Web Audio API
+  // Enhanced volume control with smooth transitions
   const changeVolume = useCallback((newVolume: number) => {
     const clampedVolume = Math.max(0, Math.min(1, newVolume));
-    setVolume(clampedVolume);
     
     if (audioRef.current) {
       audioRef.current.volume = clampedVolume;
     }
     
-    // Also update gain node for effects
-    if (gainNodeRef.current && !isMuted) {
-      gainNodeRef.current.gain.setValueAtTime(clampedVolume, audioContextRef.current?.currentTime || 0);
+    // Smooth Web Audio API volume transitions
+    if (gainNodeRef.current && audioContextRef.current) {
+      const currentTime = audioContextRef.current.currentTime;
+      gainNodeRef.current.gain.cancelScheduledValues(currentTime);
+      gainNodeRef.current.gain.linearRampToValueAtTime(clampedVolume, currentTime + 0.1);
     }
-  }, [isMuted]);
+    
+    setVolume(clampedVolume);
+  }, []);
 
   // Toggle mute
   const toggleMute = useCallback(() => {

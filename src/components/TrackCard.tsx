@@ -125,7 +125,11 @@ const TrackCard = ({
 
   return (
     <>
-      <div className="glass-panel rounded-2xl overflow-hidden group hover:scale-[1.02] transition-all duration-300">
+      <div className={`glass-panel rounded-2xl overflow-hidden group transition-all duration-300 ${
+        isCurrentTrack 
+          ? 'scale-[1.05] ring-2 ring-primary/50 shadow-lg shadow-primary/20 hover:scale-[1.06]' 
+          : 'hover:scale-[1.02]'
+      }`}>
         {/* Artwork */}
         <div className="relative aspect-square overflow-hidden">
           <img 
@@ -135,15 +139,21 @@ const TrackCard = ({
           />
           
           {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${
+            isCurrentTrack ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          }`}>
             <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
               <Button 
                 size="sm" 
-                className="glass-button bg-primary/20 hover:bg-primary/30"
+                className={`glass-button transition-all duration-200 ${
+                  isCurrentTrack 
+                    ? 'bg-primary/40 hover:bg-primary/50 ring-1 ring-primary/30' 
+                    : 'bg-primary/20 hover:bg-primary/30'
+                }`}
                 onClick={handlePlay}
               >
                 {isTrackPlaying ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
                 ) : (
                   <Play className="w-4 h-4" />
                 )}
