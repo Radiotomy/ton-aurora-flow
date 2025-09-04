@@ -149,12 +149,18 @@ export const useAudioPlayer = () => {
 
   // Play track with proper cleanup and stream URL resolution
   const playTrack = useCallback(async (track: CurrentTrack) => {
-    if (!audioRef.current) return;
+    console.log('PlayTrack called with:', track);
+    
+    if (!audioRef.current) {
+      console.error('Audio ref not available');
+      return;
+    }
 
     setError(null);
     
     // If same track, just toggle play/pause
     if (currentTrack?.id === track.id) {
+      console.log('Same track, toggling play/pause. Currently playing:', isPlaying);
       if (isPlaying) {
         audioRef.current.pause();
       } else {
@@ -167,6 +173,11 @@ export const useAudioPlayer = () => {
         } catch (error) {
           console.error('Playback failed:', error);
           setError('Playback failed');
+          toast({
+            title: "Playback Error",
+            description: "Failed to resume playback. Please try again.",
+            variant: "destructive",
+          });
         }
       }
       return;

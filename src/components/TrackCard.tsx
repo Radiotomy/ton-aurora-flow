@@ -89,6 +89,7 @@ const TrackCard = ({
   const isTrackPlaying = isCurrentTrack && isPlaying;
 
   const handlePlay = async () => {
+    console.log('TrackCard handlePlay clicked for:', trackData);
     await playTrack(trackData);
   };
 
