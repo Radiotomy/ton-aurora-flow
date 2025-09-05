@@ -142,8 +142,8 @@ const TrackCard = ({
           {/* Overlay */}
           <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${
             isCurrentTrack ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-          }`}>
-            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
+          } pointer-events-none`}>
+            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-auto">
               <Button 
                 size="sm" 
                 className={`glass-button transition-all duration-200 ${
