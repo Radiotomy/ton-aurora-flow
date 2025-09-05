@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Volume2, VolumeX, Volume1 } from 'lucide-react';
@@ -13,21 +13,19 @@ export const MiniVolumeControl: React.FC = () => {
   const { volume, changeVolume } = useAudioPlayer();
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleVolumeChange = (value: number[]) => {
+  const handleVolumeChange = useCallback((value: number[]) => {
     changeVolume(value[0] / 100);
-  };
+  }, [changeVolume]);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     changeVolume(volume > 0 ? 0 : 0.7);
-  };
+  }, [volume, changeVolume]);
 
-  const getVolumeIcon = () => {
+  const VolumeIcon = useMemo(() => {
     if (volume === 0) return VolumeX;
     if (volume < 0.5) return Volume1;
     return Volume2;
-  };
-
-  const VolumeIcon = getVolumeIcon();
+  }, [volume]);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useTrackInteractions } from '@/hooks/useTrackInteractions';
@@ -46,7 +46,7 @@ interface TrackCardProps {
   artistWallet?: string;
 }
 
-const TrackCard = ({ 
+const TrackCard = memo(({ 
   id,
   title, 
   artist, 
@@ -88,41 +88,43 @@ const TrackCard = ({
   const isCurrentTrack = currentTrack?.id === id;
   const isTrackPlaying = isCurrentTrack && isPlaying;
 
-  const handlePlay = async () => {
-    console.log('TrackCard handlePlay clicked for:', trackData);
+  const handlePlay = useCallback(async () => {
     await playTrack(trackData);
-  };
+  }, [playTrack, trackData]);
 
-  const handleLike = async () => {
+  const handleLike = useCallback(async () => {
     await likeTrack(id, artistId || artist.toLowerCase().replace(/\s+/g, '-'));
-  };
+  }, [likeTrack, id, artistId, artist]);
 
-  const handleCollect = async () => {
+  const handleCollect = useCallback(async () => {
     if (!isNft || !price) return;
     setIsCollecting(true);
-    await collectTrack(id, `nft-contract-${id}`, price);
-    setIsCollecting(false);
-  };
+    try {
+      await collectTrack(id, `nft-contract-${id}`, price);
+    } finally {
+      setIsCollecting(false);
+    }
+  }, [isNft, price, collectTrack, id]);
 
-  const handleShare = async () => {
+  const handleShare = useCallback(async () => {
     await shareTrack(id);
-  };
+  }, [shareTrack, id]);
 
-  const handleMintNFT = () => {
+  const handleMintNFT = useCallback(() => {
     if (!isConnected) {
       connectWallet();
       return;
     }
     setShowNFTModal(true);
-  };
+  }, [isConnected, connectWallet]);
 
-  const handleTipArtist = () => {
+  const handleTipArtist = useCallback(() => {
     if (!isConnected) {
       connectWallet();
       return;
     }
     setShowTipModal(true);
-  };
+  }, [isConnected, connectWallet]);
 
   return (
     <>
@@ -132,11 +134,16 @@ const TrackCard = ({
           : 'hover:scale-[1.02]'
       }`}>
         {/* Artwork */}
-        <div className="relative aspect-square overflow-hidden">
+        <div className="relative aspect-square overflow-hidden bg-muted/20">
           <img 
             src={artwork} 
             alt={`${title} by ${artist}`}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+            loading="lazy"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(title)}&background=6366f1&color=fff&size=400`;
+            }}
           />
           
           {/* Overlay */}
@@ -293,6 +300,8 @@ const TrackCard = ({
       />
     </>
   );
-};
+});
+
+TrackCard.displayName = 'TrackCard';
 
 export default TrackCard;
