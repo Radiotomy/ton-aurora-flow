@@ -626,6 +626,42 @@ export type Database = {
           },
         ]
       }
+      track_comments: {
+        Row: {
+          artist_id: string
+          comment: string
+          created_at: string
+          id: string
+          is_deleted: boolean | null
+          profile_id: string
+          reply_to_id: string | null
+          track_id: string
+          updated_at: string
+        }
+        Insert: {
+          artist_id: string
+          comment: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean | null
+          profile_id: string
+          reply_to_id?: string | null
+          track_id: string
+          updated_at?: string
+        }
+        Update: {
+          artist_id?: string
+          comment?: string
+          created_at?: string
+          id?: string
+          is_deleted?: boolean | null
+          profile_id?: string
+          reply_to_id?: string | null
+          track_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount_ton: number
@@ -729,6 +765,87 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_connections: {
+        Row: {
+          created_at: string
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      user_favorites: {
+        Row: {
+          artist_id: string
+          created_at: string
+          id: string
+          profile_id: string
+          track_id: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          id?: string
+          profile_id: string
+          track_id: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          id?: string
+          profile_id?: string
+          track_id?: string
+        }
+        Relationships: []
+      }
+      user_recommendations: {
+        Row: {
+          artist_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          metadata: Json | null
+          profile_id: string
+          recommendation_type: string
+          score: number | null
+          track_id: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          profile_id: string
+          recommendation_type: string
+          score?: number | null
+          track_id: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          metadata?: Json | null
+          profile_id?: string
+          recommendation_type?: string
+          score?: number | null
+          track_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
