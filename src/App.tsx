@@ -20,6 +20,7 @@ import NotFound from "./pages/NotFound";
 import FanClubs from "./pages/FanClubs";
 import CreatorStudio from "./pages/CreatorStudio";
 import LiveEvents from "./pages/LiveEvents";
+import Marketplace from "./pages/Marketplace";
 import AudiusCallback from "./pages/AudiusCallback";
 import Navigation from "./components/Navigation";
 
@@ -60,6 +61,7 @@ function AppContent() {
             <Route path="/fan-clubs" element={<FanClubs />} />
             <Route path="/creator-studio" element={<CreatorStudio />} />
             <Route path="/live-events" element={<LiveEvents />} />
+            <Route path="/marketplace" element={<Marketplace />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

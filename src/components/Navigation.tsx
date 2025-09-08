@@ -19,7 +19,8 @@ import {
   X,
   User,
   LogOut,
-  Radio
+  Radio,
+  ShoppingCart
 } from 'lucide-react';
 
 const Navigation = () => {
@@ -33,6 +34,7 @@ const Navigation = () => {
 
   const navItems = [
     { icon: Home, label: 'Discovery', href: '/' },
+    { icon: ShoppingCart, label: 'Marketplace', href: '/marketplace' },
     { icon: Music, label: 'Playlists', href: '/playlists' },
     { icon: Radio, label: 'Live Events', href: '/live-events' },
     { icon: Users, label: 'Fan Clubs', href: '/fan-clubs' },
