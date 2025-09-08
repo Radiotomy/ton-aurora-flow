@@ -9,6 +9,8 @@ import { Progress } from '@/components/ui/progress';
 import { TokenEconomicsDashboard } from '@/components/TokenEconomicsDashboard';
 import { FanClubCard } from '@/components/FanClubCard';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
+import { AIRecommendations } from '@/components/AIRecommendations';
+import { UserFavorites } from '@/components/UserFavorites';
 import { Music, Users, Heart, Trophy, Wallet, Settings, Coins, Star, Award } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -98,12 +100,12 @@ const Dashboard = () => {
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="glass-panel">
+            <TabsList className="glass-panel">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="social">Social</TabsTrigger>
             <TabsTrigger value="web3">Web3 & Tokens</TabsTrigger>
             <TabsTrigger value="collection">My Collection</TabsTrigger>
             <TabsTrigger value="fanclubs">Fan Clubs</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -171,6 +173,19 @@ const Dashboard = () => {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+
+            {/* AI Recommendations */}
+            <AIRecommendations className="mt-6" maxItems={4} />
+
+            {/* User Favorites */}
+            <UserFavorites className="mt-6" maxItems={6} />
+          </TabsContent>
+
+          <TabsContent value="social" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <UserFavorites maxItems={8} />
+              <AIRecommendations maxItems={6} />
             </div>
           </TabsContent>
 

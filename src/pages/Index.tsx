@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import HeroSection from '@/components/HeroSection';
 import DiscoverySection from '@/components/DiscoverySection';
 import { UserFeedSection } from '@/components/UserFeedSection';
+import { AIRecommendations } from '@/components/AIRecommendations';
 
 const Index = () => {
   return (
@@ -10,6 +11,11 @@ const Index = () => {
         <HeroSection />
         
         <UserFeedSection />
+
+        {/* AI Recommendations Section */}
+        <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+          <AIRecommendations className="mb-8" maxItems={6} />
+        </section>
 
       <DiscoverySection />
       

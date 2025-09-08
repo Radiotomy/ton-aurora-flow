@@ -23,6 +23,8 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { SocialTrackActions } from '@/components/SocialTrackActions';
+import { TrackComments } from '@/components/TrackComments';
 
 const TrackDetail = () => {
   const { trackId } = useParams();
@@ -195,40 +197,35 @@ const TrackDetail = () => {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex items-center gap-3">
-                  <Button
-                    onClick={handleLike}
-                    variant={liked ? "aurora" : "ghost"}
-                    size="sm"
-                  >
-                    <Heart className={`h-4 w-4 ${liked ? 'fill-current' : ''}`} />
-                    {liked ? 'Liked' : 'Like'}
-                  </Button>
+                {/* Social Actions */}
+                <div className="flex items-center justify-between">
+                  <SocialTrackActions 
+                    trackId={track.id}
+                    artistId={track.user.id}
+                    showFollowButton={true}
+                    className="flex items-center gap-3"
+                  />
                   
-                  <Button
-                    onClick={handleCollect}
-                    variant={collected ? "aurora" : "glass"}
-                    size="sm"
-                    disabled={collected}
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                    {collected ? 'Collected' : 'Collect NFT'}
-                  </Button>
-                  
-                  <Button onClick={handleShare} variant="ghost" size="sm">
-                    <Share2 className="h-4 w-4" />
-                    Share
-                  </Button>
-                  
-                  <Button variant="ghost" size="sm">
-                    <Download className="h-4 w-4" />
-                    Download
-                  </Button>
-                  
-                  <Button variant="ghost" size="icon">
-                    <ExternalLink className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={handleCollect}
+                      variant={collected ? "aurora" : "glass"}
+                      size="sm"
+                      disabled={collected}
+                    >
+                      <ShoppingCart className="h-4 w-4" />
+                      {collected ? 'Collected' : 'Collect NFT'}
+                    </Button>
+                    
+                    <Button variant="ghost" size="sm">
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                    
+                    <Button variant="ghost" size="icon">
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </div>
@@ -320,6 +317,9 @@ const TrackDetail = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Comments Section */}
+          <TrackComments trackId={track.id} artistId={track.user.id} />
         </div>
       </div>
     </div>

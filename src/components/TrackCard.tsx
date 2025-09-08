@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTrackInteractions } from '@/hooks/useTrackInteractions';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useWeb3 } from '@/hooks/useWeb3';
+import { SocialTrackActions } from './SocialTrackActions';
 import { NFTMintModal } from './NFTMintModal';
 import { TipModal } from './TipModal';
 import { MiniEQVisualizer } from './MiniEQVisualizer';
@@ -174,43 +175,12 @@ const TrackCard = memo(({
                     <MiniVolumeControl />
                   </div>
                 )}
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="text-white hover:text-primary"
-                  onClick={handleLike}
-                >
-                  <Heart className="w-4 h-4" />
-                </Button>
-                <Button 
-                  size="sm" 
-                  variant="ghost" 
-                  className="text-white hover:text-primary"
-                  onClick={handleTipArtist}
-                >
-                  <Coins className="w-4 h-4" />
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="text-white hover:text-primary"
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="glass-panel">
-                    <DropdownMenuItem onClick={handleMintNFT}>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Mint NFT
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleShare}>
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Share Track
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <SocialTrackActions 
+                  trackId={id}
+                  artistId={artistId || artist.toLowerCase().replace(/\s+/g, '-')}
+                  className="flex items-center space-x-1"
+                  showFollowButton={false}
+                />
               </div>
             </div>
           </div>
