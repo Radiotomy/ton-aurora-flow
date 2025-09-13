@@ -49,13 +49,21 @@ export const useSocial = () => {
     }, [profile, trackId]);
 
     const toggleFavorite = async (artistId: string) => {
-      if (!profile) return false;
+      if (!profile) {
+        console.log('No profile in useSocial toggleFavorite');
+        return false;
+      }
       
+      console.log('useSocial toggleFavorite called with:', { trackId, artistId, profile: profile.id });
       setLoading(true);
       try {
         const result = await SocialService.toggleFavorite(trackId, artistId);
+        console.log('SocialService toggleFavorite result:', result);
         setIsFavorited(result);
         return result;
+      } catch (error) {
+        console.error('Error in useSocial toggleFavorite:', error);
+        return false;
       } finally {
         setLoading(false);
       }
