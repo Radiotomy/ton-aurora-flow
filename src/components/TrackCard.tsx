@@ -178,41 +178,43 @@ const TrackCard = memo(({
           />
           
           {/* Overlay */}
-          <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent transition-opacity duration-300 ${
+            <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-all duration-500 ${
             isCurrentTrack ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
           } pointer-events-none`}>
-            <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between pointer-events-auto">
+            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-auto">
               <Button 
                 size="sm" 
-                className={`glass-button transition-all duration-200 ${
+                className={`glass-button h-10 w-10 rounded-full transition-all duration-300 hover:scale-110 shadow-lg ${
                   isCurrentTrack 
-                    ? 'bg-primary/40 hover:bg-primary/50 ring-1 ring-primary/30' 
-                    : 'bg-primary/20 hover:bg-primary/30'
+                    ? 'bg-primary/60 hover:bg-primary/70 ring-2 ring-primary/50 shadow-primary/30' 
+                    : 'bg-primary/30 hover:bg-primary/50 ring-1 ring-primary/20'
                 }`}
                 onClick={handlePlay}
               >
                 {isTrackPlaying ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
                 ) : (
-                  <Play className="w-4 h-4" />
+                  <Play className="w-4 h-4 ml-0.5" fill="currentColor" />
                 )}
               </Button>
-              <div className="flex items-center space-x-2">
+              
+              <div className="flex items-center gap-2">
                 {/* EQ Visualizer - shows when track is playing */}
                 {isTrackPlaying && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2 animate-fade-in">
                     <MiniEQVisualizer isPlaying={isTrackPlaying} size="sm" />
                     <MiniVolumeControl />
                   </div>
                 )}
                 
                 {/* Action buttons */}
-                <div className="flex items-center space-x-1">
+                <div className="flex items-center gap-1">
                   <Button
                     size="sm"
-                    variant="secondary"
+                    variant="ghost"
                     onClick={handleLike}
-                    className="backdrop-blur-sm bg-background/50 hover:bg-background/70"
+                    className="h-8 w-8 rounded-full backdrop-blur-md bg-background/30 hover:bg-background/50 border border-white/20 hover:border-primary/40 hover:scale-110 transition-all duration-200 text-white hover:text-primary"
+                    title="Like track"
                   >
                     <Heart className="w-4 h-4" />
                   </Button>
@@ -220,9 +222,9 @@ const TrackCard = memo(({
                   {canMintNFT && (
                     <Button
                       size="sm"
-                      variant="aurora"
+                      variant="ghost"
                       onClick={handleMintNFT}
-                      className="backdrop-blur-sm"
+                      className="h-8 w-8 rounded-full backdrop-blur-md bg-gradient-to-r from-primary/30 to-accent/30 hover:from-primary/50 hover:to-accent/50 border border-primary/20 hover:border-primary/40 hover:scale-110 transition-all duration-200 text-white shadow-lg hover:shadow-primary/20"
                       title="Mint NFT"
                     >
                       <Sparkles className="w-4 h-4" />
@@ -231,12 +233,12 @@ const TrackCard = memo(({
                   
                   <Button
                     size="sm"
-                    variant="secondary"
+                    variant="ghost"
                     onClick={handleTipArtist}
-                    className="backdrop-blur-sm bg-background/50 hover:bg-background/70"
+                    className="h-8 w-8 rounded-full backdrop-blur-md bg-background/30 hover:bg-background/50 border border-white/20 hover:border-accent/40 hover:scale-110 transition-all duration-200 text-white hover:text-accent"
                     title="Tip Artist"
                   >
-                    <Coins className="w-4 w-4" />
+                    <Coins className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
