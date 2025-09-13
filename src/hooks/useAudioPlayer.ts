@@ -124,26 +124,38 @@ export const useAudioPlayer = () => {
   }, [volume, updateTimeThrottled]);
 
   // Clean shutdown of current audio session with improved UX
-  const cleanupCurrentSession = useCallback(() => {
+  const cleanupCurrentSession = useCallback((immediate = false) => {
     if (audioRef.current) {
-      // Create smooth fade out before stopping
-      if (gainNodeRef.current && audioContextRef.current) {
-        gainNodeRef.current.gain.linearRampToValueAtTime(
-          0, 
-          audioContextRef.current.currentTime + 0.1
-        );
-      }
-      
-      // Pause after fade
-      setTimeout(() => {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        }
+      if (immediate) {
+        // Immediate stop for track switching
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
         setCurrentTime(0);
         setIsPlaying(false);
         setIsLoading(false);
-      }, 100);
+        if (gainNodeRef.current) {
+          gainNodeRef.current.gain.setValueAtTime(0, audioContextRef.current?.currentTime || 0);
+        }
+      } else {
+        // Create smooth fade out before stopping
+        if (gainNodeRef.current && audioContextRef.current) {
+          gainNodeRef.current.gain.linearRampToValueAtTime(
+            0, 
+            audioContextRef.current.currentTime + 0.1
+          );
+        }
+        
+        // Pause after fade
+        setTimeout(() => {
+          if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+          }
+          setCurrentTime(0);
+          setIsPlaying(false);
+          setIsLoading(false);
+        }, 100);
+      }
     }
   }, []);
 
@@ -183,11 +195,9 @@ export const useAudioPlayer = () => {
       return;
     }
 
-    // Clean up current session before loading new track with smooth transition
+    // Immediately stop current track to prevent overlap
     if (currentTrack) {
-      cleanupCurrentSession();
-      // Wait for cleanup to complete
-      await new Promise(resolve => setTimeout(resolve, 150));
+      cleanupCurrentSession(true); // Immediate cleanup for track switching
     }
 
     // Load new track
@@ -280,7 +290,7 @@ export const useAudioPlayer = () => {
 
   // Stop track with cleanup
   const stopTrack = useCallback(() => {
-    cleanupCurrentSession();
+    cleanupCurrentSession(false); // Use smooth fade for manual stop
     setCurrentTrack(null);
   }, [cleanupCurrentSession]);
 
