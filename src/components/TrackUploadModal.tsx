@@ -10,8 +10,26 @@ import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
 import { Upload, Music, Image, X, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { AudiusSDKService, TrackUploadData } from '@/services/audiusSDK';
-import { AudiusService } from '@/services/audiusService';
+import { AudiusSDKService } from '@/services/audiusSDK';
+import { AudioTokenService } from '@/services/audioTokenService';
+
+interface TrackUploadData {
+  title: string;
+  description?: string;
+  genre: string;
+  mood?: string;
+  tags?: string[];
+  audio: File;
+  artwork?: File;
+  is_unlisted?: boolean;
+  field_visibility?: {
+    genre: boolean;
+    mood: boolean;
+    tags: boolean;
+    share: boolean;
+    play_count: boolean;
+  };
+}
 
 interface TrackUploadModalProps {
   open: boolean;
@@ -42,7 +60,30 @@ export const TrackUploadModal = ({ open, onClose, onSuccess }: TrackUploadModalP
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
 
-  const genres = AudiusService.getGenres().filter(g => g.id !== 'all');
+  const genres = [
+    { id: 'Electronic', label: 'Electronic' },
+    { id: 'Rock', label: 'Rock' },
+    { id: 'Metal', label: 'Metal' },
+    { id: 'Alternative', label: 'Alternative' },
+    { id: 'Hip-Hop/Rap', label: 'Hip-Hop/Rap' },
+    { id: 'Experimental', label: 'Experimental' },
+    { id: 'Punk', label: 'Punk' },
+    { id: 'Folk', label: 'Folk' },
+    { id: 'Pop', label: 'Pop' },
+    { id: 'Ambient', label: 'Ambient' },
+    { id: 'Soundtrack', label: 'Soundtrack' },
+    { id: 'World', label: 'World' },
+    { id: 'Jazz', label: 'Jazz' },
+    { id: 'Acoustic', label: 'Acoustic' },
+    { id: 'Funk', label: 'Funk' },
+    { id: 'R&B/Soul', label: 'R&B/Soul' },
+    { id: 'Devotional', label: 'Devotional' },
+    { id: 'Classical', label: 'Classical' },
+    { id: 'Reggae', label: 'Reggae' },
+    { id: 'Podcast', label: 'Podcast' },
+    { id: 'Country', label: 'Country' },
+    { id: 'Spoken Word', label: 'Spoken Word' }
+  ];
   const moods = [
     'Peaceful', 'Romantic', 'Sentimental', 'Tender', 'Easygoing', 'Yearning',
     'Sophisticated', 'Sensual', 'Cool', 'Gritty', 'Melancholy', 'Serious',
@@ -160,21 +201,15 @@ export const TrackUploadModal = ({ open, onClose, onSuccess }: TrackUploadModalP
     setUploadProgress(10);
 
     try {
-      const uploadData: TrackUploadData = {
-        title: formData.title,
+      const result = await AudiusSDKService.uploadTrack({
+        title: formData.title!,
         description: formData.description,
-        genre: formData.genre,
+        genre: formData.genre!,
         mood: formData.mood,
-        tags: formData.tags,
-        audio: audioFile,
-        artwork: artworkFile || undefined,
-        is_unlisted: formData.is_unlisted,
-        field_visibility: formData.field_visibility,
-      };
-
-      setUploadProgress(30);
-      
-      const result = await AudiusSDKService.uploadTrack(uploadData);
+        tags: formData.tags?.join(','),
+        trackFile: audioFile,
+        coverArtFile: artworkFile || undefined,
+      });
       
       setUploadProgress(90);
 
