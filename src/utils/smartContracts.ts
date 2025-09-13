@@ -12,6 +12,15 @@ export const CONTRACTS = {
   REWARD_DISTRIBUTOR: 'EQC5vfkGas_SBp85WVqm_xo4lKelOhv3rPAO6ILdgD2lNvY_'
 };
 
+export class SmartContractHelper {
+  static CONTRACTS = CONTRACTS;
+  
+  static convertTonToNano(amount: number): bigint {
+    return BigInt(Math.floor(amount * 1e9));
+  }
+  
+  static generateNFTMetadata = this.createNFTMetadata;
+
 // NFT Mint Parameters
 export interface NFTMintParams {
   trackId: string;
