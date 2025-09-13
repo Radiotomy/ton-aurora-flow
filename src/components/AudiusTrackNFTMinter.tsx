@@ -63,7 +63,7 @@ export const AudiusTrackNFTMinter: React.FC<AudiusTrackNFTMinterProps> = ({
   const [quantity, setQuantity] = useState(1);
   const [royaltyShare, setRoyaltyShare] = useState([selectedTier.royalty]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { isConnected, sendTransaction, connectWallet, address } = useWeb3();
+  const { isConnected, sendTransaction, connectWallet, walletAddress } = useWeb3();
   const { toast } = useToast();
 
   const totalPrice = selectedTier.price * quantity;
@@ -80,18 +80,7 @@ export const AudiusTrackNFTMinter: React.FC<AudiusTrackNFTMinterProps> = ({
     setIsProcessing(true);
     try {
       // Create NFT metadata
-      const metadata = SmartContractHelper.generateNFTMetadata({
-        trackId: track.id,
-        title: track.title,
-        artist: track.user.name,
-        artistId: track.user.id,
-        tier: selectedTier.name,
-        artwork: track.artwork?.['1000x1000'] || track.artwork?.['480x480'] || '/placeholder.svg',
-        genre: track.genre,
-        duration: track.duration,
-        royalty: royaltyShare[0],
-        features: selectedTier.features
-      });
+      const metadata = SmartContractHelper.createNFTMetadata(track.id, selectedTier.name, track.title, track.user.name);
 
       // Mint NFT transaction
       const mintParams = SmartContractHelper.createNFTMintPayload({
@@ -99,18 +88,7 @@ export const AudiusTrackNFTMinter: React.FC<AudiusTrackNFTMinterProps> = ({
         tier: selectedTier.name,
         quantity,
         recipient: walletAddress!,
-        metadata: {
-          name: `${track.title} - ${selectedTier.name}`,
-          description: `Exclusive NFT for "${track.title}" by ${track.user.name}`,
-          image: track.artwork?.['1000x1000'] || '/placeholder.svg',
-          attributes: [
-            { trait_type: 'Artist', value: track.user.name },
-            { trait_type: 'Tier', value: selectedTier.name },
-            { trait_type: 'Genre', value: track.genre },
-            { trait_type: 'Duration', value: track.duration },
-            { trait_type: 'Royalty', value: royaltyShare[0] }
-          ]
-        }
+        metadata
       });
 
       const transaction = {

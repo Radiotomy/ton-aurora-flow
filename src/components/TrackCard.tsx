@@ -30,7 +30,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-interface TrackCardProps {
+export interface TrackCardProps {
   id: string;
   title: string;
   artist: string;
@@ -45,6 +45,11 @@ interface TrackCardProps {
   artistId?: string;
   artistAvatar?: string;
   artistWallet?: string;
+  canMintNFT?: boolean;
+  onPlay?: () => void;
+  onLike?: () => void;
+  onCollect?: () => void;
+  onAction?: (trackId: string, action: 'mint' | 'tip' | 'collect') => void;
 }
 
 const TrackCard = memo(({ 
@@ -61,7 +66,12 @@ const TrackCard = memo(({
   permalink = '',
   artistId = '',
   artistAvatar = '',
-  artistWallet = ''
+  artistWallet = '',
+  canMintNFT = false,
+  onPlay,
+  onLike,
+  onCollect,
+  onAction
 }: TrackCardProps) => {
   const { likeTrack, collectTrack, shareTrack, isConnected } = useTrackInteractions();
   const { playTrack, currentTrack, isPlaying } = useAudioPlayer();
@@ -90,22 +100,34 @@ const TrackCard = memo(({
   const isTrackPlaying = isCurrentTrack && isPlaying;
 
   const handlePlay = useCallback(async () => {
-    await playTrack(trackData);
-  }, [playTrack, trackData]);
+    if (onPlay) {
+      onPlay();
+    } else {
+      await playTrack(trackData);
+    }
+  }, [onPlay, playTrack, trackData]);
 
   const handleLike = useCallback(async () => {
-    await likeTrack(id, artistId || artist.toLowerCase().replace(/\s+/g, '-'));
-  }, [likeTrack, id, artistId, artist]);
+    if (onLike) {
+      onLike();
+    } else {
+      await likeTrack(id, artistId || artist.toLowerCase().replace(/\s+/g, '-'));
+    }
+  }, [onLike, likeTrack, id, artistId, artist]);
 
   const handleCollect = useCallback(async () => {
     if (!isNft || !price) return;
     setIsCollecting(true);
     try {
-      await collectTrack(id, `nft-contract-${id}`, price);
+      if (onCollect) {
+        onCollect();
+      } else {
+        await collectTrack(id, `nft-contract-${id}`, price);
+      }
     } finally {
       setIsCollecting(false);
     }
-  }, [isNft, price, collectTrack, id]);
+  }, [isNft, price, onCollect, collectTrack, id]);
 
   const handleShare = useCallback(async () => {
     await shareTrack(id);
@@ -116,16 +138,24 @@ const TrackCard = memo(({
       connectWallet();
       return;
     }
-    setShowNFTModal(true);
-  }, [isConnected, connectWallet]);
+    if (onAction) {
+      onAction(id, 'mint');
+    } else {
+      setShowNFTModal(true);
+    }
+  }, [isConnected, connectWallet, onAction, id]);
 
   const handleTipArtist = useCallback(() => {
     if (!isConnected) {
       connectWallet();
       return;
     }
-    setShowTipModal(true);
-  }, [isConnected, connectWallet]);
+    if (onAction) {
+      onAction(id, 'tip');
+    } else {
+      setShowTipModal(true);
+    }
+  }, [isConnected, connectWallet, onAction, id]);
 
   return (
     <>
@@ -175,12 +205,40 @@ const TrackCard = memo(({
                     <MiniVolumeControl />
                   </div>
                 )}
-                <SocialTrackActions 
-                  trackId={id}
-                  artistId={artistId || artist.toLowerCase().replace(/\s+/g, '-')}
-                  className="flex items-center space-x-1"
-                  showFollowButton={false}
-                />
+                
+                {/* Action buttons */}
+                <div className="flex items-center space-x-1">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleLike}
+                    className="backdrop-blur-sm bg-background/50 hover:bg-background/70"
+                  >
+                    <Heart className="w-4 h-4" />
+                  </Button>
+                  
+                  {canMintNFT && (
+                    <Button
+                      size="sm"
+                      variant="aurora"
+                      onClick={handleMintNFT}
+                      className="backdrop-blur-sm"
+                      title="Mint NFT"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                    </Button>
+                  )}
+                  
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={handleTipArtist}
+                    className="backdrop-blur-sm bg-background/50 hover:bg-background/70"
+                    title="Tip Artist"
+                  >
+                    <Coins className="w-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

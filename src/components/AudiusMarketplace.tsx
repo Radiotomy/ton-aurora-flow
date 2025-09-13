@@ -284,7 +284,7 @@ export const AudiusMarketplace: React.FC = () => {
                         likes={track.favorite_count || 0}
                         streamUrl={AudiusService.getStreamUrl(track.id)}
                         isNft={false}
-                        canMintNFT={true}
+        canMintNFT={true}
                         onAction={handleTrackAction}
                       />
                     ))}

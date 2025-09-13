@@ -53,11 +53,13 @@ export const useAudiusCrossChain = () => {
     setIsProcessing(true);
     try {
       // Check if artist has a TON wallet linked
-      const { data: artistProfile } = await supabase
+      const artistProfileQuery = await supabase
         .from('profiles')
         .select('wallet_address, display_name')
         .eq('audius_user_id', artistId)
         .single();
+      
+      const artistProfile = artistProfileQuery.data;
 
       const recipientAddress = artistProfile?.wallet_address || SmartContractHelper.CONTRACTS.PAYMENT_PROCESSOR;
 
@@ -210,7 +212,7 @@ export const useAudiusCrossChain = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [isConnected, sendTransaction, address, toast]);
+  }, [isConnected, sendTransaction, walletAddress, toast]);
 
   /**
    * Reward users for listening to Audius tracks
@@ -298,7 +300,7 @@ export const useAudiusCrossChain = () => {
     } finally {
       setIsProcessing(false);
     }
-  }, [isConnected, sendTransaction, address, toast]);
+  }, [isConnected, sendTransaction, walletAddress, toast]);
 
   /**
    * Get user's Audius listening stats and TON earnings

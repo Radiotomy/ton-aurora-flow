@@ -12,15 +12,6 @@ export const CONTRACTS = {
   REWARD_DISTRIBUTOR: 'EQC5vfkGas_SBp85WVqm_xo4lKelOhv3rPAO6ILdgD2lNvY_'
 };
 
-export class SmartContractHelper {
-  static CONTRACTS = CONTRACTS;
-  
-  static convertTonToNano(amount: number): bigint {
-    return BigInt(Math.floor(amount * 1e9));
-  }
-  
-  static generateNFTMetadata = this.createNFTMetadata;
-
 // NFT Mint Parameters
 export interface NFTMintParams {
   trackId: string;
@@ -57,6 +48,11 @@ export interface TipParams {
 
 // Smart Contract Helper Functions
 export class SmartContractHelper {
+  static CONTRACTS = CONTRACTS;
+  
+  static convertTonToNano(amount: number): bigint {
+    return BigInt(Math.floor(amount * 1e9));
+  }
   
   /**
    * Create NFT mint transaction payload
@@ -140,7 +136,7 @@ export class SmartContractHelper {
   /**
    * Generate NFT metadata
    */
-  static generateNFTMetadata(trackId: string, tier: string, trackTitle: string, artistName: string) {
+  static createNFTMetadata(trackId: string, tier: string, trackTitle: string, artistName: string) {
     const tierAttributes = {
       'Standard Edition': { rarity: 'Common', utility: 'Basic' },
       'Deluxe Edition': { rarity: 'Rare', utility: 'Enhanced' },
@@ -210,7 +206,7 @@ export const {
   isValidTONAddress,
   tonToNano,
   nanoToTon,
-  generateNFTMetadata,
+  createNFTMetadata,
   getContractAddress,
   createTransactionMessage,
   createTransaction
