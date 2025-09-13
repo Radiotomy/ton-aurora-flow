@@ -53,13 +53,11 @@ export const useAudiusCrossChain = () => {
     setIsProcessing(true);
     try {
       // Check if artist has a TON wallet linked
-      const artistProfileQuery = await supabase
+      const { data: artistProfile } = await (supabase as any)
         .from('profiles')
         .select('wallet_address, display_name')
         .eq('audius_user_id', artistId)
-        .single();
-      
-      const artistProfile = artistProfileQuery.data;
+        .maybeSingle();
 
       const recipientAddress = artistProfile?.wallet_address || SmartContractHelper.CONTRACTS.PAYMENT_PROCESSOR;
 
