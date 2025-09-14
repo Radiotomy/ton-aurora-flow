@@ -28,9 +28,37 @@ export const useAuth = () => {
         .eq('auth_user_id', userId)
         .single();
       
-      setProfile(data);
+      if (data) {
+        setProfile(data);
+      } else {
+        // Profile doesn't exist, create one
+        await createProfile(userId);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
+      // Try to create profile if it doesn't exist
+      await createProfile(userId);
+    }
+  };
+
+  const createProfile = async (userId: string) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'User';
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({
+          auth_user_id: userId,
+          display_name: displayName,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (error) {
+      console.error('Error creating profile:', error);
       setProfile(null);
     }
   };

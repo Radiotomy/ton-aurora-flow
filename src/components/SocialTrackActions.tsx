@@ -28,17 +28,8 @@ export const SocialTrackActions: React.FC<SocialTrackActionsProps> = ({
 
   const handleFavoriteClick = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!profile) {
-      console.log('No profile found for favorite action');
-      return;
-    }
-    console.log('Toggling favorite for track:', trackId, 'artist:', artistId);
-    try {
-      const result = await toggleFavorite(artistId);
-      console.log('Toggle favorite result:', result);
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-    }
+    if (!profile) return;
+    await toggleFavorite(artistId);
   };
 
   const handleFollowClick = async (e: React.MouseEvent) => {
