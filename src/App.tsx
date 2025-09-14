@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TonConnectProvider } from "@/providers/TonConnectProvider";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { ErrorBoundaryWithTWA } from "@/components/ErrorBoundaryWithTWA";
+import { SecurityProvider } from "@/components/SecurityProvider";
 import { useTelegramWebApp } from "@/hooks/useTelegramWebApp";
 import { analytics } from "@/utils/analytics";
 import { useEffect } from "react";
@@ -77,12 +78,14 @@ function AppContent() {
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ErrorBoundaryWithTWA>
-      <TonConnectProvider>
-        <TooltipProvider>
-          <Toaster />
-          <AppContent />
-        </TooltipProvider>
-      </TonConnectProvider>
+      <SecurityProvider>
+        <TonConnectProvider>
+          <TooltipProvider>
+            <Toaster />
+            <AppContent />
+          </TooltipProvider>
+        </TonConnectProvider>
+      </SecurityProvider>
     </ErrorBoundaryWithTWA>
   </QueryClientProvider>
 );

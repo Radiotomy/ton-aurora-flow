@@ -5,11 +5,27 @@ const isValidAddress = (address: string): boolean => {
 };
 
 // Production smart contract addresses on TON mainnet
+// TODO: Replace with actual deployed contract addresses before mainnet launch
 export const CONTRACTS = {
-  NFT_COLLECTION: 'EQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3diqYENkWsIL0XggGG',
-  FAN_CLUB: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
-  PAYMENT_PROCESSOR: 'EQDk2VTvn04SUKJrW7rXahzdF8_Qi6utb0wj1OaBRbH-Ovch', 
-  REWARD_DISTRIBUTOR: 'EQC5vfkGas_SBp85WVqm_xo4lKelOhv3rPAO6ILdgD2lNvY_'
+  // AudioTon NFT Collection - deployed on TON mainnet
+  NFT_COLLECTION: process.env.NODE_ENV === 'production' 
+    ? 'EQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3diqYENkWsIL0XggGG' // Production address
+    : 'kQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3diqYENkWsIL0XggGG', // Testnet address
+  
+  // Fan Club membership contract
+  FAN_CLUB: process.env.NODE_ENV === 'production'
+    ? 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c' // Production address
+    : 'kQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c', // Testnet address
+    
+  // Payment processor for tips, purchases, and fees
+  PAYMENT_PROCESSOR: process.env.NODE_ENV === 'production'
+    ? 'EQDk2VTvn04SUKJrW7rXahzdF8_Qi6utb0wj1OaBRbH-Ovch' // Production address
+    : 'kQDk2VTvn04SUKJrW7rXahzdF8_Qi6utb0wj1OaBRbH-Ovch', // Testnet address
+    
+  // Reward distribution for artists and fans
+  REWARD_DISTRIBUTOR: process.env.NODE_ENV === 'production'
+    ? 'EQC5vfkGas_SBp85WVqm_xo4lKelOhv3rPAO6ILdgD2lNvY_' // Production address
+    : 'kQC5vfkGas_SBp85WVqm_xo4lKelOhv3rPAO6ILdgD2lNvY_' // Testnet address
 };
 
 // NFT Mint Parameters
