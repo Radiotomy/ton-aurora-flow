@@ -106,10 +106,16 @@ export const SecurityProvider: React.FC<SecurityProviderProps> = ({ children }) 
     setSecurityMeta('referrer', 'strict-origin-when-cross-origin');
     setSecurityMeta('format-detection', 'telephone=no');
     
-    // Prevent clickjacking
+    // Prevent clickjacking (but allow in development and Telegram WebApp)
     if (window.self !== window.top) {
-      document.body.style.display = 'none';
-      console.error('Application cannot be embedded in frames for security reasons');
+      const isProduction = process.env.NODE_ENV === 'production';
+      const isTelegramWebApp = Boolean((window as any).Telegram?.WebApp);
+      const isLovablePreview = window.location.hostname.includes('lovable.app');
+      
+      if (isProduction && !isTelegramWebApp && !isLovablePreview) {
+        document.body.style.display = 'none';
+        console.error('Application cannot be embedded in frames for security reasons');
+      }
     }
     
   }, []);
