@@ -134,26 +134,48 @@ export const CommunityPolls: React.FC = () => {
 
   const loadPolls = async () => {
     try {
-      // For now, use mock data
-      setPolls(mockPolls);
-      setLoading(false);
+      setLoading(true);
+      
+      const { data: pollsData, error } = await supabase
+        .from('community_polls')
+        .select(`
+          *,
+          profiles:profile_id (
+            display_name,
+            avatar_url
+          )
+        `)
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
-      // For production, would fetch from database:
-      // const { data, error } = await supabase
-      //   .from('community_polls')
-      //   .select('*')
-      //   .eq('is_active', true)
-      //   .order('created_at', { ascending: false });
-      //   .from('community_polls')
-      //   .select(`
-      //     *,
-      //     poll_options (*),
-      //     poll_votes (*)
-      //   `)
-      //   .order('created_at', { ascending: false });
+      if (error) throw error;
+
+      const formattedPolls: Poll[] = pollsData?.map(poll => ({
+        id: poll.id,
+        title: poll.question,
+        description: '',
+        question: poll.question,
+        options: poll.options as { text: string; votes: number }[],
+        total_votes: poll.total_votes || 0,
+        totalVotes: poll.total_votes || 0,
+        ends_at: poll.expires_at,
+        expiresAt: poll.expires_at,
+        creator: {
+          name: poll.profiles?.display_name || 'Anonymous',
+          avatar: poll.profiles?.avatar_url || ''
+        },
+        hasVoted: false,
+        created_at: poll.created_at,
+        created_by: poll.profile_id || '',
+        creator_name: poll.profiles?.display_name || 'Anonymous',
+        status: 'active',
+        poll_type: 'community'
+      })) || [];
+
+      setPolls(formattedPolls);
     } catch (error) {
       console.error('Error loading polls:', error);
-      setPolls(mockPolls);
+      setPolls([]);
     } finally {
       setLoading(false);
     }

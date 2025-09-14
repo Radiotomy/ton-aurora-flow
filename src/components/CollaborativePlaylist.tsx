@@ -78,71 +78,52 @@ export const CollaborativePlaylist: React.FC<CollaborativePlaylistProps> = ({
   }, [playlistId]);
 
   const loadCollaborativeData = async () => {
-    // Mock data for collaborative playlist
-    const mockCollaborators: Collaborator[] = [
-      {
-        id: 'owner',
-        name: 'Alex Chen',
-        handle: 'alexc_music',
+    try {
+      setLoading(true);
+      
+      // Get playlist details
+      const { data: playlist, error: playlistError } = await supabase
+        .from('playlists')
+        .select(`
+          *,
+          profiles:profile_id (
+            id,
+            display_name,
+            avatar_url,
+            wallet_address
+          )
+        `)
+        .eq('id', playlistId)
+        .single();
+
+      if (playlistError) throw playlistError;
+
+      // For now, just show the playlist owner as the only collaborator
+      // In a full implementation, you'd have a separate collaborators table
+      const owner: Collaborator = {
+        id: playlist.profiles?.id || 'unknown',
+        name: playlist.profiles?.display_name || 'Unknown User',
+        handle: playlist.profiles?.wallet_address?.slice(0, 8) + '...' || 'Unknown',
         role: 'owner',
-        joinedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
-        verified: true
-      },
-      {
-        id: 'collab1',
-        name: 'Sarah Kim',
-        handle: 'sarahk',
-        role: 'admin',
-        joinedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 15).toISOString()
-      },
-      {
-        id: 'collab2',
-        name: 'DJ Mike',
-        handle: 'djmike',
-        role: 'contributor',
-        joinedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString()
-      }
-    ];
+        joinedAt: playlist.created_at,
+        verified: false
+      };
 
-    const mockSuggestions: TrackSuggestion[] = [
-      {
-        id: 'suggestion1',
-        track: {
-          id: 'track1',
-          title: 'Midnight Vibes',
-          artist: 'Neon Dreams',
-          artwork: '',
-          duration: 245,
-          likes: 1200
-        },
-        suggestedBy: mockCollaborators[1],
-        votes: 2,
-        votedUsers: ['collab1', 'collab2'],
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-        status: 'pending',
-        note: 'Perfect for the chill section!'
-      },
-      {
-        id: 'suggestion2',
-        track: {
-          id: 'track2',
-          title: 'Electric Storm',
-          artist: 'Bass Master',
-          artwork: '',
-          duration: 180,
-          likes: 856
-        },
-        suggestedBy: mockCollaborators[2],
-        votes: 1,
-        votedUsers: ['collab2'],
-        timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-        status: 'pending',
-        note: 'High energy track for the workout section'
-      }
-    ];
-
-    setCollaborators(mockCollaborators);
-    setSuggestions(mockSuggestions);
+      setCollaborators([owner]);
+      setPermissions({
+        canAddTracks: playlist.profile_id === playlist.profiles?.id,
+        canRemoveTracks: playlist.profile_id === playlist.profiles?.id,
+        canInviteUsers: playlist.profile_id === playlist.profiles?.id,
+        canModifyPlaylist: playlist.profile_id === playlist.profiles?.id
+      });
+      
+    } catch (error) {
+      console.error('Error loading collaborative data:', error);
+      // Fallback to empty state
+      setCollaborators([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInviteUser = async () => {

@@ -58,56 +58,57 @@ export const TrackComments: React.FC<TrackCommentsProps> = ({ trackId, artistId 
   }, [trackId]);
 
   const loadComments = async () => {
-    // For now, using mock data - in production would fetch from Audius API
-    const mockComments: Comment[] = [
-      {
-        id: '1',
-        text: 'This track is absolutely incredible! The production quality is next level 🔥',
-        author: {
-          id: 'user1',
-          name: 'Alex Chen',
-          handle: 'alexc_music',
-          avatar: '',
-          verified: false
-        },
-        timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
-        likes: 24,
-        replies: [
-          {
-            id: '1-1',
-            text: 'Totally agree! Been on repeat all day',
-            author: {
-              id: 'user2',
-              name: 'Sarah Kim',
-              handle: 'sarahk',
-              avatar: '',
-              verified: false
-            },
-            timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
-            likes: 5,
-            replies: []
-          }
-        ]
-      },
-      {
-        id: '2',
-        text: 'Thanks for listening everyone! This one was really special to make ❤️',
-        author: {
-          id: artistId || 'artist1',
-          name: 'Artist Name',
-          handle: 'artisthandle',
-          avatar: '',
-          verified: true
-        },
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-        likes: 156,
-        replies: [],
-        isPinned: true,
-        isArtist: true
-      }
-    ];
+    try {
+      setLoading(true);
+      
+      const { data: commentsData, error } = await supabase
+        .from('track_comments')
+        .select(`
+          id,
+          comment,
+          created_at,
+          reply_to_id,
+          profile_id
+        `)
+        .eq('track_id', trackId)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false });
 
-    setComments(mockComments);
+      if (error) throw error;
+
+      // Get profile info for each comment
+      const profileIds = [...new Set(commentsData?.map(c => c.profile_id) || [])];
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, wallet_address')
+        .in('id', profileIds);
+
+      const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+
+      const formattedComments: Comment[] = commentsData?.map(comment => {
+        const profile = profilesMap.get(comment.profile_id);
+        return {
+          id: comment.id,
+          text: comment.comment,
+          author: {
+            id: comment.profile_id,
+            name: profile?.display_name || 'Anonymous',
+            handle: profile?.wallet_address?.slice(0, 8) + '...' || 'user',
+            avatar: profile?.avatar_url || '',
+            verified: false
+          },
+          timestamp: comment.created_at,
+          likes: 0, // Would need separate likes table
+          replies: [], // Would need to implement reply structure
+          parentId: comment.reply_to_id
+        };
+      }) || [];
+
+      setComments(formattedComments);
+    } catch (error) {
+      console.error('Error loading comments:', error);
+      setComments([]);
+    }
   };
 
   const handleSubmitComment = async () => {

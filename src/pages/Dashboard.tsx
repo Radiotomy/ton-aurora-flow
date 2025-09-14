@@ -1,5 +1,6 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useWalletStore } from '@/stores/walletStore';
+import { useRealUserStats } from '@/hooks/useRealUserStats';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -11,13 +12,14 @@ import { FanClubCard } from '@/components/FanClubCard';
 import { ProfileEditModal } from '@/components/ProfileEditModal';
 import { AIRecommendations } from '@/components/AIRecommendations';
 import { UserFavorites } from '@/components/UserFavorites';
-import { Music, Users, Heart, Trophy, Wallet, Settings, Coins, Star, Award } from 'lucide-react';
+import { Music, Users, Heart, Trophy, Wallet, Settings, Coins, Star, Award, Clock, TrendingUp } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useState } from 'react';
 
 const Dashboard = () => {
   const { user, isAuthenticated } = useAuth();
   const { profile, assets, fanClubMemberships, isConnected, tonBalance } = useWalletStore();
+  const realStats = useRealUserStats();
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
 
   // Allow access with either Supabase auth OR wallet connection
@@ -26,11 +28,32 @@ const Dashboard = () => {
   }
 
   const stats = [
-    { label: 'Tracks Collected', value: assets.filter(a => a.asset_type === 'nft').length, icon: Music },
-    { label: 'Fan Clubs', value: fanClubMemberships.length, icon: Users },
-    { label: 'Reputation', value: profile?.reputation_score || 0, icon: Trophy },
-    { label: 'TON Balance', value: tonBalance.toFixed(2), icon: Wallet },
+    { label: 'Tracks Collected', value: realStats.tracksCollected, icon: Music },
+    { label: 'Fan Clubs', value: realStats.fanClubMemberships, icon: Users },
+    { label: 'Reputation', value: realStats.reputationScore, icon: Trophy },
+    { label: 'TON Balance', value: realStats.tonBalance.toFixed(2), icon: Wallet },
   ];
+
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const then = new Date(timestamp);
+    const diffHours = Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60));
+    
+    if (diffHours < 1) return 'Just now';
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${Math.floor(diffHours / 24)}d ago`;
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'like': return Heart;
+      case 'collect': return Music;
+      case 'join': return Users;
+      case 'tip': return Coins;  
+      case 'comment': return Star;
+      default: return TrendingUp;
+    }
+  };
 
   return (
     <div className="container mx-auto px-4 py-8 pt-24">
@@ -117,27 +140,33 @@ const Dashboard = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                      <Heart className="h-4 w-4 text-primary" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Liked "Ethereal Sounds"</p>
-                        <p className="text-xs text-muted-foreground">2 hours ago</p>
+                    {realStats.loading ? (
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                        <Clock className="h-4 w-4 text-muted-foreground animate-spin" />
+                        <div className="flex-1">
+                          <p className="text-sm text-muted-foreground">Loading activity...</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                      <Music className="h-4 w-4 text-secondary" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Collected "Digital Dreams" NFT</p>
-                        <p className="text-xs text-muted-foreground">1 day ago</p>
+                    ) : realStats.recentActivity.length > 0 ? (
+                      realStats.recentActivity.slice(0, 3).map((activity) => {
+                        const ActivityIcon = getActivityIcon(activity.type);
+                        return (
+                          <div key={activity.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                            <ActivityIcon className="h-4 w-4 text-primary" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{activity.description}</p>
+                              <p className="text-xs text-muted-foreground">{formatTimeAgo(activity.timestamp)}</p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="text-center py-4">
+                        <TrendingUp className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">No recent activity</p>
+                        <p className="text-xs text-muted-foreground">Start exploring to see your activity here</p>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                      <Users className="h-4 w-4 text-accent" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Joined Aurora Artists Fan Club</p>
-                        <p className="text-xs text-muted-foreground">3 days ago</p>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -152,23 +181,23 @@ const Dashboard = () => {
                     <div>
                       <div className="flex justify-between text-sm mb-2">
                         <span>Profile Completion</span>
-                        <span>75%</span>
+                        <span>{realStats.profileCompletion}%</span>
                       </div>
-                      <Progress value={75} className="h-2" />
+                      <Progress value={realStats.profileCompletion} className="h-2" />
                     </div>
                     <div>
                       <div className="flex justify-between text-sm mb-2">
                         <span>Collection Progress</span>
-                        <span>40%</span>
+                        <span>{realStats.collectionProgress}%</span>
                       </div>
-                      <Progress value={40} className="h-2" />
+                      <Progress value={realStats.collectionProgress} className="h-2" />
                     </div>
                     <div>
                       <div className="flex justify-between text-sm mb-2">
                         <span>Community Engagement</span>
-                        <span>60%</span>
+                        <span>{realStats.communityEngagement}%</span>
                       </div>
-                      <Progress value={60} className="h-2" />
+                      <Progress value={realStats.communityEngagement} className="h-2" />
                     </div>
                   </div>
                 </CardContent>
@@ -192,45 +221,65 @@ const Dashboard = () => {
           <TabsContent value="web3" className="space-y-6">
             <TokenEconomicsDashboard 
               userStats={{
-                tonBalance: tonBalance,
-                reputationScore: profile?.reputation_score || 0,
-                totalEarned: 12.5, // Mock data - would come from backend
-                totalSpent: 8.2,
-                nftsOwned: assets.filter(a => a.asset_type === 'nft').length,
-                fanClubMemberships: fanClubMemberships.length,
-                listeningHours: 142, // Mock data
-                artistsSupported: 8 // Mock data
+                tonBalance: realStats.tonBalance,
+                reputationScore: realStats.reputationScore,
+                totalEarned: realStats.totalEarned,
+                totalSpent: realStats.totalSpent,
+                nftsOwned: realStats.tracksCollected,
+                fanClubMemberships: realStats.fanClubMemberships,
+                listeningHours: realStats.totalListeningHours,
+                artistsSupported: realStats.artistsSupported
               }}
               achievements={[
                 {
                   id: '1',
                   title: 'First Collection',
                   description: 'Collect your first music NFT',
-                  progress: assets.filter(a => a.asset_type === 'nft').length,
+                  progress: realStats.tracksCollected,
                   maxProgress: 1,
                   reward: 0.5,
-                  unlocked: assets.filter(a => a.asset_type === 'nft').length >= 1,
+                  unlocked: realStats.tracksCollected >= 1,
                   icon: 'award'
                 },
                 {
                   id: '2',
                   title: 'Music Supporter',
                   description: 'Support 5 different artists with tips',
-                  progress: 3, // Mock data
+                  progress: realStats.artistsSupported,
                   maxProgress: 5,
                   reward: 1.0,
-                  unlocked: false,
+                  unlocked: realStats.artistsSupported >= 5,
                   icon: 'heart'
                 },
                 {
                   id: '3',
                   title: 'Fan Club VIP',
                   description: 'Join 3 fan clubs',
-                  progress: fanClubMemberships.length,
+                  progress: realStats.fanClubMemberships,
                   maxProgress: 3,
                   reward: 2.0,
-                  unlocked: fanClubMemberships.length >= 3,
+                  unlocked: realStats.fanClubMemberships >= 3,
                   icon: 'crown'
+                },
+                {
+                  id: '4',
+                  title: 'Community Voice',
+                  description: 'Leave 10 thoughtful comments',
+                  progress: realStats.commentsCount,
+                  maxProgress: 10,
+                  reward: 0.8,
+                  unlocked: realStats.commentsCount >= 10,
+                  icon: 'star'
+                },
+                {
+                  id: '5',
+                  title: 'Music Curator',
+                  description: 'Add 20 tracks to favorites',
+                  progress: realStats.favoritesCount,
+                  maxProgress: 20,
+                  reward: 1.5,
+                  unlocked: realStats.favoritesCount >= 20,
+                  icon: 'music'
                 }
               ]}
               rewardOpportunities={[

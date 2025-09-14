@@ -4,6 +4,7 @@ import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { useRealMarketplaceStats } from '@/hooks/useRealMarketplaceStats';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -12,7 +13,8 @@ import {
   Music, 
   Crown,
   Star,
-  Activity
+  Activity,
+  Loader2
 } from 'lucide-react';
 
 interface MarketplaceStats {
@@ -47,73 +49,7 @@ interface MarketplaceAnalyticsProps {
 export const MarketplaceAnalytics: React.FC<MarketplaceAnalyticsProps> = ({ 
   className = '' 
 }) => {
-  // Mock data - in production this would come from API
-  const stats: MarketplaceStats = {
-    totalVolume: 2847.5,
-    totalSales: 156,
-    activeListings: 89,
-    averagePrice: 18.25,
-    topGenres: [
-      { name: 'Electronic', percentage: 35, sales: 54 },
-      { name: 'Synthwave', percentage: 25, sales: 39 },
-      { name: 'Ambient', percentage: 20, sales: 31 },
-      { name: 'House', percentage: 12, sales: 19 },
-      { name: 'Techno', percentage: 8, sales: 13 }
-    ],
-    topArtists: [
-      { 
-        id: '1', 
-        name: 'Aurora Digital', 
-        avatar: 'https://ui-avatars.com/api/?name=Aurora+Digital&background=6366f1&color=fff',
-        sales: 24, 
-        volume: 487.5, 
-        isVerified: true 
-      },
-      { 
-        id: '2', 
-        name: 'CyberSynth', 
-        avatar: 'https://ui-avatars.com/api/?name=CyberSynth&background=8b5cf6&color=fff',
-        sales: 19, 
-        volume: 342.8, 
-        isVerified: true 
-      },
-      { 
-        id: '3', 
-        name: 'Stellar Sounds', 
-        avatar: 'https://ui-avatars.com/api/?name=Stellar+Sounds&background=f59e0b&color=fff',
-        sales: 15, 
-        volume: 298.2, 
-        isVerified: false 
-      }
-    ],
-    recentSales: [
-      { 
-        id: '1', 
-        title: 'Digital Dreams', 
-        artist: 'Aurora Digital', 
-        price: 5.5, 
-        currency: 'TON', 
-        timestamp: '2024-01-15T10:30:00Z' 
-      },
-      { 
-        id: '2', 
-        title: 'Neon Nights', 
-        artist: 'CyberSynth', 
-        price: 8.0, 
-        currency: 'TON', 
-        timestamp: '2024-01-15T09:15:00Z' 
-      },
-      { 
-        id: '3', 
-        title: 'Cosmic Drift', 
-        artist: 'Stellar Sounds', 
-        price: 12.5, 
-        currency: 'TON', 
-        timestamp: '2024-01-15T08:45:00Z' 
-      }
-    ],
-    priceHistory: []
-  };
+  const stats = useRealMarketplaceStats();
 
   const formatTimeAgo = (timestamp: string) => {
     const now = new Date();
@@ -128,8 +64,25 @@ export const MarketplaceAnalytics: React.FC<MarketplaceAnalyticsProps> = ({
 
   return (
     <div className={`space-y-6 ${className}`}>
-      {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {stats.loading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <span className="ml-2 text-muted-foreground">Loading marketplace data...</span>
+        </div>
+      )}
+      
+      {stats.error && (
+        <Card className="glass-panel border-destructive/50">
+          <CardContent className="p-4">
+            <p className="text-destructive text-sm">Error loading marketplace data: {stats.error}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {!stats.loading && !stats.error && (
+        <>
+          {/* Key Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="glass-panel border-glass">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -315,6 +268,8 @@ export const MarketplaceAnalytics: React.FC<MarketplaceAnalyticsProps> = ({
           </Card>
         </TabsContent>
       </Tabs>
+        </>
+      )}
     </div>
   );
 };

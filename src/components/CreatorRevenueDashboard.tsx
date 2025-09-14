@@ -115,16 +115,43 @@ export const CreatorRevenueDashboard: React.FC = () => {
         const tipEarnings = transactions?.filter(tx => tx.transaction_type === 'tip')
           .reduce((sum, tx) => sum + (tx.amount_ton || 0), 0) || 0;
 
-        // Calculate growth (mock for now)
-        const monthlyGrowth = Math.random() * 50 + 10;
+        // Calculate growth from transaction history
+        const currentDate = new Date();
+        const lastMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, currentDate.getDate());
+        const thisMonthEarnings = transactions?.filter(tx => 
+          new Date(tx.created_at) >= lastMonth && tx.to_profile_id === profile.id
+        ).reduce((sum, tx) => sum + (tx.amount_ton || 0), 0) || 0;
+        
+        const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 2, currentDate.getDate());
+        const lastMonthEarnings = transactions?.filter(tx => 
+          new Date(tx.created_at) >= previousMonth && 
+          new Date(tx.created_at) < lastMonth && 
+          tx.to_profile_id === profile.id
+        ).reduce((sum, tx) => sum + (tx.amount_ton || 0), 0) || 0;
+        
+        const monthlyGrowth = lastMonthEarnings > 0 
+          ? ((thisMonthEarnings - lastMonthEarnings) / lastMonthEarnings) * 100 
+          : 0;
 
-        // Top tracks by revenue (mock data based on collections)
-        const topTracks = collections?.slice(0, 5).map((collection, index) => ({
-          id: collection.track_id,
-          title: `Track ${index + 1}`,
-          earnings: collection.purchase_price || 0,
-          sales: 1
-        })) || [];
+        // Get top tracks from collections (group by track_id)
+        const trackRevenue = collections?.reduce((acc, collection) => {
+          const trackId = collection.track_id;
+          if (!acc[trackId]) {
+            acc[trackId] = {
+              id: trackId,
+              title: `Track ${trackId}`,
+              earnings: 0,
+              sales: 0
+            };
+          }
+          acc[trackId].earnings += collection.purchase_price || 0;
+          acc[trackId].sales += 1;
+          return acc;
+        }, {} as Record<string, any>) || {};
+
+        const topTracks = Object.values(trackRevenue)
+          .sort((a: any, b: any) => b.earnings - a.earnings)
+          .slice(0, 5);
 
         // Revenue by source
         const revenueBySource = [
