@@ -12,6 +12,7 @@ import TrackCard from '@/components/TrackCard';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { AudiusService } from '@/services/audiusService';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Users,
   Plus,
@@ -27,6 +28,13 @@ import {
   Share,
   Copy
 } from 'lucide-react';
+
+interface Permissions {
+  canAddTracks: boolean;
+  canRemoveTracks: boolean;
+  canInviteUsers: boolean;
+  canModifyPlaylist: boolean;
+}
 
 interface Collaborator {
   id: string;
@@ -60,6 +68,13 @@ export const CollaborativePlaylist: React.FC<CollaborativePlaylistProps> = ({
 }) => {
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
   const [suggestions, setSuggestions] = useState<TrackSuggestion[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [permissions, setPermissions] = useState<Permissions>({
+    canAddTracks: false,
+    canRemoveTracks: false,
+    canInviteUsers: false,
+    canModifyPlaylist: false
+  });
   const [inviteEmail, setInviteEmail] = useState('');
   const [playlistSettings, setPlaylistSettings] = useState({
     allowSuggestions: true,
@@ -84,37 +99,38 @@ export const CollaborativePlaylist: React.FC<CollaborativePlaylistProps> = ({
       // Get playlist details
       const { data: playlist, error: playlistError } = await supabase
         .from('playlists')
-        .select(`
-          *,
-          profiles:profile_id (
-            id,
-            display_name,
-            avatar_url,
-            wallet_address
-          )
-        `)
+        .select('*')
         .eq('id', playlistId)
         .single();
 
       if (playlistError) throw playlistError;
 
-      // For now, just show the playlist owner as the only collaborator
-      // In a full implementation, you'd have a separate collaborators table
+      // Get profile info for the playlist owner
+      const { data: ownerProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url, wallet_address')
+        .eq('id', playlist.profile_id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Create owner collaborator
       const owner: Collaborator = {
-        id: playlist.profiles?.id || 'unknown',
-        name: playlist.profiles?.display_name || 'Unknown User',
-        handle: playlist.profiles?.wallet_address?.slice(0, 8) + '...' || 'Unknown',
+        id: ownerProfile.id,
+        name: ownerProfile.display_name || 'Unknown User',
+        handle: ownerProfile.wallet_address?.slice(0, 8) + '...' || 'Unknown',
         role: 'owner',
         joinedAt: playlist.created_at,
-        verified: false
+        verified: false,
+        avatar: ownerProfile.avatar_url || undefined
       };
 
       setCollaborators([owner]);
       setPermissions({
-        canAddTracks: playlist.profile_id === playlist.profiles?.id,
-        canRemoveTracks: playlist.profile_id === playlist.profiles?.id,
-        canInviteUsers: playlist.profile_id === playlist.profiles?.id,
-        canModifyPlaylist: playlist.profile_id === playlist.profiles?.id
+        canAddTracks: isOwner,
+        canRemoveTracks: isOwner,
+        canInviteUsers: isOwner,
+        canModifyPlaylist: isOwner
       });
       
     } catch (error) {

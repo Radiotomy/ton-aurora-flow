@@ -150,27 +150,28 @@ export const CommunityPolls: React.FC = () => {
 
       if (error) throw error;
 
-      const formattedPolls: Poll[] = pollsData?.map(poll => ({
-        id: poll.id,
-        title: poll.question,
-        description: '',
-        question: poll.question,
-        options: poll.options as { text: string; votes: number }[],
-        total_votes: poll.total_votes || 0,
-        totalVotes: poll.total_votes || 0,
-        ends_at: poll.expires_at,
-        expiresAt: poll.expires_at,
-        creator: {
-          name: poll.profiles?.display_name || 'Anonymous',
-          avatar: poll.profiles?.avatar_url || ''
-        },
-        hasVoted: false,
-        created_at: poll.created_at,
-        created_by: poll.profile_id || '',
-        creator_name: poll.profiles?.display_name || 'Anonymous',
-        status: 'active',
-        poll_type: 'community'
-      })) || [];
+      const formattedPolls: Poll[] = pollsData?.map(poll => {
+        const options: PollOption[] = (poll.options as { text: string; votes: number }[]).map((option, index) => ({
+          id: `option-${index}`,
+          text: option.text,
+          votes: option.votes,
+          percentage: poll.total_votes > 0 ? (option.votes / poll.total_votes) * 100 : 0
+        }));
+
+        return {
+          id: poll.id,
+          title: poll.question,
+          description: '',
+          options: options,
+          total_votes: poll.total_votes || 0,
+          ends_at: poll.expires_at,
+          created_at: poll.created_at,
+          created_by: poll.profile_id || '',
+          creator_name: poll.profiles?.display_name || 'Anonymous',
+          status: 'active' as const,
+          poll_type: 'general' as const
+        };
+      }) || [];
 
       setPolls(formattedPolls);
     } catch (error) {
