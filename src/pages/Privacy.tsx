@@ -1,153 +1,193 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-export default function Privacy() {
+const Privacy = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-background/80 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <div className="max-w-4xl mx-auto">
-        <Button 
-          variant="ghost" 
-          className="mb-6" 
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
+        <div className="flex items-center gap-4 mb-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate(-1)}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+        <Card className="border-0 shadow-xl bg-card/90 backdrop-blur-xl">
+          <CardHeader className="text-center pb-8">
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-accent bg-clip-text text-transparent">
               Privacy Policy
             </CardTitle>
-            <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
+            <p className="text-muted-foreground mt-2">
+              Effective Date: {new Date().toLocaleDateString()}
+            </p>
           </CardHeader>
-          <CardContent className="prose prose-neutral dark:prose-invert max-w-none">
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">1. Information We Collect</h2>
-              <p className="mb-4">AudioTon collects the following types of information:</p>
+          
+          <CardContent className="prose prose-slate dark:prose-invert max-w-none space-y-8">
+            <section>
+              <h2 className="text-xl font-semibold text-foreground mb-4">1. Information We Collect</h2>
               
-              <h3 className="text-lg font-medium mb-2">Wallet Information</h3>
-              <ul className="list-disc pl-6 mb-4">
-                <li>TON wallet addresses (public information)</li>
-                <li>Transaction hashes and blockchain interactions</li>
-                <li>NFT holdings and collection data</li>
+              <h3 className="text-lg font-medium text-foreground mb-3">Blockchain Data</h3>
+              <ul className="list-disc list-inside text-muted-foreground space-y-2 mb-4">
+                <li>TON wallet addresses when you connect your wallet</li>
+                <li>Transaction hashes and blockchain interaction data</li>
+                <li>NFT ownership and marketplace activity</li>
+                <li>Token balances and conversion history</li>
               </ul>
 
-              <h3 className="text-lg font-medium mb-2">Usage Data</h3>
-              <ul className="list-disc pl-6 mb-4">
+              <h3 className="text-lg font-medium text-foreground mb-3">Platform Usage Data</h3>
+              <ul className="list-disc list-inside text-muted-foreground space-y-2 mb-4">
                 <li>Music listening history and preferences</li>
-                <li>App usage analytics and performance metrics</li>
-                <li>Device information and browser type</li>
+                <li>Artist interactions and fan club memberships</li>
+                <li>Playlist creation and sharing activity</li>
+                <li>Community participation (polls, comments)</li>
               </ul>
 
-              <h3 className="text-lg font-medium mb-2">Profile Information</h3>
-              <ul className="list-disc pl-6 mb-4">
-                <li>Display names and profile customizations</li>
-                <li>Fan club memberships and activity</li>
-                <li>Social interactions within the platform</li>
-              </ul>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">2. How We Use Your Information</h2>
-              <p className="mb-4">We use collected information to:</p>
-              <ul className="list-disc pl-6 mb-4">
-                <li>Provide and improve our music streaming services</li>
-                <li>Process blockchain transactions and NFT operations</li>
-                <li>Personalize your music discovery experience</li>
-                <li>Maintain platform security and prevent fraud</li>
-                <li>Analyze usage patterns and optimize performance</li>
-                <li>Communicate important updates and features</li>
+              <h3 className="text-lg font-medium text-foreground mb-3">Technical Information</h3>
+              <ul className="list-disc list-inside text-muted-foreground space-y-2">
+                <li>Device type and browser information</li>
+                <li>IP address and approximate location</li>
+                <li>Performance metrics and error logs</li>
+                <li>Session data and platform interactions</li>
               </ul>
             </section>
 
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">3. Data Storage and Security</h2>
-              <p className="mb-4">
-                Your data is stored securely using industry-standard practices:
-              </p>
-              <ul className="list-disc pl-6 mb-4">
-                <li>Blockchain data is stored on the TON network (immutable and public)</li>
-                <li>Profile and usage data is encrypted and stored in secure databases</li>
-                <li>We implement regular security audits and monitoring</li>
-                <li>Access to personal data is restricted to authorized personnel only</li>
+            <section>
+              <h2 className="text-xl font-semibold text-foreground mb-4">2. How We Use Your Information</h2>
+              <ul className="list-disc list-inside text-muted-foreground space-y-2">
+                <li>Provide and improve platform services</li>
+                <li>Process blockchain transactions and smart contract interactions</li>
+                <li>Generate personalized music recommendations</li>
+                <li>Enable social features and community interactions</li>
+                <li>Analyze platform usage and performance</li>
+                <li>Comply with legal obligations</li>
+                <li>Communicate platform updates and security notices</li>
               </ul>
             </section>
 
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">4. Third-Party Integrations</h2>
-              <p className="mb-4">AudioTon integrates with third-party services:</p>
+            <section>
+              <h2 className="text-xl font-semibold text-foreground mb-4">3. Data Sharing and Third Parties</h2>
               
-              <h3 className="text-lg font-medium mb-2">Audius Protocol</h3>
-              <p className="mb-2">
-                Music content and metadata are retrieved from Audius. Please review Audius's privacy policy for their data practices.
+              <h3 className="text-lg font-medium text-foreground mb-3">Audius Integration</h3>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                We integrate with Audius for music streaming and discovery. Music data and listening activity 
+                may be shared with Audius in accordance with their privacy policy.
               </p>
 
-              <h3 className="text-lg font-medium mb-2">TON Blockchain</h3>
-              <p className="mb-2">
-                Wallet addresses and transactions are public on the TON blockchain and cannot be deleted or modified.
+              <h3 className="text-lg font-medium text-foreground mb-3">Blockchain Networks</h3>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                Transaction data is inherently public on blockchain networks. Wallet addresses and transaction 
+                hashes are visible to anyone with blockchain explorer access.
               </p>
 
-              <h3 className="text-lg font-medium mb-2">Analytics Services</h3>
-              <p className="mb-2">
-                We use privacy-focused analytics to understand app usage and improve user experience.
-              </p>
+              <h3 className="text-lg font-medium text-foreground mb-3">Service Providers</h3>
+              <ul className="list-disc list-inside text-muted-foreground space-y-2">
+                <li>Supabase for database and backend services</li>
+                <li>TON blockchain infrastructure providers</li>
+                <li>Analytics and monitoring services</li>
+                <li>Content delivery networks</li>
+              </ul>
             </section>
 
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">5. Your Rights and Choices</h2>
-              <p className="mb-4">You have the following rights regarding your data:</p>
-              <ul className="list-disc pl-6 mb-4">
-                <li>Access and export your profile data</li>
-                <li>Update or correct your profile information</li>
+            <section>
+              <h2 className="text-xl font-semibold text-foreground mb-4">4. Data Security</h2>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                We implement industry-standard security measures to protect your data:
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-2">
+                <li>End-to-end encryption for sensitive communications</li>
+                <li>Secure database access with row-level security</li>
+                <li>Regular security audits and vulnerability assessments</li>
+                <li>Minimal data collection and retention policies</li>
+                <li>Secure authentication and session management</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-foreground mb-4">5. Your Privacy Rights</h2>
+              <ul className="list-disc list-inside text-muted-foreground space-y-2">
+                <li>Access your personal data we have collected</li>
+                <li>Request correction of inaccurate information</li>
                 <li>Delete your account and associated data</li>
-                <li>Opt out of non-essential data collection</li>
-                <li>Control your privacy settings and preferences</li>
-              </ul>
-              <p className="mb-4">
-                Note: Blockchain transactions cannot be deleted due to the immutable nature of distributed ledgers.
-              </p>
-            </section>
-
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">6. Data Sharing and Disclosure</h2>
-              <p className="mb-4">We do not sell your personal data. We may share information in these situations:</p>
-              <ul className="list-disc pl-6 mb-4">
-                <li>With your explicit consent</li>
-                <li>To comply with legal obligations</li>
-                <li>To protect our rights and prevent fraud</li>
-                <li>In connection with business transactions (mergers, acquisitions)</li>
+                <li>Export your data in a portable format</li>
+                <li>Opt out of non-essential data processing</li>
+                <li>Withdraw consent for data processing</li>
               </ul>
             </section>
 
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">7. Children's Privacy</h2>
-              <p className="mb-4">
-                AudioTon is not intended for users under 13 years of age. We do not knowingly collect personal information from children under 13.
+            <section>
+              <h2 className="text-xl font-semibold text-foreground mb-4">6. Data Retention</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                We retain personal data only as long as necessary for platform functionality and legal compliance. 
+                Blockchain transaction data is permanent and cannot be deleted. Account data can be deleted upon request, 
+                though some information may be retained for security and fraud prevention.
               </p>
             </section>
 
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">8. Changes to This Policy</h2>
-              <p className="mb-4">
-                We may update this privacy policy periodically. We will notify users of significant changes through the app or email.
+            <section>
+              <h2 className="text-xl font-semibold text-foreground mb-4">7. International Data Transfers</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                Your data may be processed in countries other than your own. We ensure appropriate safeguards 
+                are in place to protect your privacy rights in accordance with applicable data protection laws.
               </p>
             </section>
 
-            <section className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">9. Contact Us</h2>
-              <p className="mb-4">
-                For privacy-related questions or to exercise your rights, please contact us through our official support channels.
+            <section>
+              <h2 className="text-xl font-semibold text-foreground mb-4">8. Children's Privacy</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                AudioTon is not intended for users under 13 years of age. We do not knowingly collect personal 
+                information from children under 13. If you believe a child has provided us with personal information, 
+                please contact us immediately.
               </p>
             </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-foreground mb-4">9. Cookie Policy</h2>
+              <p className="text-muted-foreground leading-relaxed mb-4">
+                We use cookies and similar technologies to:
+              </p>
+              <ul className="list-disc list-inside text-muted-foreground space-y-2">
+                <li>Maintain your session and preferences</li>
+                <li>Analyze platform usage and performance</li>
+                <li>Provide personalized content and recommendations</li>
+                <li>Enable social media integration features</li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-foreground mb-4">10. Policy Updates</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                We may update this privacy policy periodically to reflect changes in our practices or applicable laws. 
+                We will notify users of significant changes through the platform or email.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-xl font-semibold text-foreground mb-4">11. Contact Us</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                For privacy-related questions or requests, please contact us through our official channels. 
+                We are committed to addressing your privacy concerns promptly and transparently.
+              </p>
+            </section>
+
+            <div className="mt-12 pt-8 border-t border-border/50 text-center">
+              <p className="text-sm text-muted-foreground">
+                Last updated: {new Date().toLocaleDateString()}
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>
     </div>
   );
-}
+};
+
+export default Privacy;
