@@ -18,6 +18,14 @@ let sharedAudioContext: AudioContext | null = null;
 let sharedGain: GainNode | null = null;
 let sharedSource: MediaElementAudioSourceNode | null = null;
 
+// Shared current track state and pub-sub
+let sharedCurrentTrack: CurrentTrack | null = null;
+const currentTrackListeners = new Set<(t: CurrentTrack | null) => void>();
+const setSharedCurrentTrack = (t: CurrentTrack | null) => {
+  sharedCurrentTrack = t;
+  currentTrackListeners.forEach(cb => cb(sharedCurrentTrack));
+};
+
 export const useAudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -37,6 +45,14 @@ export const useAudioPlayer = () => {
   const [queueIndex, setQueueIndex] = useState(-1);
 
   const { isConnected, profile } = useWeb3();
+
+  // Subscribe to shared current track so all instances stay in sync
+  useEffect(() => {
+    setCurrentTrack(sharedCurrentTrack);
+    const cb = (t: CurrentTrack | null) => setCurrentTrack(t);
+    currentTrackListeners.add(cb);
+    return () => { currentTrackListeners.delete(cb); };
+  }, []);
 
   // Performance-optimized time updates
   const updateTimeThrottled = useCallback((time: number) => {
@@ -200,6 +216,7 @@ export const useAudioPlayer = () => {
 
     // Load new track
     setCurrentTrack(track);
+    setSharedCurrentTrack(track);
     setIsLoading(true);
     
     try {
@@ -290,6 +307,7 @@ export const useAudioPlayer = () => {
   const stopTrack = useCallback(() => {
     cleanupCurrentSession(false); // Use smooth fade for manual stop
     setCurrentTrack(null);
+    setSharedCurrentTrack(null);
   }, [cleanupCurrentSession]);
 
   // Seek to position

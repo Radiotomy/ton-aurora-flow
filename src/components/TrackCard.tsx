@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { useTrackInteractions } from '@/hooks/useTrackInteractions';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useWeb3 } from '@/hooks/useWeb3';
+import { useSocial } from '@/hooks/useSocial';
 import { SocialTrackActions } from './SocialTrackActions';
 import { NFTMintModal } from './NFTMintModal';
 import { TipModal } from './TipModal';
@@ -99,6 +100,10 @@ const TrackCard = memo(({
   const isCurrentTrack = currentTrack?.id === id;
   const isTrackPlaying = isCurrentTrack && isPlaying;
 
+  // Favorites state for this track
+  const { useFavoriteStatus } = useSocial();
+  const { isFavorited, toggleFavorite, loading: favLoading } = useFavoriteStatus(id);
+
   const handlePlay = useCallback(async () => {
     if (onPlay) {
       onPlay();
@@ -111,9 +116,9 @@ const TrackCard = memo(({
     if (onLike) {
       onLike();
     } else {
-      await likeTrack(id, artistId || artist.toLowerCase().replace(/\s+/g, '-'));
+      await toggleFavorite(artistId || artist.toLowerCase().replace(/\s+/g, '-'));
     }
-  }, [onLike, likeTrack, id, artistId, artist]);
+  }, [onLike, toggleFavorite, id, artistId, artist]);
 
   const handleCollect = useCallback(async () => {
     if (!isNft || !price) return;
@@ -213,7 +218,8 @@ const TrackCard = memo(({
                     size="sm"
                     variant="ghost"
                     onClick={handleLike}
-                    className="h-8 w-8 rounded-full backdrop-blur-md bg-background/30 hover:bg-background/50 border border-white/20 hover:border-primary/40 hover:scale-110 transition-all duration-200 text-white hover:text-primary"
+                    disabled={favLoading}
+                    className={`h-8 w-8 rounded-full backdrop-blur-md bg-background/30 hover:bg-background/50 border border-white/20 hover:border-primary/40 hover:scale-110 transition-all duration-200 ${isFavorited ? 'text-primary' : 'text-white'} hover:text-primary`}
                     title="Like track"
                   >
                     <Heart className="w-4 h-4" />
