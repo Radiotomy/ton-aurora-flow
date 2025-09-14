@@ -33,7 +33,8 @@ const Navigation = () => {
   const { canAccessCreatorStudio } = useUserRoles(user?.id);
 
   const navItems = [
-    { icon: Home, label: 'Discovery', href: '/' },
+    { icon: Home, label: 'Home', href: '/' },
+    { icon: Search, label: 'Discover', href: '/discover' },
     { icon: ShoppingCart, label: 'Marketplace', href: '/marketplace' },
     { icon: Music, label: 'Playlists', href: '/playlists' },
     { icon: Radio, label: 'Live Events', href: '/live-events' },

@@ -1,25 +1,22 @@
-import { useState } from 'react';
+import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import HeroSection from '@/components/HeroSection';
-import DiscoverySection from '@/components/DiscoverySection';
 import { UserFeedSection } from '@/components/UserFeedSection';
-import { AIRecommendations } from '@/components/AIRecommendations';
+import { FeaturedArtists } from '@/components/FeaturedArtists';
+import { TrendingArtists } from '@/components/TrendingArtists';
 
 const Index = () => {
   return (
     <main className="pt-16">
-        <HeroSection />
-        
-        <UserFeedSection />
-
-        {/* AI Recommendations Section */}
-        <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-          <AIRecommendations className="mb-8" maxItems={6} />
-        </section>
-
-      <DiscoverySection />
+      <HeroSection />
       
-      {/* Phase 1 Development Status */}
+      <FeaturedArtists />
+      
+      <TrendingArtists />
+      
+      <UserFeedSection />
+      
+      {/* Platform Stats */}
       <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center mb-8">
           <Badge variant="outline" className="mb-4">

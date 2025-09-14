@@ -10,6 +10,7 @@ import { useTelegramWebApp } from "@/hooks/useTelegramWebApp";
 import { analytics } from "@/utils/analytics";
 import { useEffect } from "react";
 import Index from "./pages/Index";
+import Discover from "./pages/Discover";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Playlists from "./pages/Playlists";
@@ -50,6 +51,7 @@ function AppContent() {
         <ErrorBoundaryWithTWA>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/discover" element={<Discover />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/audius/callback" element={<AudiusCallback />} />
             <Route path="/dashboard" element={<Dashboard />} />
