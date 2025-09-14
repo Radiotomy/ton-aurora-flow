@@ -198,6 +198,32 @@ const Auth = () => {
                   </Button>
                 </form>
               </CardContent>
+              
+              {/* Call-to-action for artists */}
+              <div className="bg-gradient-to-r from-primary/10 to-purple-500/10 rounded-lg p-4 mx-6 mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <Sparkles className="w-5 h-5 text-primary" />
+                  <h3 className="font-medium">Are you an artist?</h3>
+                </div>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Join AudioTon as an artist and unlock Web3 music features, fan clubs, and monetization tools.
+                </p>
+                <div className="flex gap-2">
+                  {isAudiusAuthenticated ? (
+                    <Button size="sm" onClick={() => setShowArtistModal(true)}>
+                      Apply as Artist
+                    </Button>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <AudiusLoginButton />
+                      <span className="text-xs text-muted-foreground">or</span>
+                      <Button size="sm" variant="outline" onClick={() => setShowArtistModal(true)}>
+                        Register New Artist
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </Card>
           </TabsContent>
 
@@ -252,6 +278,12 @@ const Auth = () => {
             </Card>
           </TabsContent>
         </Tabs>
+        
+        {/* Artist Registration Modal */}
+        <ArtistRegistrationModal 
+          open={showArtistModal} 
+          onOpenChange={setShowArtistModal} 
+        />
       </div>
     </div>
   );
