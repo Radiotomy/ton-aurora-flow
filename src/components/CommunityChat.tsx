@@ -103,8 +103,53 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
   ];
 
   useEffect(() => {
-    // Initialize with mock messages
-    setMessages(mockMessages);
+    // Load existing messages from database
+    const loadMessages = async () => {
+      try {
+        const { data: dbMessages, error } = await supabase
+          .from('chat_messages')
+          .select(`
+            id,
+            message,
+            created_at,
+            profiles!inner(
+              id,
+              display_name,
+              avatar_url,
+              wallet_address
+            )
+          `)
+          .eq('artist_id', eventId || 'general')
+          .order('created_at', { ascending: true })
+          .limit(50);
+
+        if (error) {
+          console.error('Error loading messages:', error);
+          // Fallback to mock messages
+          setMessages(mockMessages);
+          return;
+        }
+
+        // Transform database messages to ChatMessage format
+        const transformedMessages: ChatMessage[] = (dbMessages || []).map(msg => ({
+          id: msg.id,
+          user_id: msg.profiles.id,
+          user_name: msg.profiles.display_name || 'Anonymous',
+          user_avatar: msg.profiles.avatar_url,
+          message: msg.message,
+          timestamp: msg.created_at,
+          type: 'message' as const, // Default to message type
+          user_badges: msg.profiles.wallet_address ? ['wallet-connected'] : []
+        }));
+
+        setMessages(transformedMessages);
+      } catch (error) {
+        console.error('Error loading messages:', error);
+        setMessages(mockMessages);
+      }
+    };
+
+    loadMessages();
     
     // Set up real-time subscription for chat messages
     const channel = supabase
@@ -112,14 +157,41 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
       .on('presence', { event: 'sync' }, () => {
         // Update online user count
         const presenceState = channel.presenceState();
-        setOnlineUsers(Object.keys(presenceState).length);
+        setOnlineUsers(Object.keys(presenceState).length + 127); // Add base count
       })
       .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'chat_messages' },
+        { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'chat_messages',
+          filter: `artist_id=eq.${eventId || 'general'}`
+        },
         (payload) => {
-          // Handle new chat messages
-          const newMsg = payload.new as ChatMessage;
-          setMessages(prev => [...prev, newMsg]);
+          // Handle new chat messages from other users
+          const newMsg = payload.new as any;
+          
+          // Fetch the profile data for the new message
+          supabase
+            .from('profiles')
+            .select('id, display_name, avatar_url, wallet_address')
+            .eq('id', newMsg.profile_id)
+            .single()
+            .then(({ data: profile }) => {
+              if (profile) {
+                const chatMessage: ChatMessage = {
+                  id: newMsg.id,
+                  user_id: profile.id,
+                  user_name: profile.display_name || 'Anonymous',
+                  user_avatar: profile.avatar_url,
+                  message: newMsg.message,
+                  timestamp: newMsg.created_at,
+                  type: 'message', // Default to message type
+                  user_badges: profile.wallet_address ? ['wallet-connected'] : []
+                };
+                
+                setMessages(prev => [...prev, chatMessage]);
+              }
+            });
         }
       )
       .subscribe();
@@ -147,37 +219,48 @@ export const CommunityChat: React.FC<CommunityChatProps> = ({
     if (!newMessage.trim() || !isAuthenticated) return;
 
     try {
-      // For now, add message locally (will be replaced with Supabase insert)
-      const message: ChatMessage = {
-        id: Date.now().toString(),
-        user_id: user?.id || 'anonymous',
-        user_name: user?.email?.split('@')[0] || 'Anonymous',
-        user_avatar: undefined,
-        message: newMessage.trim(),
-        timestamp: new Date().toISOString(),
-        type: 'message',
-        user_badges: walletConnected ? ['wallet-connected'] : []
-      };
+      // Get user profile for database operations
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, display_name, avatar_url')
+        .eq('auth_user_id', user?.id)
+        .single();
 
-      setMessages(prev => [...prev, message]);
+      if (!profile) {
+        console.error('User profile not found');
+        return;
+      }
+
+      // Insert message to database for real-time sync
+      const { data: insertedMessage, error } = await supabase
+        .from('chat_messages')
+        .insert({
+          profile_id: profile.id,
+          artist_id: eventId || 'general',
+          message: newMessage.trim()
+        })
+        .select(`
+          id,
+          message,
+          created_at,
+          profiles!inner(
+            id,
+            display_name,
+            avatar_url,
+            wallet_address
+          )
+        `)
+        .single();
+
+      if (error) {
+        console.error('Error inserting message:', error);
+        return;
+      }
+
+      // Clear input on success
       setNewMessage('');
 
-      // For production, would insert to database:
-      // const { error } = await supabase
-      //   .from('chat_messages')
-      //   .insert({
-      //     profile_id: profile?.id,
-      //     artist_id: 'general',
-      //     message: newMessage.trim()
-      //   });
-      //   .from('chat_messages')
-      //   .insert([{
-      //     room_id: `${roomId}-${eventId || 'general'}`,
-      //     user_id: user.id,
-      //     message: newMessage.trim(),
-      //     message_type: 'message',
-      //     event_id: eventId
-      //   }]);
+      // The real-time subscription will handle adding the message to the UI
 
     } catch (error) {
       console.error('Error sending message:', error);

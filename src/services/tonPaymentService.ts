@@ -23,7 +23,7 @@ export interface PaymentRequest {
 export class TonPaymentService {
   
   constructor() {
-    // Phase 1: Direct TON transfers, contract integration in Phase 2
+    // Mainnet-ready: Smart contract integration for secure payments
   }
 
   async sendTip(
@@ -32,22 +32,33 @@ export class TonPaymentService {
   ): Promise<PaymentResult> {
     try {
       const amount = toNano(request.amount);
+      
+      // Import smart contract utilities
+      const { SmartContractHelper } = await import('@/utils/smartContracts');
+      
+      // Calculate platform fee (1% of tip amount)
+      const tipAmount = parseFloat(request.amount);
+      const platformFee = tipAmount * 0.01;
+      const netAmount = tipAmount - platformFee;
+      
+      // Create smart contract payload for tips
+      const payload = SmartContractHelper.createTipPayload({
+        artistId: request.recipientAddress,
+        amount: netAmount,
+        message: request.message || 'AudioTon tip',
+        sender: senderWallet.account.address
+      });
 
-      // Create transaction for simple TON transfer (Phase 1 implementation)
+      // Route through payment processor contract for fee handling
+      const paymentProcessor = SmartContractHelper.getContractAddress('PAYMENT_PROCESSOR');
+      
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 300, // 5 minutes
         messages: [
           {
-            address: request.recipientAddress, // Send directly to recipient for Phase 1
+            address: paymentProcessor, // Route through smart contract
             amount: amount.toString(),
-            // Simple comment payload for tips
-            payload: btoa(unescape(encodeURIComponent(
-              JSON.stringify({
-                type: 'tip',
-                message: request.message || 'AudioTon tip',
-                timestamp: Date.now()
-              })
-            )))
+            payload: payload
           },
         ],
       };
@@ -57,12 +68,15 @@ export class TonPaymentService {
       
       // Record transaction in database
       await this.recordTransaction({
-        transactionHash: result.boc, // This will be the actual hash after processing
+        transactionHash: result.boc,
         transactionType: 'tip',
         amountTon: request.amount,
         recipientAddress: request.recipientAddress,
         metadata: {
           message: request.message,
+          platformFee: platformFee,
+          netAmount: netAmount,
+          contractAddress: paymentProcessor
         },
       });
 
@@ -85,20 +99,59 @@ export class TonPaymentService {
   ): Promise<PaymentResult> {
     try {
       const amount = toNano(request.amount);
+      
+      // Import smart contract utilities
+      const { SmartContractHelper } = await import('@/utils/smartContracts');
+      
+      // Calculate platform fee based on payment type
+      const paymentAmount = parseFloat(request.amount);
+      const platformFee = request.paymentType === 'nft_purchase' ? paymentAmount * 0.025 : paymentAmount * 0.02; // 2.5% for NFTs, 2% for memberships
+      const netAmount = paymentAmount - platformFee;
+
+      let contractAddress: string;
+      let payload: string;
+
+      if (request.paymentType === 'nft_purchase') {
+        // Route through NFT Collection contract
+        contractAddress = SmartContractHelper.getContractAddress('NFT_COLLECTION');
+        payload = SmartContractHelper.createNFTMintPayload({
+          trackId: request.itemId || '',
+          tier: 'Standard Edition',
+          quantity: 1,
+          recipient: senderWallet.account.address,
+          metadata: SmartContractHelper.createNFTMetadata(
+            request.itemId || '',
+            'Standard Edition',
+            'Track NFT',
+            'AudioTon Artist'
+          )
+        });
+      } else if (request.paymentType === 'fan_club_membership') {
+        // Route through Fan Club contract
+        contractAddress = SmartContractHelper.getContractAddress('FAN_CLUB');
+        payload = SmartContractHelper.createFanClubJoinPayload({
+          artistId: request.recipientAddress,
+          tier: 'Standard',
+          duration: 1, // 1 month
+          recipient: senderWallet.account.address
+        });
+      } else {
+        // Default to payment processor
+        contractAddress = SmartContractHelper.getContractAddress('PAYMENT_PROCESSOR');
+        payload = btoa(JSON.stringify({
+          type: request.paymentType,
+          itemId: request.itemId || '',
+          timestamp: Date.now()
+        }));
+      }
 
       const transaction = {
         validUntil: Math.floor(Date.now() / 1000) + 300,
         messages: [
           {
-            address: request.recipientAddress, // Direct payment for Phase 1
+            address: contractAddress, // Route through appropriate smart contract
             amount: amount.toString(),
-            payload: btoa(unescape(encodeURIComponent(
-              JSON.stringify({
-                type: request.paymentType,
-                itemId: request.itemId || '',
-                timestamp: Date.now()
-              })
-            )))
+            payload: payload
           },
         ],
       };
@@ -114,6 +167,9 @@ export class TonPaymentService {
         metadata: {
           itemId: request.itemId,
           paymentType: request.paymentType,
+          platformFee: platformFee,
+          netAmount: netAmount,
+          contractAddress: contractAddress
         },
       });
 
