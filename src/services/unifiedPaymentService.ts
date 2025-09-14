@@ -314,25 +314,110 @@ export class UnifiedPaymentService {
    * Process TON payment
    */
   private static async processTonPayment(params: UnifiedPaymentParams) {
-    // This would integrate with existing TON payment logic
-    // For now, return a mock success
-    return {
-      success: true,
-      transactionId: `ton_${Date.now()}`,
-      error: undefined
-    };
+    try {
+      const { TonPaymentService } = await import('./tonPaymentService');
+      
+      let paymentResult;
+      
+      switch (params.context.contentType) {
+        case 'tip':
+          if (!params.recipientId) {
+            throw new Error('Recipient ID required for tips');
+          }
+          
+          // Get recipient wallet address
+          const { data: recipientProfile } = await supabase
+            .from('profiles')
+            .select('wallet_address')
+            .eq('id', params.recipientId)
+            .single();
+          
+          if (!recipientProfile?.wallet_address) {
+            throw new Error('Recipient wallet address not found');
+          }
+          
+          paymentResult = await TonPaymentService.sendTip({
+            recipientAddress: recipientProfile.wallet_address,
+            amount: params.context.amount,
+            message: `Tip from AudioTon user`
+          });
+          break;
+          
+        case 'fan_club':
+          paymentResult = await TonPaymentService.sendPayment({
+            recipientAddress: 'EQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3diqYENkWsIL0XggGG', // Fan club contract
+            amount: params.context.amount,
+            paymentType: 'fan_club_membership',
+            itemId: params.context.artistId || 'default'
+          });
+          break;
+          
+        case 'audioton_nft':
+          paymentResult = await TonPaymentService.sendPayment({
+            recipientAddress: 'EQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3diqYENkWsIL0XggGG', // NFT contract
+            amount: params.context.amount,
+            paymentType: 'nft_purchase',
+            itemId: params.context.artistId || 'default'
+          });
+          break;
+          
+        default:
+          throw new Error(`Unsupported payment type: ${params.context.contentType}`);
+      }
+      
+      return {
+        success: paymentResult.success,
+        transactionId: paymentResult.transactionHash,
+        error: paymentResult.error
+      };
+    } catch (error) {
+      return {
+        success: false,
+        transactionId: undefined,
+        error: error instanceof Error ? error.message : 'TON payment failed'
+      };
+    }
   }
 
   /**
    * Process $AUDIO payment
    */
   private static async processAudioPayment(params: UnifiedPaymentParams) {
-    // This would integrate with Audius payment APIs
-    // For now, return a mock success
-    return {
-      success: true,
-      transactionId: `audio_${Date.now()}`,
-      error: undefined
-    };
+    try {
+      // For $AUDIO payments, we simulate the Audius protocol interaction
+      // In a real implementation, this would:
+      // 1. Interact with Audius smart contracts
+      // 2. Update user balances on Audius
+      // 3. Record the transaction
+      
+      const transactionId = `audio_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+      
+      // Record the transaction in our database
+      await supabase.from('transactions').insert({
+        from_profile_id: params.profileId,
+        to_profile_id: params.recipientId,
+        audio_amount: params.context.amount,
+        transaction_type: params.context.contentType,
+        status: 'completed',
+        token_type: 'AUDIO',
+        transaction_hash: transactionId,
+        metadata: {
+          contentType: params.context.contentType,
+          artistId: params.context.artistId
+        }
+      });
+      
+      return {
+        success: true,
+        transactionId,
+        error: undefined
+      };
+    } catch (error) {
+      return {
+        success: false,
+        transactionId: undefined,
+        error: error instanceof Error ? error.message : 'AUDIO payment failed'
+      };
+    }
   }
 }
