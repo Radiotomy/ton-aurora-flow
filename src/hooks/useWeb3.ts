@@ -292,22 +292,20 @@ export const useWeb3 = () => {
     
     setConnectingWallet(true);
     
+    // Dismiss any existing connection toasts before starting
+    if (connectionToastId.current) {
+      toast.dismiss(connectionToastId.current);
+      connectionToastId.current = null;
+    }
+    
     try {
       // Check if TON Connect UI is properly initialized
       if (!tonConnectUI) {
         throw new Error('TON Connect UI not initialized');
       }
 
-      // Dismiss any existing connection toasts before starting
-      if (connectionToastId.current) {
-        toast.dismiss(connectionToastId.current);
-        connectionToastId.current = null;
-      }
-
-      // Only show toast if wallet isn't already connected
-      if (!wallet) {
-        connectionToastId.current = String(toast.loading('Connecting wallet... Please approve the connection in your TON wallet'));
-      }
+      // Show connecting toast
+      connectionToastId.current = String(toast.loading('Connecting wallet... Please approve the connection in your TON wallet'));
       
       // Set up connection timeout (30 seconds)
       const timeoutPromise = new Promise((_, reject) => {
@@ -318,7 +316,7 @@ export const useWeb3 = () => {
       
       await Promise.race([connectionPromise, timeoutPromise]);
       
-      // Always dismiss connecting toast on completion
+      // Connection succeeded - dismiss toast immediately
       if (connectionToastId.current) {
         toast.dismiss(connectionToastId.current);
         connectionToastId.current = null;
@@ -348,8 +346,13 @@ export const useWeb3 = () => {
       toast.error(errorMessage);
     } finally {
       setConnectingWallet(false);
+      // Final safety check - ensure toast is dismissed
+      if (connectionToastId.current) {
+        toast.dismiss(connectionToastId.current);
+        connectionToastId.current = null;
+      }
     }
-  }, [tonConnectUI, connectingWallet, setConnectingWallet]);
+  }, [tonConnectUI, connectingWallet, setConnectingWallet, wallet]);
 
   // Disconnect wallet function
   const disconnectWallet = useCallback(async () => {
