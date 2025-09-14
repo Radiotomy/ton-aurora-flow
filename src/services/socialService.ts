@@ -171,7 +171,7 @@ export class SocialService {
         .select('id')
         .eq('profile_id', profile.id)
         .eq('track_id', trackId)
-        .single();
+        .maybeSingle();
 
       if (existing) {
         // Remove from favorites
@@ -235,7 +235,7 @@ export class SocialService {
         .select('id')
         .eq('profile_id', profile.id)
         .eq('track_id', trackId)
-        .single();
+        .maybeSingle();
 
       return !!data;
     } catch (error) {

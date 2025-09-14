@@ -66,16 +66,18 @@ export const useAuth = () => {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          // Defer Supabase calls to avoid deadlocks
+          setTimeout(() => {
+            fetchProfile(session.user!.id);
+          }, 0);
         } else {
           setProfile(null);
         }
-        
         setLoading(false);
       }
     );

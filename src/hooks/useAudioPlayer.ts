@@ -12,6 +12,12 @@ export interface CurrentTrack {
   duration: number;
 }
 
+// Shared singleton audio resources to prevent multiple players
+let sharedAudio: HTMLAudioElement | null = null;
+let sharedAudioContext: AudioContext | null = null;
+let sharedGain: GainNode | null = null;
+let sharedSource: MediaElementAudioSourceNode | null = null;
+
 export const useAudioPlayer = () => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -44,83 +50,75 @@ export const useAudioPlayer = () => {
     }
   }, []);
 
-  // Initialize audio element and Web Audio API
+  // Initialize audio element and Web Audio API (singleton)
   useEffect(() => {
-    // Only initialize in browser environment
     if (typeof window === 'undefined') return;
-    
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.preload = 'metadata';
-      audioRef.current.crossOrigin = 'anonymous';
-      
-      // Initialize Web Audio API for effects
+
+    // Create shared instances once
+    if (!sharedAudio) {
+      sharedAudio = new Audio();
+      sharedAudio.preload = 'metadata';
+      sharedAudio.crossOrigin = 'anonymous';
+
       try {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContext) {
-          audioContextRef.current = new AudioContext();
-          gainNodeRef.current = audioContextRef.current.createGain();
-          sourceNodeRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
-          
-          // Connect audio nodes
-          sourceNodeRef.current.connect(gainNodeRef.current);
-          gainNodeRef.current.connect(audioContextRef.current.destination);
+        const Ctx = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext | undefined;
+        if (Ctx) {
+          sharedAudioContext = new Ctx();
+          sharedGain = sharedAudioContext.createGain();
+          sharedSource = sharedAudioContext.createMediaElementSource(sharedAudio);
+          sharedSource.connect(sharedGain);
+          sharedGain.connect(sharedAudioContext.destination);
         }
-      } catch (error) {
-        console.warn('Web Audio API not supported:', error);
+      } catch (err) {
+        console.warn('Web Audio API not supported:', err);
       }
-      
-      // Set up event listeners
-      const audio = audioRef.current;
-      
-      const handleLoadStart = () => setIsLoading(true);
-      const handleCanPlay = () => setIsLoading(false);
-      const handlePlay = () => setIsPlaying(true);
-      const handlePause = () => setIsPlaying(false);
-      const handleEnded = () => {
-        setIsPlaying(false);
-        setCurrentTime(0);
-      };
-      const handleTimeUpdate = () => {
-        updateTimeThrottled(audio.currentTime);
-      };
-      const handleDurationChange = () => {
-        setDuration(audio.duration || 0);
-      };
-      const handleError = (e: Event) => {
-        setError('Failed to load audio');
-        setIsLoading(false);
-        setIsPlaying(false);
-        toast({
-          title: "Audio Error",
-          description: "Failed to load the track. Please try again.",
-          variant: "destructive",
-        });
-      };
-
-      audio.addEventListener('loadstart', handleLoadStart);
-      audio.addEventListener('canplay', handleCanPlay);
-      audio.addEventListener('play', handlePlay);
-      audio.addEventListener('pause', handlePause);
-      audio.addEventListener('ended', handleEnded);
-      audio.addEventListener('timeupdate', handleTimeUpdate);
-      audio.addEventListener('durationchange', handleDurationChange);
-      audio.addEventListener('error', handleError);
-
-      // Set initial volume
-      audio.volume = volume;
-
-      return () => {
-        audio.removeEventListener('loadstart', handleLoadStart);
-        audio.removeEventListener('canplay', handleCanPlay);
-        audio.removeEventListener('play', handlePlay);
-        audio.removeEventListener('pause', handlePause);
-        audio.removeEventListener('ended', handleEnded);
-        audio.removeEventListener('timeupdate', handleTimeUpdate);
-        audio.removeEventListener('durationchange', handleDurationChange);
-        audio.removeEventListener('error', handleError);
-      };
     }
+
+    // Point refs to shared instances
+    audioRef.current = sharedAudio;
+    audioContextRef.current = sharedAudioContext;
+    gainNodeRef.current = sharedGain;
+    sourceNodeRef.current = sharedSource;
+
+    // Subscribe to audio events to sync this hook's state
+    const audio = sharedAudio!;
+
+    const handleLoadStart = () => setIsLoading(true);
+    const handleCanPlay = () => setIsLoading(false);
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+    const handleEnded = () => { setIsPlaying(false); setCurrentTime(0); };
+    const handleTimeUpdate = () => updateTimeThrottled(audio.currentTime);
+    const handleDurationChange = () => setDuration(audio.duration || 0);
+    const handleError = () => {
+      setError('Failed to load audio');
+      setIsLoading(false);
+      setIsPlaying(false);
+      toast({ title: 'Audio Error', description: 'Failed to load the track. Please try again.', variant: 'destructive' });
+    };
+
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('durationchange', handleDurationChange);
+    audio.addEventListener('error', handleError);
+
+    // Ensure initial volume
+    audio.volume = volume;
+
+    return () => {
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('durationchange', handleDurationChange);
+      audio.removeEventListener('error', handleError);
+    };
   }, [volume, updateTimeThrottled]);
 
   // Clean shutdown of current audio session with improved UX
@@ -425,15 +423,12 @@ export const useAudioPlayer = () => {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }, []);
 
-  // Cleanup on unmount
+  // Cleanup on unmount (do not stop global audio or close context here)
   useEffect(() => {
     return () => {
-      cleanupCurrentSession();
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
+      // no-op: listeners are removed in their own effect cleanup
     };
-  }, [cleanupCurrentSession]);
+  }, []);
 
   return {
     // State
