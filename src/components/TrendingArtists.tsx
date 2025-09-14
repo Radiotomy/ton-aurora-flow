@@ -21,7 +21,7 @@ const trendingArtists: TrendingArtist[] = [
   {
     id: '1',
     name: 'Neon Dreams',
-    avatar: '/placeholder.svg',
+    avatar: '/src/assets/track-1.jpg',
     genre: 'Synthpop',
     rank: 1,
     changeDirection: 'up',
@@ -31,7 +31,7 @@ const trendingArtists: TrendingArtist[] = [
   {
     id: '2',
     name: 'Deep Current',
-    avatar: '/placeholder.svg',
+    avatar: '/src/assets/track-2.jpg',
     genre: 'Tech House',
     rank: 2,
     changeDirection: 'up',
@@ -41,7 +41,7 @@ const trendingArtists: TrendingArtist[] = [
   {
     id: '3',
     name: 'Aurora Fields',
-    avatar: '/placeholder.svg',
+    avatar: '/src/assets/track-3.jpg',
     genre: 'Ambient',
     rank: 3,
     changeDirection: 'same',
@@ -51,7 +51,7 @@ const trendingArtists: TrendingArtist[] = [
   {
     id: '4',
     name: 'Pulse Wave',
-    avatar: '/placeholder.svg',
+    avatar: '/src/assets/hero-aurora.jpg',
     genre: 'Drum & Bass',
     rank: 4,
     changeDirection: 'up',
@@ -61,7 +61,7 @@ const trendingArtists: TrendingArtist[] = [
   {
     id: '5',
     name: 'Starfield',
-    avatar: '/placeholder.svg',
+    avatar: '/src/assets/track-1.jpg',
     genre: 'Space Disco',
     rank: 5,
     changeDirection: 'down',
@@ -135,8 +135,12 @@ export const TrendingArtists = () => {
                 </div>
 
                 {/* Artist Avatar */}
-                <Avatar className="w-16 h-16 ring-2 ring-aurora/20 group-hover:ring-aurora/40 transition-all duration-300">
-                  <AvatarImage src={artist.avatar} alt={artist.name} />
+                <Avatar className="w-16 h-16 ring-2 ring-aurora/20 group-hover:ring-aurora/40 transition-all duration-300 animate-scale-in">
+                  <AvatarImage 
+                    src={artist.avatar} 
+                    alt={artist.name}
+                    className="object-cover hover-scale"
+                  />
                   <AvatarFallback className="bg-aurora/10 text-aurora font-semibold">
                     {artist.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>

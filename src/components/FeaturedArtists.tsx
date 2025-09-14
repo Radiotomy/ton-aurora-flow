@@ -21,7 +21,7 @@ const featuredArtists: FeaturedArtist[] = [
   {
     id: '1',
     name: 'Luna Waves',
-    avatar: '/placeholder.svg',
+    avatar: '/src/assets/track-1.jpg',
     followers: 125000,
     genre: 'Electronic',
     isVerified: true,
@@ -31,7 +31,7 @@ const featuredArtists: FeaturedArtist[] = [
   {
     id: '2',
     name: 'Cosmic Drift',
-    avatar: '/placeholder.svg',
+    avatar: '/src/assets/track-2.jpg',
     followers: 89000,
     genre: 'Ambient',
     isVerified: true,
@@ -41,7 +41,7 @@ const featuredArtists: FeaturedArtist[] = [
   {
     id: '3',
     name: 'Bass Horizon',
-    avatar: '/placeholder.svg',
+    avatar: '/src/assets/track-3.jpg',
     followers: 156000,
     genre: 'Dubstep',
     isVerified: true,
@@ -51,7 +51,7 @@ const featuredArtists: FeaturedArtist[] = [
   {
     id: '4',
     name: 'Retro Pulse',
-    avatar: '/placeholder.svg',
+    avatar: '/src/assets/hero-aurora.jpg',
     followers: 78000,
     genre: 'Synthwave',
     isVerified: false,
@@ -95,14 +95,18 @@ export const FeaturedArtists = () => {
               <div className="flex flex-col items-center text-center space-y-4">
                 {/* Artist Avatar */}
                 <div className="relative">
-                  <Avatar className="w-20 h-20 ring-2 ring-aurora/20 group-hover:ring-aurora/40 transition-all duration-300">
-                    <AvatarImage src={artist.avatar} alt={artist.name} />
+                  <Avatar className="w-20 h-20 ring-2 ring-aurora/20 group-hover:ring-aurora/40 transition-all duration-300 animate-scale-in">
+                    <AvatarImage 
+                      src={artist.avatar} 
+                      alt={artist.name}
+                      className="object-cover hover-scale"
+                    />
                     <AvatarFallback className="bg-aurora/10 text-aurora font-semibold text-lg">
                       {artist.name.split(' ').map(n => n[0]).join('')}
                     </AvatarFallback>
                   </Avatar>
                   {artist.isVerified && (
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-aurora rounded-full flex items-center justify-center">
+                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-aurora rounded-full flex items-center justify-center animate-fade-in">
                       <Star className="w-3 h-3 text-background fill-current" />
                     </div>
                   )}
