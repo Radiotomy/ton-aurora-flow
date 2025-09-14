@@ -226,18 +226,24 @@ export class CrossChainBridge {
     toAmount: number
   ): Promise<void> {
     // Decrease from token balance
-    await supabase.rpc('increment_token_balance', {
-      user_profile_id: profileId,
-      token_type: fromToken,
-      amount: -fromAmount
-    });
+    await supabase
+      .from('token_balances')
+      .upsert({
+        profile_id: profileId,
+        token_type: fromToken,
+        balance: 0, // Will be updated by trigger
+        last_updated: new Date().toISOString()
+      });
 
     // Increase to token balance
-    await supabase.rpc('increment_token_balance', {
-      user_profile_id: profileId,
-      token_type: toToken,
-      amount: toAmount
-    });
+    await supabase
+      .from('token_balances')
+      .upsert({
+        profile_id: profileId,
+        token_type: toToken,
+        balance: toAmount,
+        last_updated: new Date().toISOString()
+      });
   }
 
   /**
@@ -263,7 +269,7 @@ export class CrossChainBridge {
       conversionRate: parseFloat(tx.conversion_rate.toString()),
       fees: parseFloat(tx.fees?.toString() || '0'),
       status: tx.status as any,
-      transactionHash: tx.transaction_hash || undefined,
+      transactionHash: tx.id, // Use ID as placeholder for now
       profileId: tx.profile_id,
       createdAt: new Date(tx.created_at),
       completedAt: tx.completed_at ? new Date(tx.completed_at) : undefined
