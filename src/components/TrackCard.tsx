@@ -116,9 +116,10 @@ const TrackCard = memo(({
     if (onLike) {
       onLike();
     } else {
-      await toggleFavorite(artistId || artist.toLowerCase().replace(/\s+/g, '-'));
+      const finalArtistId = artistId || artist.toLowerCase().replace(/\s+/g, '-');
+      await toggleFavorite(finalArtistId);
     }
-  }, [onLike, toggleFavorite, id, artistId, artist]);
+  }, [onLike, toggleFavorite, artistId, artist]);
 
   const handleCollect = useCallback(async () => {
     if (!isNft || !price) return;
@@ -222,7 +223,7 @@ const TrackCard = memo(({
                     className={`h-8 w-8 rounded-full backdrop-blur-md bg-background/30 hover:bg-background/50 border border-white/20 hover:border-primary/40 hover:scale-110 transition-all duration-200 ${isFavorited ? 'text-primary' : 'text-white'} hover:text-primary`}
                     title="Like track"
                   >
-                    <Heart className="w-4 h-4" />
+                    <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
                   </Button>
                   
                   {canMintNFT && (
