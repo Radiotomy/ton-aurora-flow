@@ -274,10 +274,11 @@ const AudiusProfile: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {userTracks.map((track) => (
                   <div key={track.id} className="space-y-2">
-                    <TrackCard
-                      {...AudiusService.convertToTrackCardProps(track)}
-                      className="glass-card"
-                    />
+                    <div className="glass-card">
+                      <TrackCard
+                        {...AudiusService.convertToTrackCardProps(track)}
+                      />
+                    </div>
                     <SocialTrackActions
                       trackId={track.id}
                       artistId={profileUser.id}
@@ -347,10 +348,11 @@ const AudiusProfile: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {reposts.map((track) => (
                   <div key={`repost-${track.id}`} className="space-y-2">
-                    <TrackCard
-                      {...AudiusService.convertToTrackCardProps(track)}
-                      className="glass-card"
-                    />
+                    <div className="glass-card">
+                      <TrackCard
+                        {...AudiusService.convertToTrackCardProps(track)}
+                      />
+                    </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground px-2">
                       <Play className="w-3 h-3" />
                       Reposted by {profileUser.name}
@@ -380,10 +382,11 @@ const AudiusProfile: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {favorites.map((track) => (
                     <div key={`favorite-${track.id}`} className="space-y-2">
-                      <TrackCard
-                        {...AudiusService.convertToTrackCardProps(track)}
-                        className="glass-card"
-                      />
+                      <div className="glass-card">
+                        <TrackCard
+                          {...AudiusService.convertToTrackCardProps(track)}
+                        />
+                      </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground px-2">
                         <Heart className="w-3 h-3 fill-current text-red-500" />
                         Favorited
