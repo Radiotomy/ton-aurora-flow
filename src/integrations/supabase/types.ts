@@ -339,6 +339,48 @@ export type Database = {
         }
         Relationships: []
       }
+      nft_marketplace: {
+        Row: {
+          buyer_profile_id: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          listing_currency: string
+          listing_price: number
+          nft_id: string
+          royalty_percentage: number
+          seller_profile_id: string
+          sold_at: string | null
+          status: string
+        }
+        Insert: {
+          buyer_profile_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          listing_currency?: string
+          listing_price: number
+          nft_id: string
+          royalty_percentage?: number
+          seller_profile_id: string
+          sold_at?: string | null
+          status?: string
+        }
+        Update: {
+          buyer_profile_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          listing_currency?: string
+          listing_price?: number
+          nft_id?: string
+          royalty_percentage?: number
+          seller_profile_id?: string
+          sold_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       payment_preferences: {
         Row: {
           action_type: string
@@ -569,6 +611,7 @@ export type Database = {
           rate: number
           source: string
           to_token: string
+          updated_at: string
         }
         Insert: {
           created_at?: string | null
@@ -577,6 +620,7 @@ export type Database = {
           rate: number
           source: string
           to_token: string
+          updated_at?: string
         }
         Update: {
           created_at?: string | null
@@ -585,6 +629,7 @@ export type Database = {
           rate?: number
           source?: string
           to_token?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -889,6 +934,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      update_conversion_rates: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
