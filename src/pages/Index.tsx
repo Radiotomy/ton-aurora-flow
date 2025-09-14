@@ -4,11 +4,14 @@ import HeroSection from '@/components/HeroSection';
 import { UserFeedSection } from '@/components/UserFeedSection';
 import { FeaturedArtists } from '@/components/FeaturedArtists';
 import { TrendingArtists } from '@/components/TrendingArtists';
+import { FeaturedTracks } from '@/components/FeaturedTracks';
 
 const Index = () => {
   return (
     <main className="pt-16">
       <HeroSection />
+      
+      <FeaturedTracks />
       
       <FeaturedArtists />
       
