@@ -6,10 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { Loader2, Music } from 'lucide-react';
+import { useAudiusAuth } from '@/hooks/useAudiusAuth';
+import { Loader2, Music, Sparkles } from 'lucide-react';
+import { AudiusLoginButton } from '@/components/AudiusLoginButton';
+import { ArtistRegistrationModal } from '@/components/ArtistRegistrationModal';
 
 const Auth = () => {
   const { signIn, signUp, resetPassword, loading, isAuthenticated } = useAuth();
+  const { isAuthenticated: isAudiusAuthenticated } = useAudiusAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -17,6 +21,7 @@ const Auth = () => {
   const [displayName, setDisplayName] = useState('');
   const [resetEmail, setResetEmail] = useState('');
   const [activeTab, setActiveTab] = useState('signin');
+  const [showArtistModal, setShowArtistModal] = useState(false);
 
   // Redirect if already authenticated
   if (isAuthenticated) {
