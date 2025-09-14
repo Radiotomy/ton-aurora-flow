@@ -15,6 +15,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useWeb3 } from '@/hooks/useWeb3';
 import FanClubManagement from '@/components/FanClubManagement';
 import { RoleProtection } from '@/components/RoleProtection';
+import { TrackUploadModal } from '@/components/TrackUploadModal';
+import { ArtistAnalyticsDashboard } from '@/components/ArtistAnalyticsDashboard';
+import { AudiusLoginButton } from '@/components/AudiusLoginButton';
+import { useAudiusAuth } from '@/hooks/useAudiusAuth';
 import { 
   Upload,
   Music,
@@ -45,7 +49,9 @@ const CreatorStudio = () => {
   const [userStats, setUserStats] = useState<any>(null);
   const [userTracks, setUserTracks] = useState<any[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated: isAudiusAuthenticated, user: audiusUser } = useAudiusAuth();
   const { isConnected } = useWeb3();
   const { toast } = useToast();
 
@@ -238,12 +244,33 @@ const CreatorStudio = () => {
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold mb-4 bg-aurora bg-clip-text text-transparent">
-              Creator Studio
-            </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl">
-              Upload music, manage your fan clubs, track earnings, and engage with your community.
-            </p>
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-4xl font-bold mb-4 bg-aurora bg-clip-text text-transparent">
+                  Creator Studio
+                </h1>
+                <p className="text-muted-foreground text-lg max-w-2xl">
+                  Upload music, manage your fan clubs, track earnings, and engage with your community.
+                </p>
+                {!isAudiusAuthenticated && (
+                  <div className="mt-4 flex items-center gap-4">
+                    <Badge variant="outline" className="gap-2">
+                      <Music className="w-4 h-4" />
+                      Connect Audius for full creator features
+                    </Badge>
+                    <AudiusLoginButton />
+                  </div>
+                )}
+              </div>
+              <Button 
+                onClick={() => setShowUploadModal(true)} 
+                className="gap-2"
+                disabled={!isAudiusAuthenticated}
+              >
+                <Upload className="w-4 h-4" />
+                Upload Track
+              </Button>
+            </div>
           </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
