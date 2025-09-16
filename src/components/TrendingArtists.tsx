@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Play, Heart } from 'lucide-react';
 import { AudiusService } from '@/services/audiusService';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 
 interface TrendingArtist {
   id: string;
@@ -17,6 +18,9 @@ interface TrendingArtist {
   changeDirection: 'up' | 'down' | 'same';
   changeAmount: number;
   currentTrack?: string;
+  currentTrackId?: string;
+  currentTrackStreamUrl?: string;
+  currentTrackArtwork?: string;
 }
 
 const getRankColor = (rank: number) => {
@@ -45,6 +49,7 @@ const getChangeIcon = (direction: string, amount: number) => {
 
 export const TrendingArtists = () => {
   const navigate = useNavigate();
+  const { playTrack } = useAudioPlayer();
   const [artists, setArtists] = useState<TrendingArtist[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,6 +70,9 @@ export const TrendingArtists = () => {
               changeDirection: ['up', 'down', 'same'][Math.floor(Math.random() * 3)] as 'up' | 'down' | 'same',
               changeAmount: Math.floor(Math.random() * 5) + 1,
               currentTrack: track.title,
+              currentTrackId: track.id,
+              currentTrackStreamUrl: track.permalink,
+              currentTrackArtwork: AudiusService.getArtworkUrl(track.artwork),
             });
           }
         }
@@ -173,9 +181,19 @@ export const TrendingArtists = () => {
                   <Button
                     size="sm"
                     variant="ghost"
+                    className="hover:bg-aurora/10"
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Handle play action
+                      if (artist.currentTrackId && artist.currentTrack) {
+                        playTrack({
+                          id: artist.currentTrackId,
+                          title: artist.currentTrack,
+                          artist: artist.name,
+                          artwork: artist.currentTrackArtwork || artist.avatar || '',
+                          streamUrl: artist.currentTrackStreamUrl,
+                          duration: 180 // Default duration in seconds
+                        });
+                      }
                     }}
                   >
                     <Play className="w-3 h-3" />
