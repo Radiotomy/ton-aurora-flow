@@ -27,6 +27,14 @@ export interface ChainConfig {
   audioContract?: string;
 }
 
+export interface ConversionQuote {
+  toAmount: number;
+  fees: number;
+  rate: number;
+  estimatedTime: number; // in seconds
+  validUntil: Date;
+}
+
 export class CrossChainBridge {
   private static readonly SUPPORTED_CHAINS: Record<string, ChainConfig> = {
     ethereum: {
@@ -104,6 +112,60 @@ export class CrossChainBridge {
         estimatedTime: '5-10 minutes'
       }
     ];
+  }
+
+  /**
+   * Get quick conversion quote between TON and AUDIO
+   */
+  static async getConversionQuote(
+    fromToken: 'TON' | 'AUDIO',
+    toToken: 'TON' | 'AUDIO',
+    amount: number
+  ): Promise<ConversionQuote> {
+    if (fromToken === toToken) {
+      throw new Error('Source and destination tokens must be different');
+    }
+
+    const mapToken = (t: 'TON' | 'AUDIO') =>
+      t === 'TON'
+        ? { chain: 'ton' as const, token: 'AUDIO-TON' }
+        : { chain: 'ethereum' as const, token: 'AUDIO' };
+
+    const from = mapToken(fromToken);
+    const to = mapToken(toToken);
+
+    const est = await CrossChainBridge.estimateBridge(
+      from.chain,
+      to.chain,
+      from.token,
+      to.token,
+      amount
+    );
+
+    // Provide a 60s validity window and a conservative ETA (~10 minutes)
+    return {
+      toAmount: est.toAmount,
+      fees: est.fees,
+      rate: est.exchangeRate,
+      estimatedTime: 600,
+      validUntil: new Date(Date.now() + 60_000),
+    };
+  }
+
+  /**
+   * Initiate a simple conversion flow (lightweight wrapper)
+   * Note: This wraps bridge initiation logic for the modal UX
+   */
+  static async initiateConversion(
+    profileId: string,
+    fromToken: 'TON' | 'AUDIO',
+    toToken: 'TON' | 'AUDIO',
+    amount: number
+  ): Promise<{ toAmount: number }> {
+    // For now, return the quoted result. In a full flow, we'd collect
+    // destination addresses per chain and call initiateBridge
+    const quote = await this.getConversionQuote(fromToken, toToken, amount);
+    return { toAmount: quote.toAmount };
   }
 
   /**
@@ -243,7 +305,26 @@ export class CrossChainBridge {
 
       if (error) throw error;
 
-      return data || [];
+      const rows = (data || []) as any[];
+      const normalized: BridgeTransaction[] = rows.map((row) => ({
+        id: row.id,
+        from_chain: (row.from_chain as any) ?? 'ton',
+        to_chain: (row.to_chain as any) ?? 'ton',
+        from_token: row.from_token,
+        to_token: row.to_token,
+        from_amount: Number(row.from_amount ?? 0),
+        to_amount: Number(row.to_amount ?? 0),
+        exchange_rate: Number(row.exchange_rate ?? row.conversion_rate ?? 1),
+        fees: Number(row.fees ?? 0),
+        status: row.status as BridgeTransaction['status'],
+        from_tx_hash: row.from_tx_hash ?? undefined,
+        to_tx_hash: row.to_tx_hash ?? undefined,
+        profile_id: row.profile_id,
+        created_at: row.created_at,
+        completed_at: row.completed_at ?? undefined,
+      }));
+
+      return normalized;
     } catch (error) {
       console.error('Error fetching bridge history:', error);
       return [];
