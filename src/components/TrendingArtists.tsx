@@ -5,6 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Play, Heart } from 'lucide-react';
+import track1Image from '@/assets/track-1.jpg';
+import track2Image from '@/assets/track-2.jpg';
+import track3Image from '@/assets/track-3.jpg';
+import heroAuroraImage from '@/assets/hero-aurora.jpg';
 
 interface TrendingArtist {
   id: string;
@@ -21,7 +25,7 @@ const trendingArtists: TrendingArtist[] = [
   {
     id: '1',
     name: 'Neon Dreams',
-    avatar: '/src/assets/track-1.jpg',
+    avatar: track1Image,
     genre: 'Synthpop',
     rank: 1,
     changeDirection: 'up',
@@ -31,7 +35,7 @@ const trendingArtists: TrendingArtist[] = [
   {
     id: '2',
     name: 'Deep Current',
-    avatar: '/src/assets/track-2.jpg',
+    avatar: track2Image,
     genre: 'Tech House',
     rank: 2,
     changeDirection: 'up',
@@ -41,7 +45,7 @@ const trendingArtists: TrendingArtist[] = [
   {
     id: '3',
     name: 'Aurora Fields',
-    avatar: '/src/assets/track-3.jpg',
+    avatar: track3Image,
     genre: 'Ambient',
     rank: 3,
     changeDirection: 'same',
@@ -51,7 +55,7 @@ const trendingArtists: TrendingArtist[] = [
   {
     id: '4',
     name: 'Pulse Wave',
-    avatar: '/src/assets/hero-aurora.jpg',
+    avatar: heroAuroraImage,
     genre: 'Drum & Bass',
     rank: 4,
     changeDirection: 'up',
@@ -61,7 +65,7 @@ const trendingArtists: TrendingArtist[] = [
   {
     id: '5',
     name: 'Starfield',
-    avatar: '/src/assets/track-1.jpg',
+    avatar: track1Image,
     genre: 'Space Disco',
     rank: 5,
     changeDirection: 'down',

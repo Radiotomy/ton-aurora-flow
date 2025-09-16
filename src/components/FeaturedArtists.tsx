@@ -5,6 +5,10 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Star, Play, Users, TrendingUp } from 'lucide-react';
+import track1Image from '@/assets/track-1.jpg';
+import track2Image from '@/assets/track-2.jpg';
+import track3Image from '@/assets/track-3.jpg';
+import heroAuroraImage from '@/assets/hero-aurora.jpg';
 
 interface FeaturedArtist {
   id: string;
@@ -21,7 +25,7 @@ const featuredArtists: FeaturedArtist[] = [
   {
     id: '1',
     name: 'Luna Waves',
-    avatar: '/src/assets/track-1.jpg',
+    avatar: track1Image,
     followers: 125000,
     genre: 'Electronic',
     isVerified: true,
@@ -31,7 +35,7 @@ const featuredArtists: FeaturedArtist[] = [
   {
     id: '2',
     name: 'Cosmic Drift',
-    avatar: '/src/assets/track-2.jpg',
+    avatar: track2Image,
     followers: 89000,
     genre: 'Ambient',
     isVerified: true,
@@ -41,7 +45,7 @@ const featuredArtists: FeaturedArtist[] = [
   {
     id: '3',
     name: 'Bass Horizon',
-    avatar: '/src/assets/track-3.jpg',
+    avatar: track3Image,
     followers: 156000,
     genre: 'Dubstep',
     isVerified: true,
@@ -51,7 +55,7 @@ const featuredArtists: FeaturedArtist[] = [
   {
     id: '4',
     name: 'Retro Pulse',
-    avatar: '/src/assets/hero-aurora.jpg',
+    avatar: heroAuroraImage,
     followers: 78000,
     genre: 'Synthwave',
     isVerified: false,

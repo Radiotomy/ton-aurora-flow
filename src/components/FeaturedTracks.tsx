@@ -3,13 +3,17 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import TrackCard from '@/components/TrackCard';
 import { TrackCardProps } from '@/components/TrackCard';
+import track1Image from '@/assets/track-1.jpg';
+import track2Image from '@/assets/track-2.jpg';
+import track3Image from '@/assets/track-3.jpg';
+import heroAuroraImage from '@/assets/hero-aurora.jpg';
 
 const featuredTracks: TrackCardProps[] = [
   {
     id: 'featured-1',
     title: 'Digital Dreams',
     artist: 'Luna Waves',
-    artwork: '/src/assets/track-1.jpg',
+    artwork: track1Image,
     duration: '3:45',
     likes: 12500,
     isNft: true,
@@ -22,7 +26,7 @@ const featuredTracks: TrackCardProps[] = [
     id: 'featured-2',
     title: 'Stellar Journey',
     artist: 'Cosmic Drift',
-    artwork: '/src/assets/track-2.jpg',
+    artwork: track2Image,
     duration: '4:22',
     likes: 8900,
     streamUrl: 'https://example.com/stream/2',
@@ -33,7 +37,7 @@ const featuredTracks: TrackCardProps[] = [
     id: 'featured-3',
     title: 'Gravity Drop',
     artist: 'Bass Horizon',
-    artwork: '/src/assets/track-3.jpg',
+    artwork: track3Image,
     duration: '3:18',
     likes: 15600,
     isNft: true,
@@ -46,7 +50,7 @@ const featuredTracks: TrackCardProps[] = [
     id: 'featured-4',
     title: 'Neon Lights',
     artist: 'Retro Pulse',
-    artwork: '/placeholder.svg',
+    artwork: heroAuroraImage,
     duration: '3:56',
     likes: 6700,
     streamUrl: 'https://example.com/stream/4',
@@ -57,7 +61,7 @@ const featuredTracks: TrackCardProps[] = [
     id: 'featured-5',
     title: 'Electric Night',
     artist: 'Neon Dreams',
-    artwork: '/placeholder.svg',
+    artwork: track1Image,
     duration: '4:12',
     likes: 9800,
     isNft: true,
@@ -70,7 +74,7 @@ const featuredTracks: TrackCardProps[] = [
     id: 'featured-6',
     title: 'Cosmic Dance',
     artist: 'Starfield',
-    artwork: '/placeholder.svg',
+    artwork: track2Image,
     duration: '3:33',
     likes: 7200,
     streamUrl: 'https://example.com/stream/6',
