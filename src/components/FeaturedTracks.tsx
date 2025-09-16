@@ -1,89 +1,38 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import TrackCard from '@/components/TrackCard';
 import { TrackCardProps } from '@/components/TrackCard';
-import track1Image from '@/assets/track-1.jpg';
-import track2Image from '@/assets/track-2.jpg';
-import track3Image from '@/assets/track-3.jpg';
-import heroAuroraImage from '@/assets/hero-aurora.jpg';
-
-const featuredTracks: TrackCardProps[] = [
-  {
-    id: 'featured-1',
-    title: 'Digital Dreams',
-    artist: 'Luna Waves',
-    artwork: track1Image,
-    duration: '3:45',
-    likes: 12500,
-    isNft: true,
-    price: 2.5,
-    streamUrl: 'https://example.com/stream/1',
-    artistId: 'luna-waves',
-    canMintNFT: true,
-  },
-  {
-    id: 'featured-2',
-    title: 'Stellar Journey',
-    artist: 'Cosmic Drift',
-    artwork: track2Image,
-    duration: '4:22',
-    likes: 8900,
-    streamUrl: 'https://example.com/stream/2',
-    artistId: 'cosmic-drift',
-    canMintNFT: true,
-  },
-  {
-    id: 'featured-3',
-    title: 'Gravity Drop',
-    artist: 'Bass Horizon',
-    artwork: track3Image,
-    duration: '3:18',
-    likes: 15600,
-    isNft: true,
-    price: 1.8,
-    streamUrl: 'https://example.com/stream/3',
-    artistId: 'bass-horizon',
-    canMintNFT: true,
-  },
-  {
-    id: 'featured-4',
-    title: 'Neon Lights',
-    artist: 'Retro Pulse',
-    artwork: heroAuroraImage,
-    duration: '3:56',
-    likes: 6700,
-    streamUrl: 'https://example.com/stream/4',
-    artistId: 'retro-pulse',
-    fanClubOnly: true,
-  },
-  {
-    id: 'featured-5',
-    title: 'Electric Night',
-    artist: 'Neon Dreams',
-    artwork: track1Image,
-    duration: '4:12',
-    likes: 9800,
-    isNft: true,
-    price: 3.2,
-    streamUrl: 'https://example.com/stream/5',
-    artistId: 'neon-dreams',
-    canMintNFT: true,
-  },
-  {
-    id: 'featured-6',
-    title: 'Cosmic Dance',
-    artist: 'Starfield',
-    artwork: track2Image,
-    duration: '3:33',
-    likes: 7200,
-    streamUrl: 'https://example.com/stream/6',
-    artistId: 'starfield',
-  },
-];
+import { AudiusService } from '@/services/audiusService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const FeaturedTracks = () => {
   const navigate = useNavigate();
+  const [tracks, setTracks] = useState<TrackCardProps[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTracks = async () => {
+      try {
+        const { tracks: audiusTracks } = await AudiusService.getTrendingTracks('all', 6);
+        const formattedTracks = audiusTracks.map((track, index) => ({
+          ...AudiusService.convertToTrackCardProps(track),
+          canMintNFT: index % 2 === 0, // Every other track can be minted
+          isNft: index % 3 === 0, // Every third track is already NFT
+          price: index % 3 === 0 ? Math.random() * 3 + 1 : undefined,
+          fanClubOnly: index === 3, // One track is fan club only
+        }));
+        setTracks(formattedTracks);
+      } catch (error) {
+        console.error('Failed to fetch trending tracks:', error);
+        // Fallback to placeholder if needed
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTracks();
+  }, []);
 
   return (
     <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
@@ -106,9 +55,21 @@ export const FeaturedTracks = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {featuredTracks.map((track) => (
-          <TrackCard key={track.id} {...track} />
-        ))}
+        {loading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="space-y-3">
+              <Skeleton className="aspect-square rounded-2xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+              </div>
+            </div>
+          ))
+        ) : (
+          tracks.map((track) => (
+            <TrackCard key={track.id} {...track} />
+          ))
+        )}
       </div>
 
       <div className="text-center mt-8 sm:hidden">

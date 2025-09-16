@@ -31,10 +31,6 @@ export const AudioPlayer: React.FC = React.memo(() => {
     formatTime,
   } = useAudioPlayer();
 
-  if (!currentTrack) {
-    return null;
-  }
-
   const handleProgressChange = useCallback((value: number[]) => {
     const newTime = (value[0] / 100) * duration;
     seekTo(newTime);
@@ -51,6 +47,10 @@ export const AudioPlayer: React.FC = React.memo(() => {
   // Memoize formatted times to prevent constant recalculation
   const formattedCurrentTime = useMemo(() => formatTime(currentTime), [currentTime, formatTime]);
   const formattedDuration = useMemo(() => formatTime(duration), [duration, formatTime]);
+
+  if (!currentTrack) {
+    return null;
+  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 glass-panel border-0 border-t border-glass-border backdrop-blur-xl bg-background/90 animate-fade-in">

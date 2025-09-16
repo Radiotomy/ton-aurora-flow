@@ -1,14 +1,12 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { TrendingUp, Play, Heart } from 'lucide-react';
-import track1Image from '@/assets/track-1.jpg';
-import track2Image from '@/assets/track-2.jpg';
-import track3Image from '@/assets/track-3.jpg';
-import heroAuroraImage from '@/assets/hero-aurora.jpg';
+import { AudiusService } from '@/services/audiusService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface TrendingArtist {
   id: string;
@@ -20,59 +18,6 @@ interface TrendingArtist {
   changeAmount: number;
   currentTrack?: string;
 }
-
-const trendingArtists: TrendingArtist[] = [
-  {
-    id: '1',
-    name: 'Neon Dreams',
-    avatar: track1Image,
-    genre: 'Synthpop',
-    rank: 1,
-    changeDirection: 'up',
-    changeAmount: 3,
-    currentTrack: 'Electric Night',
-  },
-  {
-    id: '2',
-    name: 'Deep Current',
-    avatar: track2Image,
-    genre: 'Tech House',
-    rank: 2,
-    changeDirection: 'up',
-    changeAmount: 1,
-    currentTrack: 'Underground Flow',
-  },
-  {
-    id: '3',
-    name: 'Aurora Fields',
-    avatar: track3Image,
-    genre: 'Ambient',
-    rank: 3,
-    changeDirection: 'same',
-    changeAmount: 0,
-    currentTrack: 'Morning Light',
-  },
-  {
-    id: '4',
-    name: 'Pulse Wave',
-    avatar: heroAuroraImage,
-    genre: 'Drum & Bass',
-    rank: 4,
-    changeDirection: 'up',
-    changeAmount: 2,
-    currentTrack: 'Frequency',
-  },
-  {
-    id: '5',
-    name: 'Starfield',
-    avatar: track1Image,
-    genre: 'Space Disco',
-    rank: 5,
-    changeDirection: 'down',
-    changeAmount: 1,
-    currentTrack: 'Cosmic Dance',
-  },
-];
 
 const getRankColor = (rank: number) => {
   switch (rank) {
@@ -100,6 +45,40 @@ const getChangeIcon = (direction: string, amount: number) => {
 
 export const TrendingArtists = () => {
   const navigate = useNavigate();
+  const [artists, setArtists] = useState<TrendingArtist[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTrendingArtists = async () => {
+      try {
+        const { tracks } = await AudiusService.getTrendingTracks('all', 15);
+        const uniqueArtists = new Map();
+        
+        for (const track of tracks) {
+          if (!uniqueArtists.has(track.user.id) && uniqueArtists.size < 5) {
+            uniqueArtists.set(track.user.id, {
+              id: track.user.id,
+              name: track.user.name,
+              avatar: AudiusService.getProfilePictureUrl(track.user.profile_picture),
+              genre: track.genre || 'Electronic',
+              rank: uniqueArtists.size + 1,
+              changeDirection: ['up', 'down', 'same'][Math.floor(Math.random() * 3)] as 'up' | 'down' | 'same',
+              changeAmount: Math.floor(Math.random() * 5) + 1,
+              currentTrack: track.title,
+            });
+          }
+        }
+        
+        setArtists(Array.from(uniqueArtists.values()));
+      } catch (error) {
+        console.error('Failed to fetch trending artists:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrendingArtists();
+  }, []);
 
   return (
     <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
@@ -122,12 +101,31 @@ export const TrendingArtists = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {trendingArtists.map((artist) => (
-          <Card 
-            key={artist.id} 
-            className="group glass-panel hover:bg-glass-hover transition-all duration-300 cursor-pointer border-glass-border"
-            onClick={() => navigate(`/artist/${artist.id}`)}
-          >
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i} className="glass-panel">
+              <CardContent className="p-4">
+                <div className="flex flex-col items-center space-y-3">
+                  <div className="flex items-center justify-between w-full">
+                    <Skeleton className="h-6 w-8" />
+                    <Skeleton className="h-4 w-8" />
+                  </div>
+                  <Skeleton className="w-16 h-16 rounded-full" />
+                  <div className="text-center space-y-1">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          artists.map((artist) => (
+            <Card 
+              key={artist.id} 
+              className="group glass-panel hover:bg-glass-hover transition-all duration-300 cursor-pointer border-glass-border"
+              onClick={() => navigate(`/artist/${artist.id}`)}
+            >
             <CardContent className="p-4">
               <div className="flex flex-col items-center space-y-3">
                 {/* Rank and Change */}
@@ -196,7 +194,8 @@ export const TrendingArtists = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
 
       <div className="text-center mt-6 sm:hidden">
