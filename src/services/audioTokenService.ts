@@ -2,41 +2,30 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface AudioTokenBalance {
   balance: number;
-  staked: number;
-  earned: number;
-  locked: number;
+  staked_balance?: number;
+  total_earnings: number;
+  pending_rewards: number;
 }
 
-export interface AudioTokenReward {
+export interface AudioReward {
   id: string;
-  profileId: string;
+  type: 'listen' | 'upload' | 'playlist' | 'social' | 'milestone';
   amount: number;
-  reason: string;
-  trackId?: string;
-  artistId?: string;
-  metadata?: Record<string, any>;
-  createdAt: string;
+  metadata: Record<string, any>;
+  earned_at: string;
+  claimed_at?: string;
 }
 
-export interface AudioTokenStaking {
+export interface AudioGovernanceProposal {
   id: string;
-  profileId: string;
-  amount: number;
-  duration: number; // in days
-  apy: number; // annual percentage yield
-  startDate: string;
-  endDate: string;
-  status: 'active' | 'completed' | 'withdrawn';
-}
-
-export interface TokenConversion {
-  fromToken: 'AUDIO' | 'TON';
-  toToken: 'AUDIO' | 'TON';
-  fromAmount: number;
-  toAmount: number;
-  rate: number;
-  fee: number;
-  slippage?: number;
+  title: string;
+  description: string;
+  type: 'protocol' | 'feature' | 'treasury';
+  voting_power_required: number;
+  total_votes: number;
+  status: 'active' | 'passed' | 'rejected';
+  created_at: string;
+  expires_at: string;
 }
 
 export class AudioTokenService {
@@ -45,250 +34,210 @@ export class AudioTokenService {
    */
   static async getAudioBalance(profileId: string): Promise<AudioTokenBalance> {
     try {
-      const { data: tokenBalance } = await supabase
+      const { data, error } = await supabase
         .from('token_balances')
         .select('balance')
         .eq('profile_id', profileId)
         .eq('token_type', 'AUDIO')
-        .maybeSingle();
+        .single();
 
-      const balance = tokenBalance?.balance || 0;
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+        throw error;
+      }
+
+      // Fetch additional $AUDIO data via edge function
+      const { data: audioData, error: audioError } = await supabase.functions.invoke('audio-token-balance', {
+        body: { profileId }
+      });
+
+      const balance = data?.balance || 0;
+      const audioBalance = audioData || {};
 
       return {
         balance: Number(balance),
-        staked: 0, // Will implement when new tables are available
-        earned: 0, // Will implement when new tables are available
-        locked: 0
+        staked_balance: audioBalance.staked_balance || 0,
+        total_earnings: audioBalance.total_earnings || 0,
+        pending_rewards: audioBalance.pending_rewards || 0,
       };
     } catch (error) {
-      console.error('Error fetching AUDIO balance:', error);
-      return { balance: 0, staked: 0, earned: 0, locked: 0 };
+      console.error('Error fetching $AUDIO balance:', error);
+      return {
+        balance: 0,
+        total_earnings: 0,
+        pending_rewards: 0,
+      };
     }
   }
 
   /**
-   * Update user's $AUDIO token balance
+   * Update $AUDIO balance
    */
   static async updateAudioBalance(profileId: string, amount: number): Promise<void> {
     try {
-      await supabase
+      const { error } = await supabase
         .from('token_balances')
         .upsert({
           profile_id: profileId,
           token_type: 'AUDIO',
           balance: amount,
-          last_updated: new Date().toISOString()
-        }, {
-          onConflict: 'profile_id,token_type'
+          last_updated: new Date().toISOString(),
         });
-    } catch (error) {
-      console.error('Error updating AUDIO balance:', error);
-      throw new Error('Failed to update AUDIO balance');
-    }
-  }
-
-  /**
-   * Add $AUDIO token balance
-   */
-  static async addAudioBalance(profileId: string, amount: number): Promise<void> {
-    try {
-      const currentBalance = await this.getAudioBalance(profileId);
-      const newBalance = currentBalance.balance + amount;
-      await this.updateAudioBalance(profileId, newBalance);
-    } catch (error) {
-      console.error('Error adding AUDIO balance:', error);
-      throw new Error('Failed to add AUDIO balance');
-    }
-  }
-
-  /**
-   * Subtract $AUDIO token balance
-   */
-  static async subtractAudioBalance(profileId: string, amount: number): Promise<void> {
-    try {
-      const currentBalance = await this.getAudioBalance(profileId);
-      if (currentBalance.balance < amount) {
-        throw new Error('Insufficient AUDIO balance');
-      }
-      const newBalance = currentBalance.balance - amount;
-      await this.updateAudioBalance(profileId, newBalance);
-    } catch (error) {
-      console.error('Error subtracting AUDIO balance:', error);
-      throw new Error('Failed to subtract AUDIO balance');
-    }
-  }
-
-  /**
-   * Award $AUDIO tokens for platform activities (using transactions table for now)
-   */
-  static async awardTokens(
-    profileId: string,
-    amount: number,
-    reason: string,
-    metadata?: Record<string, any>
-  ): Promise<AudioTokenReward> {
-    try {
-      // Add to balance
-      await this.addAudioBalance(profileId, amount);
-
-      // Record as a transaction for now
-      const { data, error } = await supabase
-        .from('transactions')
-        .insert({
-          to_profile_id: profileId,
-          amount_ton: 0,
-          audio_amount: amount,
-          transaction_type: 'reward',
-          status: 'completed',
-          transaction_hash: `reward_${Date.now()}`,
-          token_type: 'AUDIO',
-          metadata: { reason, ...metadata }
-        })
-        .select()
-        .single();
 
       if (error) throw error;
-
-      return {
-        id: data.id,
-        profileId: data.to_profile_id!,
-        amount: Number(data.audio_amount || 0),
-        reason,
-        trackId: metadata?.trackId,
-        artistId: metadata?.artistId,
-        metadata,
-        createdAt: data.created_at
-      };
     } catch (error) {
-      console.error('Error awarding AUDIO tokens:', error);
-      throw new Error('Failed to award AUDIO tokens');
+      console.error('Error updating $AUDIO balance:', error);
+      throw error;
     }
   }
 
   /**
-   * Get current $AUDIO to TON conversion rate
+   * Get user's $AUDIO earning history
    */
-  static async getConversionRate(fromToken: 'AUDIO' | 'TON', toToken: 'AUDIO' | 'TON'): Promise<number> {
+  static async getAudioRewards(profileId: string, limit = 20): Promise<AudioReward[]> {
     try {
-      const { data } = await supabase
-        .from('token_conversion_rates')
-        .select('rate')
-        .eq('from_token', fromToken)
-        .eq('to_token', toToken)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const { data, error } = await supabase.functions.invoke('audio-rewards-history', {
+        body: { profileId, limit }
+      });
 
-      return Number(data?.rate || (fromToken === toToken ? 1 : 0.01)); // Default rate
-    } catch (error) {
-      console.error('Error fetching conversion rate:', error);
-      return fromToken === toToken ? 1 : 0.01; // Fallback rate
-    }
-  }
-
-  /**
-   * Convert between $AUDIO and TON tokens
-   */
-  static async convertTokens(
-    profileId: string,
-    fromToken: 'AUDIO' | 'TON',
-    toToken: 'AUDIO' | 'TON',
-    amount: number
-  ): Promise<TokenConversion> {
-    try {
-      const rate = await this.getConversionRate(fromToken, toToken);
-      const fee = amount * 0.01; // 1% conversion fee
-      const toAmount = (amount - fee) * rate;
-
-      // Execute the conversion
-      if (fromToken === 'AUDIO') {
-        await this.subtractAudioBalance(profileId, amount);
-      } else {
-        // Subtract TON balance (implement TON balance service)
-        await this.subtractTonBalance(profileId, amount);
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Failed to fetch rewards');
       }
 
-      if (toToken === 'AUDIO') {
-        await this.addAudioBalance(profileId, toAmount);
-      } else {
-        // Add TON balance
-        await this.addTonBalance(profileId, toAmount);
-      }
-
-      // Record the conversion transaction
-      await supabase
-        .from('cross_token_transactions')
-        .insert({
-          profile_id: profileId,
-          from_token: fromToken,
-          to_token: toToken,
-          from_amount: amount,
-          to_amount: toAmount,
-          conversion_rate: rate,
-          fees: fee,
-          status: 'completed'
-        });
-
-      return {
-        fromToken,
-        toToken,
-        fromAmount: amount,
-        toAmount,
-        rate,
-        fee
-      };
+      return data.rewards || [];
     } catch (error) {
-      console.error('Error converting tokens:', error);
-      throw new Error('Failed to convert tokens');
+      console.error('Error fetching $AUDIO rewards:', error);
+      return [];
     }
   }
 
   /**
-   * Stake $AUDIO tokens (placeholder - will implement with proper tables)
+   * Claim pending $AUDIO rewards
    */
-  static async stakeAudioTokens(
+  static async claimAudioRewards(profileId: string, rewardIds: string[]): Promise<{ claimed: number }> {
+    try {
+      const { data, error } = await supabase.functions.invoke('audio-claim-rewards', {
+        body: { profileId, rewardIds }
+      });
+
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Failed to claim rewards');
+      }
+
+      return { claimed: data.claimed_amount || 0 };
+    } catch (error) {
+      console.error('Error claiming $AUDIO rewards:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Stake $AUDIO tokens for enhanced features
+   */
+  static async stakeAudioTokens(profileId: string, amount: number): Promise<void> {
+    try {
+      const { data, error } = await supabase.functions.invoke('audio-stake-tokens', {
+        body: { profileId, amount }
+      });
+
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Failed to stake tokens');
+      }
+    } catch (error) {
+      console.error('Error staking $AUDIO tokens:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Unstake $AUDIO tokens
+   */
+  static async unstakeAudioTokens(profileId: string, amount: number): Promise<void> {
+    try {
+      const { data, error } = await supabase.functions.invoke('audio-unstake-tokens', {
+        body: { profileId, amount }
+      });
+
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Failed to unstake tokens');
+      }
+    } catch (error) {
+      console.error('Error unstaking $AUDIO tokens:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get active governance proposals
+   */
+  static async getGovernanceProposals(limit = 10): Promise<AudioGovernanceProposal[]> {
+    try {
+      const { data, error } = await supabase.functions.invoke('audio-governance-proposals', {
+        body: { limit }
+      });
+
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Failed to fetch proposals');
+      }
+
+      return data.proposals || [];
+    } catch (error) {
+      console.error('Error fetching governance proposals:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Vote on governance proposal
+   */
+  static async voteOnProposal(
     profileId: string,
-    amount: number,
-    duration: number = 30 // days
-  ): Promise<AudioTokenStaking> {
-    console.log('Staking feature will be implemented when new tables are available');
-    
-    // Return placeholder data for now
-    return {
-      id: `stake_${Date.now()}`,
-      profileId,
-      amount,
-      duration,
-      apy: duration >= 365 ? 15 : duration >= 180 ? 12 : duration >= 90 ? 8 : 5,
-      startDate: new Date().toISOString(),
-      endDate: new Date(Date.now() + duration * 24 * 60 * 60 * 1000).toISOString(),
-      status: 'active'
-    };
+    proposalId: string,
+    vote: 'yes' | 'no',
+    votingPower: number
+  ): Promise<void> {
+    try {
+      const { data, error } = await supabase.functions.invoke('audio-governance-vote', {
+        body: { profileId, proposalId, vote, votingPower }
+      });
+
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Failed to submit vote');
+      }
+    } catch (error) {
+      console.error('Error voting on proposal:', error);
+      throw error;
+    }
   }
 
   /**
-   * Get user's staking positions (placeholder)
+   * Calculate listening rewards based on engagement
    */
-  static async getStakingPositions(profileId: string): Promise<AudioTokenStaking[]> {
-    console.log('Staking positions will be implemented when new tables are available');
-    return [];
+  static calculateListeningReward(
+    duration: number,
+    trackRarity: number = 1,
+    userStake: number = 0
+  ): number {
+    // Base reward calculation (similar to Audius protocol)
+    const baseReward = Math.min(duration / 30, 10); // Max 10 $AUDIO per track
+    const rarityMultiplier = trackRarity;
+    const stakeBonus = Math.min(userStake / 1000, 2); // Up to 2x bonus for staking
+
+    return baseReward * rarityMultiplier * (1 + stakeBonus);
   }
 
   /**
-   * Withdraw staked tokens (placeholder)
+   * Calculate artist rewards for uploads and engagement
    */
-  static async withdrawStake(profileId: string, stakeId: string): Promise<void> {
-    console.log('Stake withdrawal will be implemented when new tables are available');
-  }
+  static calculateArtistReward(
+    plays: number,
+    favorites: number,
+    reposts: number,
+    trackAge: number
+  ): number {
+    const playReward = plays * 0.1;
+    const engagementReward = (favorites + reposts) * 0.5;
+    const freshnessBonus = Math.max(1 - (trackAge / 30), 0.1); // Bonus for new tracks
 
-  // Helper methods for TON balance (to be implemented in TON service)
-  private static async subtractTonBalance(profileId: string, amount: number): Promise<void> {
-    // TODO: Implement TON balance subtraction
-    console.log('TON balance subtraction not yet implemented');
-  }
-
-  private static async addTonBalance(profileId: string, amount: number): Promise<void> {
-    // TODO: Implement TON balance addition  
-    console.log('TON balance addition not yet implemented');
+    return (playReward + engagementReward) * freshnessBonus;
   }
 }

@@ -157,16 +157,134 @@ export class AudiusSDKService {
       tags?: string;
       trackFile: File;
       coverArtFile?: File;
-    }
+    },
+    authToken?: string
   ): Promise<{ trackId: string } | null> {
     try {
-      // This would require OAuth authentication
-      // For now, return a placeholder
-      console.log('Track upload functionality requires OAuth implementation');
-      return { trackId: `placeholder_${Date.now()}` };
+      if (!authToken) {
+        throw new Error('Authentication required for track upload');
+      }
+
+      // Use Supabase edge function for authenticated upload
+      const { data, error } = await supabase.functions.invoke('audius-track-upload', {
+        body: {
+          title: trackData.title,
+          description: trackData.description,
+          genre: trackData.genre,
+          mood: trackData.mood,
+          tags: trackData.tags,
+          token: authToken,
+          // Note: Files would need to be uploaded to Supabase storage first
+        },
+      });
+
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Track upload failed');
+      }
+
+      return { trackId: data.trackId };
     } catch (error) {
       console.error('Error uploading track:', error);
       return null;
+    }
+  }
+
+  /**
+   * Create playlist on Audius
+   */
+  static async createPlaylist(
+    playlistData: {
+      name: string;
+      description?: string;
+      is_private?: boolean;
+      track_ids?: string[];
+    },
+    authToken?: string
+  ): Promise<{ playlistId: string } | null> {
+    try {
+      if (!authToken) {
+        throw new Error('Authentication required for playlist creation');
+      }
+
+      const { data, error } = await supabase.functions.invoke('audius-playlist-create', {
+        body: {
+          ...playlistData,
+          token: authToken,
+        },
+      });
+
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Playlist creation failed');
+      }
+
+      return { playlistId: data.playlistId };
+    } catch (error) {
+      console.error('Error creating playlist:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Follow/unfollow user on Audius
+   */
+  static async toggleUserFollow(
+    userId: string, 
+    action: 'follow' | 'unfollow',
+    authToken?: string
+  ): Promise<boolean> {
+    try {
+      if (!authToken) {
+        throw new Error('Authentication required for follow actions');
+      }
+
+      const { data, error } = await supabase.functions.invoke('audius-user-follow', {
+        body: {
+          userId,
+          action,
+          token: authToken,
+        },
+      });
+
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Follow action failed');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error with follow action:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Favorite/unfavorite track on Audius
+   */
+  static async toggleTrackFavorite(
+    trackId: string,
+    action: 'favorite' | 'unfavorite', 
+    authToken?: string
+  ): Promise<boolean> {
+    try {
+      if (!authToken) {
+        throw new Error('Authentication required for favorite actions');
+      }
+
+      const { data, error } = await supabase.functions.invoke('audius-track-favorite', {
+        body: {
+          trackId,
+          action,
+          token: authToken,
+        },
+      });
+
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Favorite action failed');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error with favorite action:', error);
+      return false;
     }
   }
 

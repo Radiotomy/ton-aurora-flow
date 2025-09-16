@@ -1,328 +1,304 @@
 import { supabase } from '@/integrations/supabase/client';
-import { TonPaymentService } from './tonPaymentService';
-import { AudiusService } from './audiusService';
 
 export interface BridgeTransaction {
   id: string;
-  fromToken: 'TON' | 'AUDIO';
-  toToken: 'TON' | 'AUDIO';
-  fromAmount: number;
-  toAmount: number;
-  conversionRate: number;
+  from_chain: 'ethereum' | 'solana' | 'ton';
+  to_chain: 'ethereum' | 'solana' | 'ton';
+  from_token: string;
+  to_token: string;
+  from_amount: number;
+  to_amount: number;
+  exchange_rate: number;
   fees: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
-  transactionHash?: string;
-  profileId: string;
-  createdAt: Date;
-  completedAt?: Date;
+  from_tx_hash?: string;
+  to_tx_hash?: string;
+  profile_id: string;
+  created_at: string;
+  completed_at?: string;
 }
 
-export interface ConversionQuote {
-  fromAmount: number;
-  toAmount: number;
-  rate: number;
-  fees: number;
-  estimatedTime: number; // in seconds
-  validUntil: Date;
+export interface ChainConfig {
+  name: string;
+  chainId: number;
+  rpcUrl: string;
+  explorerUrl: string;
+  nativeToken: string;
+  audioContract?: string;
 }
 
 export class CrossChainBridge {
-  private static readonly BRIDGE_FEE_PERCENTAGE = 0.005; // 0.5%
-  private static readonly MIN_CONVERSION_AMOUNT = 0.001;
+  private static readonly SUPPORTED_CHAINS: Record<string, ChainConfig> = {
+    ethereum: {
+      name: 'Ethereum',
+      chainId: 1,
+      rpcUrl: 'https://mainnet.infura.io/v3/',
+      explorerUrl: 'https://etherscan.io',
+      nativeToken: 'ETH',
+      audioContract: '0x18aAA7115705e8be94bfFEBDE57Af9BFc265B998', // $AUDIO on Ethereum
+    },
+    solana: {
+      name: 'Solana',
+      chainId: 101,
+      rpcUrl: 'https://api.mainnet-beta.solana.com',
+      explorerUrl: 'https://explorer.solana.com',
+      nativeToken: 'SOL',
+      audioContract: '9LzCMqDgTKYz9Drzqnpgee3SGa89up3a247aBqdiPEcF', // $AUDIO on Solana
+    },
+    ton: {
+      name: 'TON',
+      chainId: -239,
+      rpcUrl: 'https://toncenter.com/api/v2/jsonRPC',
+      explorerUrl: 'https://tonviewer.com',
+      nativeToken: 'TON',
+    }
+  };
 
   /**
-   * Get real-time conversion quote
+   * Get supported bridge routes
    */
-  static async getConversionQuote(
-    fromToken: 'TON' | 'AUDIO',
-    toToken: 'TON' | 'AUDIO',
-    amount: number
-  ): Promise<ConversionQuote> {
-    if (fromToken === toToken) {
-      throw new Error('Cannot convert token to itself');
-    }
-
-    if (amount < this.MIN_CONVERSION_AMOUNT) {
-      throw new Error(`Minimum conversion amount is ${this.MIN_CONVERSION_AMOUNT}`);
-    }
-
-    // Get current conversion rate from database
-    const { data: rateData, error } = await supabase
-      .from('token_conversion_rates')
-      .select('rate, updated_at')
-      .eq('from_token', fromToken)
-      .eq('to_token', toToken)
-      .single();
-
-    if (error || !rateData) {
-      throw new Error(`No conversion rate available for ${fromToken} to ${toToken}`);
-    }
-
-    // Calculate fees and amounts
-    const fees = amount * this.BRIDGE_FEE_PERCENTAGE;
-    const netAmount = amount - fees;
-    const toAmount = netAmount * rateData.rate;
-
-    // Estimated time based on token types
-    let estimatedTime = 30; // Default 30 seconds
-    if (fromToken === 'TON' || toToken === 'TON') {
-      estimatedTime = 60; // TON transactions take longer
-    }
-
-    return {
-      fromAmount: amount,
-      toAmount,
-      rate: rateData.rate,
-      fees,
-      estimatedTime,
-      validUntil: new Date(Date.now() + 5 * 60 * 1000) // Valid for 5 minutes
-    };
+  static getSupportedRoutes(): Array<{
+    from: string;
+    to: string;
+    fromToken: string;
+    toToken: string;
+    minAmount: number;
+    maxAmount: number;
+    estimatedTime: string;
+  }> {
+    return [
+      {
+        from: 'ethereum',
+        to: 'ton',
+        fromToken: 'AUDIO',
+        toToken: 'AUDIO-TON',
+        minAmount: 1,
+        maxAmount: 100000,
+        estimatedTime: '5-10 minutes'
+      },
+      {
+        from: 'solana',
+        to: 'ton',
+        fromToken: 'AUDIO',
+        toToken: 'AUDIO-TON',
+        minAmount: 1,
+        maxAmount: 100000,
+        estimatedTime: '3-5 minutes'
+      },
+      {
+        from: 'ton',
+        to: 'ethereum',
+        fromToken: 'AUDIO-TON',
+        toToken: 'AUDIO',
+        minAmount: 1,
+        maxAmount: 100000,
+        estimatedTime: '10-15 minutes'
+      },
+      {
+        from: 'ton',
+        to: 'solana',
+        fromToken: 'AUDIO-TON',
+        toToken: 'AUDIO',
+        minAmount: 1,
+        maxAmount: 100000,
+        estimatedTime: '5-10 minutes'
+      }
+    ];
   }
 
   /**
-   * Initiate cross-chain conversion
+   * Get current exchange rates
    */
-  static async initiateConversion(
-    profileId: string,
-    fromToken: 'TON' | 'AUDIO',
-    toToken: 'TON' | 'AUDIO',
+  static async getExchangeRates(): Promise<Record<string, number>> {
+    try {
+      const { data, error } = await supabase.functions.invoke('bridge-exchange-rates');
+      
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Failed to fetch rates');
+      }
+
+      return data.rates;
+    } catch (error) {
+      console.error('Error fetching exchange rates:', error);
+      // Return default rates as fallback
+      return {
+        'AUDIO-ETH': 1.0,
+        'AUDIO-SOL': 1.0,
+        'AUDIO-TON': 1.0,
+        'TON-AUDIO': 1.0,
+      };
+    }
+  }
+
+  /**
+   * Estimate bridge transaction
+   */
+  static async estimateBridge(
+    fromChain: string,
+    toChain: string,
+    fromToken: string,
+    toToken: string,
     amount: number
+  ): Promise<{
+    toAmount: number;
+    fees: number;
+    exchangeRate: number;
+    estimatedTime: string;
+  }> {
+    try {
+      const { data, error } = await supabase.functions.invoke('bridge-estimate', {
+        body: { fromChain, toChain, fromToken, toToken, amount }
+      });
+
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Failed to estimate bridge');
+      }
+
+      return data.estimate;
+    } catch (error) {
+      console.error('Error estimating bridge:', error);
+      
+      // Fallback estimation
+      const baseFee = amount * 0.003; // 0.3% fee
+      const exchangeRate = 1.0; // 1:1 for same token
+      
+      return {
+        toAmount: amount - baseFee,
+        fees: baseFee,
+        exchangeRate,
+        estimatedTime: '5-10 minutes'
+      };
+    }
+  }
+
+  /**
+   * Initiate bridge transaction
+   */
+  static async initiateBridge(
+    profileId: string,
+    fromChain: string,
+    toChain: string,
+    fromToken: string,
+    toToken: string,
+    amount: number,
+    fromAddress: string,
+    toAddress: string
   ): Promise<BridgeTransaction> {
-    // Get current quote
-    const quote = await this.getConversionQuote(fromToken, toToken, amount);
-
-    // Check user balance
-    const { data: balanceData, error: balanceError } = await supabase
-      .from('token_balances')
-      .select('balance')
-      .eq('profile_id', profileId)
-      .eq('token_type', fromToken)
-      .single();
-
-    if (balanceError || !balanceData || balanceData.balance < amount) {
-      throw new Error(`Insufficient ${fromToken} balance`);
-    }
-
-    // Create cross-token transaction record
-    const { data: transaction, error } = await supabase
-      .from('cross_token_transactions')
-      .insert({
-        profile_id: profileId,
-        from_token: fromToken,
-        to_token: toToken,
-        from_amount: amount,
-        to_amount: quote.toAmount,
-        conversion_rate: quote.rate,
-        fees: quote.fees,
-        status: 'pending'
-      })
-      .select()
-      .single();
-
-    if (error || !transaction) {
-      throw new Error('Failed to create conversion transaction');
-    }
-
-    // Process the conversion based on token types
-    let transactionHash: string;
     try {
-      if (fromToken === 'TON') {
-        transactionHash = await this.processTonToAudioConversion(profileId, amount, quote);
-      } else {
-        transactionHash = await this.processAudioToTonConversion(profileId, amount, quote);
-      }
-
-      // Update transaction status
-      await supabase
-        .from('cross_token_transactions')
-        .update({
-          status: 'processing',
-          transaction_hash: transactionHash
-        })
-        .eq('id', transaction.id);
-
-      // Update balances
-      await this.updateBalancesAfterConversion(profileId, fromToken, toToken, amount, quote.toAmount);
-
-      // Mark as completed
-      await supabase
-        .from('cross_token_transactions')
-        .update({
-          status: 'completed',
-          completed_at: new Date().toISOString()
-        })
-        .eq('id', transaction.id);
-
-    } catch (error) {
-      // Mark as failed
-      await supabase
-        .from('cross_token_transactions')
-        .update({
-          status: 'failed'
-        })
-        .eq('id', transaction.id);
-
-      throw error;
-    }
-
-    return {
-      id: transaction.id,
-      fromToken,
-      toToken,
-      fromAmount: amount,
-      toAmount: quote.toAmount,
-      conversionRate: quote.rate,
-      fees: quote.fees,
-      status: 'completed',
-      transactionHash,
-      profileId,
-      createdAt: new Date(transaction.created_at),
-      completedAt: new Date()
-    };
-  }
-
-  /**
-   * Process TON to $AUDIO conversion
-   */
-  private static async processTonToAudioConversion(
-    profileId: string,
-    amount: number,
-    quote: ConversionQuote
-  ): Promise<string> {
-    // In a real implementation, this would:
-    // 1. Lock TON in a smart contract
-    // 2. Mint equivalent $AUDIO tokens
-    // 3. Transfer $AUDIO to user's Audius wallet
-    
-    // For now, simulate the transaction
-    return `ton_to_audio_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-  }
-
-  /**
-   * Process $AUDIO to TON conversion
-   */
-  private static async processAudioToTonConversion(
-    profileId: string,
-    amount: number,
-    quote: ConversionQuote
-  ): Promise<string> {
-    // In a real implementation, this would:
-    // 1. Burn $AUDIO tokens
-    // 2. Release equivalent TON from smart contract
-    // 3. Transfer TON to user's wallet
-    
-    // For now, simulate the transaction
-    return `audio_to_ton_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-  }
-
-  /**
-   * Update token balances after conversion
-   */
-  private static async updateBalancesAfterConversion(
-    profileId: string,
-    fromToken: 'TON' | 'AUDIO',
-    toToken: 'TON' | 'AUDIO',
-    fromAmount: number,
-    toAmount: number
-  ): Promise<void> {
-    // Decrease from token balance
-    await supabase
-      .from('token_balances')
-      .upsert({
-        profile_id: profileId,
-        token_type: fromToken,
-        balance: 0, // Will be updated by trigger
-        last_updated: new Date().toISOString()
+      const { data, error } = await supabase.functions.invoke('bridge-initiate', {
+        body: {
+          profileId,
+          fromChain,
+          toChain,
+          fromToken,
+          toToken,
+          amount,
+          fromAddress,
+          toAddress
+        }
       });
 
-    // Increase to token balance
-    await supabase
-      .from('token_balances')
-      .upsert({
-        profile_id: profileId,
-        token_type: toToken,
-        balance: toAmount,
-        last_updated: new Date().toISOString()
-      });
-  }
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Failed to initiate bridge');
+      }
 
-  /**
-   * Get conversion history for a user
-   */
-  static async getConversionHistory(profileId: string): Promise<BridgeTransaction[]> {
-    const { data, error } = await supabase
-      .from('cross_token_transactions')
-      .select('*')
-      .eq('profile_id', profileId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
+      return data.transaction;
+    } catch (error) {
+      console.error('Error initiating bridge:', error);
       throw error;
     }
-
-    return data?.map(tx => ({
-      id: tx.id,
-      fromToken: tx.from_token as 'TON' | 'AUDIO',
-      toToken: tx.to_token as 'TON' | 'AUDIO',
-      fromAmount: parseFloat(tx.from_amount.toString()),
-      toAmount: parseFloat(tx.to_amount.toString()),
-      conversionRate: parseFloat(tx.conversion_rate.toString()),
-      fees: parseFloat(tx.fees?.toString() || '0'),
-      status: tx.status as any,
-      transactionHash: tx.id, // Use ID as placeholder for now
-      profileId: tx.profile_id,
-      createdAt: new Date(tx.created_at),
-      completedAt: tx.completed_at ? new Date(tx.completed_at) : undefined
-    })) || [];
   }
 
   /**
-   * Update conversion rates (called periodically)
+   * Get bridge transaction status
    */
-  static async updateConversionRates(): Promise<void> {
+  static async getBridgeStatus(transactionId: string): Promise<BridgeTransaction> {
     try {
-      // In a real implementation, this would fetch rates from:
-      // - DEX APIs for TON prices
-      // - Audius API for $AUDIO token data
-      // - External price oracles
+      const { data, error } = await supabase.functions.invoke('bridge-status', {
+        body: { transactionId }
+      });
 
-      const rates = [
-        { from_token: 'TON', to_token: 'AUDIO', rate: 150.0 }, // 1 TON = 150 $AUDIO
-        { from_token: 'AUDIO', to_token: 'TON', rate: 0.0067 } // 1 $AUDIO = 0.0067 TON
-      ];
-
-      for (const rate of rates) {
-        await supabase
-          .from('token_conversion_rates')
-          .upsert({
-            from_token: rate.from_token,
-            to_token: rate.to_token,
-            rate: rate.rate,
-            source: 'external_api',
-            updated_at: new Date().toISOString()
-          });
+      if (error || !data.success) {
+        throw new Error(data?.error || error?.message || 'Failed to get bridge status');
       }
+
+      return data.transaction;
     } catch (error) {
-      console.error('Failed to update conversion rates:', error);
+      console.error('Error getting bridge status:', error);
+      throw error;
     }
+  }
+
+  /**
+   * Get user's bridge transaction history
+   */
+  static async getBridgeHistory(profileId: string, limit = 20): Promise<BridgeTransaction[]> {
+    try {
+      const { data, error } = await supabase
+        .from('cross_token_transactions')
+        .select('*')
+        .eq('profile_id', profileId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (error) throw error;
+
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching bridge history:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get supported chains configuration
+   */
+  static getChainConfig(chainName: string): ChainConfig | null {
+    return this.SUPPORTED_CHAINS[chainName] || null;
+  }
+
+  /**
+   * Validate bridge parameters
+   */
+  static validateBridgeParams(
+    fromChain: string,
+    toChain: string,
+    fromToken: string,
+    toToken: string,
+    amount: number
+  ): { valid: boolean; error?: string } {
+    // Check if chains are supported
+    if (!this.SUPPORTED_CHAINS[fromChain]) {
+      return { valid: false, error: `Unsupported source chain: ${fromChain}` };
+    }
+
+    if (!this.SUPPORTED_CHAINS[toChain]) {
+      return { valid: false, error: `Unsupported destination chain: ${toChain}` };
+    }
+
+    // Check if same chain
+    if (fromChain === toChain) {
+      return { valid: false, error: 'Source and destination chains cannot be the same' };
+    }
+
+    // Check amount
+    if (amount <= 0) {
+      return { valid: false, error: 'Amount must be greater than 0' };
+    }
+
+    // Check supported route
+    const routes = this.getSupportedRoutes();
+    const routeExists = routes.some(route => 
+      route.from === fromChain && 
+      route.to === toChain && 
+      route.fromToken === fromToken && 
+      route.toToken === toToken
+    );
+
+    if (!routeExists) {
+      return { valid: false, error: 'Bridge route not supported' };
+    }
+
+    return { valid: true };
   }
 }
-
-// Helper function for Supabase RPC calls
-export const createIncrementTokenBalanceFunction = `
-CREATE OR REPLACE FUNCTION increment_token_balance(
-  user_profile_id UUID,
-  token_type TEXT,
-  amount DECIMAL
-)
-RETURNS VOID AS $$
-BEGIN
-  INSERT INTO token_balances (profile_id, token_type, balance, last_updated)
-  VALUES (user_profile_id, token_type, amount, now())
-  ON CONFLICT (profile_id, token_type)
-  DO UPDATE SET 
-    balance = token_balances.balance + amount,
-    last_updated = now();
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = 'public';
-`;
