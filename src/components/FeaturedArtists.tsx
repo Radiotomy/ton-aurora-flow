@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Star, Play, Users, TrendingUp } from 'lucide-react';
 import { AudiusService } from '@/services/audiusService';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 
 interface FeaturedArtist {
   id: string;
@@ -16,6 +17,9 @@ interface FeaturedArtist {
   genre: string;
   isVerified?: boolean;
   topTrack?: string;
+  topTrackId?: string;
+  topTrackStreamUrl?: string;
+  topTrackArtwork?: string;
   monthlyListeners?: number;
 }
 
@@ -31,6 +35,7 @@ const formatNumber = (num: number): string => {
 
 export const FeaturedArtists = () => {
   const navigate = useNavigate();
+  const { playTrack } = useAudioPlayer();
   const [artists, setArtists] = useState<FeaturedArtist[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +57,9 @@ export const FeaturedArtists = () => {
               genre: track.genre || 'Electronic',
               isVerified: Math.random() > 0.7, // Random verification status since track.user doesn't include verified
               topTrack: track.title,
+              topTrackId: track.id,
+              topTrackStreamUrl: track.permalink,
+              topTrackArtwork: AudiusService.getArtworkUrl(track.artwork),
               monthlyListeners: Math.floor(Math.random() * 100000) + 20000,
             });
           }
@@ -163,10 +171,19 @@ export const FeaturedArtists = () => {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-aurora/10"
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Handle play action
+                          if (artist.topTrackId && artist.topTrack) {
+                            playTrack({
+                              id: artist.topTrackId,
+                              title: artist.topTrack,
+                              artist: artist.name,
+                              artwork: artist.topTrackArtwork || artist.avatar || '',
+                              streamUrl: artist.topTrackStreamUrl,
+                              duration: 180 // Default duration in seconds
+                            });
+                          }
                         }}
                       >
                         <Play className="w-4 h-4" />
