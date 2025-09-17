@@ -70,6 +70,132 @@ export type Database = {
           },
         ]
       }
+      audio_rewards_history: {
+        Row: {
+          amount: number
+          claimed: boolean
+          claimed_at: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          profile_id: string
+          reward_type: string
+          source: string | null
+        }
+        Insert: {
+          amount: number
+          claimed?: boolean
+          claimed_at?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          profile_id: string
+          reward_type: string
+          source?: string | null
+        }
+        Update: {
+          amount?: number
+          claimed?: boolean
+          claimed_at?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          profile_id?: string
+          reward_type?: string
+          source?: string | null
+        }
+        Relationships: []
+      }
+      audio_token_balances: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          last_claim_at: string | null
+          pending_rewards: number
+          profile_id: string
+          staked_amount: number
+          total_earnings: number
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          last_claim_at?: string | null
+          pending_rewards?: number
+          profile_id: string
+          staked_amount?: number
+          total_earnings?: number
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          last_claim_at?: string | null
+          pending_rewards?: number
+          profile_id?: string
+          staked_amount?: number
+          total_earnings?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bridge_transactions: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          exchange_rate: number
+          fees: number
+          from_amount: number
+          from_chain: string
+          from_token: string
+          from_tx_hash: string | null
+          id: string
+          profile_id: string
+          status: string
+          to_amount: number
+          to_chain: string
+          to_token: string
+          to_tx_hash: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          exchange_rate: number
+          fees?: number
+          from_amount: number
+          from_chain: string
+          from_token: string
+          from_tx_hash?: string | null
+          id?: string
+          profile_id: string
+          status?: string
+          to_amount: number
+          to_chain: string
+          to_token: string
+          to_tx_hash?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          exchange_rate?: number
+          fees?: number
+          from_amount?: number
+          from_chain?: string
+          from_token?: string
+          from_tx_hash?: string | null
+          id?: string
+          profile_id?: string
+          status?: string
+          to_amount?: number
+          to_chain?: string
+          to_token?: string
+          to_tx_hash?: string | null
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           artist_id: string

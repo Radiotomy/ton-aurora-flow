@@ -6,6 +6,7 @@ import { WalletButton } from '@/components/WalletButton';
 import { SearchModal } from '@/components/SearchModal';
 import { VoiceSearch } from '@/components/VoiceSearch';
 import { AudiusLoginButton } from '@/components/AudiusLoginButton';
+import { CrossChainBridgeModal } from '@/components/CrossChainBridgeModal';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { 
@@ -20,13 +21,15 @@ import {
   User,
   LogOut,
   Radio,
-  ShoppingCart
+  ShoppingCart,
+  ArrowRightLeft
 } from 'lucide-react';
 
 const Navigation = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isVoiceSearchOpen, setIsVoiceSearchOpen] = useState(false);
+  const [isBridgeOpen, setIsBridgeOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, signOut } = useAuth();
@@ -109,6 +112,19 @@ const Navigation = () => {
                 />
               </DialogContent>
             </Dialog>
+            
+            {/* Cross-Chain Bridge */}
+            {isAuthenticated && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => setIsBridgeOpen(true)}
+                title="Token Bridge"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+              </Button>
+            )}
             
             {/* Audius Login */}
             <AudiusLoginButton />
@@ -273,6 +289,14 @@ const Navigation = () => {
       </div>
       
       <SearchModal open={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+      {isAuthenticated && (
+        <CrossChainBridgeModal 
+          open={isBridgeOpen} 
+          onOpenChange={setIsBridgeOpen}
+          balances={[]}
+          onConversionComplete={() => {}}
+        />
+      )}
     </nav>
   );
 };
