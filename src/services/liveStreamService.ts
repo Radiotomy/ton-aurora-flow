@@ -34,7 +34,6 @@ export class LiveStreamService {
     // Transform frontend format to database format
     const dbEventData = {
       title: eventData.title || '',
-      artist_name: eventData.artist_name || '',
       artist_id: eventData.artist_id || '',
       description: eventData.description,
       scheduled_start: eventData.scheduled_start || new Date().toISOString(),
@@ -87,7 +86,7 @@ export class LiveStreamService {
     return (data || []).map(event => ({
       id: event.id,
       title: event.title,
-      artist_name: event.artist_name || event.artist_id || 'Unknown Artist',
+      artist_name: event.artist_id || 'Unknown Artist', // Use artist_id as display name for now
       artist_id: event.artist_id,
       description: event.description,
       scheduled_start: event.scheduled_start,
@@ -115,7 +114,7 @@ export class LiveStreamService {
     return {
       id: data.id,
       title: data.title,
-      artist_name: data.artist_name || data.artist_id || 'Unknown Artist',
+      artist_name: data.artist_id || 'Unknown Artist', // Use artist_id as display name for now
       artist_id: data.artist_id,
       description: data.description,
       scheduled_start: data.scheduled_start,

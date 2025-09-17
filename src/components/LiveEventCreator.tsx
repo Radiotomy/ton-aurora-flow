@@ -77,7 +77,8 @@ export const LiveEventCreator: React.FC<LiveEventCreatorProps> = ({ onEventCreat
       // Transform to match frontend interface
       const newEvent: LiveEvent = {
         ...createdEvent,
-        artist_name: createdEvent.artist_name || eventData.artist_name || 'Unknown Artist'
+        artist_name: eventData.artist_name || 'Unknown Artist',
+        status: createdEvent.status as 'upcoming' | 'live' | 'ended'
       };
       
       toast({

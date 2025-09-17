@@ -130,7 +130,7 @@ const LiveEvents = () => {
       const transformedEvents: LiveEvent[] = eventsData?.map(event => ({
         id: event.id,
         title: event.title,
-        artist_name: event.artist_name || 'Unknown Artist',
+        artist_name: event.artist_id || 'Unknown Artist', // Use artist_id as display name for now
         artist_id: event.artist_id,
         description: event.description || '',
         scheduled_start: event.scheduled_start,
