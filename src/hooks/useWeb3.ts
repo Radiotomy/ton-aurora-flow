@@ -307,9 +307,12 @@ export const useWeb3 = () => {
       // Show connecting toast
       connectionToastId.current = String(toast.loading('Connecting wallet... Please approve the connection in your TON wallet'));
       
-      // Set up connection timeout (30 seconds)
+      // Proactively open wallet selector modal (improves UX in iframes/mobile)
+      try { tonConnectUI.openModal(); } catch {}
+      
+      // Set up connection timeout (45 seconds)
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Connection timeout - please try again')), 30000);
+        setTimeout(() => reject(new Error('Connection timeout - please try again')), 45000);
       });
       
       const connectionPromise = tonConnectUI.connectWallet();
