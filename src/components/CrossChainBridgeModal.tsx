@@ -14,14 +14,14 @@ import { ArrowLeftRight, Clock, AlertCircle, CheckCircle2, Loader2 } from 'lucid
 interface CrossChainBridgeModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  balances: { token: 'TON' | 'AUDIO'; balance: number }[];
+  balances?: { token: 'TON' | 'AUDIO'; balance: number }[];
   onConversionComplete: () => void;
 }
 
 export const CrossChainBridgeModal: React.FC<CrossChainBridgeModalProps> = ({
   open,
   onOpenChange,
-  balances,
+  balances = [],
   onConversionComplete
 }) => {
   const { toast } = useToast();
