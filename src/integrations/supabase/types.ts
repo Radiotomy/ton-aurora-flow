@@ -200,9 +200,12 @@ export type Database = {
         Row: {
           artist_id: string
           created_at: string
+          event_id: string | null
           id: string
           is_deleted: boolean | null
           message: string
+          message_type: string
+          metadata: Json | null
           profile_id: string | null
           reply_to_id: string | null
           updated_at: string
@@ -210,9 +213,12 @@ export type Database = {
         Insert: {
           artist_id: string
           created_at?: string
+          event_id?: string | null
           id?: string
           is_deleted?: boolean | null
           message: string
+          message_type?: string
+          metadata?: Json | null
           profile_id?: string | null
           reply_to_id?: string | null
           updated_at?: string
@@ -220,14 +226,24 @@ export type Database = {
         Update: {
           artist_id?: string
           created_at?: string
+          event_id?: string | null
           id?: string
           is_deleted?: boolean | null
           message?: string
+          message_type?: string
+          metadata?: Json | null
           profile_id?: string | null
           reply_to_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "chat_messages_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "live_events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "chat_messages_profile_id_fkey"
             columns: ["profile_id"]
@@ -248,34 +264,43 @@ export type Database = {
         Row: {
           artist_id: string
           created_at: string
+          description: string | null
           expires_at: string
           id: string
           is_active: boolean | null
           options: Json
+          poll_type: string
           profile_id: string | null
           question: string
+          requires_wallet: boolean | null
           total_votes: number | null
         }
         Insert: {
           artist_id: string
           created_at?: string
+          description?: string | null
           expires_at: string
           id?: string
           is_active?: boolean | null
           options: Json
+          poll_type?: string
           profile_id?: string | null
           question: string
+          requires_wallet?: boolean | null
           total_votes?: number | null
         }
         Update: {
           artist_id?: string
           created_at?: string
+          description?: string | null
           expires_at?: string
           id?: string
           is_active?: boolean | null
           options?: Json
+          poll_type?: string
           profile_id?: string | null
           question?: string
+          requires_wallet?: boolean | null
           total_votes?: number | null
         }
         Relationships: [
@@ -331,6 +356,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "cross_token_transactions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_tickets: {
+        Row: {
+          event_id: string
+          id: string
+          is_valid: boolean | null
+          profile_id: string
+          purchase_price_ton: number
+          purchased_at: string
+          ticket_nft_address: string | null
+          tier: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          is_valid?: boolean | null
+          profile_id: string
+          purchase_price_ton: number
+          purchased_at?: string
+          ticket_nft_address?: string | null
+          tier?: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          is_valid?: boolean | null
+          profile_id?: string
+          purchase_price_ton?: number
+          purchased_at?: string
+          ticket_nft_address?: string | null
+          tier?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_tickets_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "live_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_tickets_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
@@ -423,11 +496,14 @@ export type Database = {
           id: string
           is_live: boolean | null
           max_attendees: number | null
+          requires_ticket: boolean | null
           scheduled_end: string | null
           scheduled_start: string
+          status: string
           stream_url: string | null
           thumbnail_url: string | null
           ticket_price: number | null
+          ticket_price_ton: number | null
           title: string
           updated_at: string
         }
@@ -439,11 +515,14 @@ export type Database = {
           id?: string
           is_live?: boolean | null
           max_attendees?: number | null
+          requires_ticket?: boolean | null
           scheduled_end?: string | null
           scheduled_start: string
+          status?: string
           stream_url?: string | null
           thumbnail_url?: string | null
           ticket_price?: number | null
+          ticket_price_ton?: number | null
           title: string
           updated_at?: string
         }
@@ -455,11 +534,14 @@ export type Database = {
           id?: string
           is_live?: boolean | null
           max_attendees?: number | null
+          requires_ticket?: boolean | null
           scheduled_end?: string | null
           scheduled_start?: string
+          status?: string
           stream_url?: string | null
           thumbnail_url?: string | null
           ticket_price?: number | null
+          ticket_price_ton?: number | null
           title?: string
           updated_at?: string
         }
@@ -696,6 +778,54 @@ export type Database = {
           wallet_address?: string | null
         }
         Relationships: []
+      }
+      stream_sessions: {
+        Row: {
+          event_id: string
+          id: string
+          is_active: boolean | null
+          joined_at: string
+          left_at: string | null
+          peer_id: string | null
+          profile_id: string
+          session_token: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          is_active?: boolean | null
+          joined_at?: string
+          left_at?: string | null
+          peer_id?: string | null
+          profile_id: string
+          session_token: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          is_active?: boolean | null
+          joined_at?: string
+          left_at?: string | null
+          peer_id?: string | null
+          profile_id?: string
+          session_token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_sessions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "live_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stream_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       token_balances: {
         Row: {

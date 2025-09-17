@@ -148,7 +148,12 @@ export const CommunityPolls: React.FC = () => {
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error:', error);
+        // Fallback to mock data
+        setPolls(mockPolls);
+        return;
+      }
 
       const formattedPolls: Poll[] = pollsData?.map(poll => {
         const options: PollOption[] = (poll.options as { text: string; votes: number }[]).map((option, index) => ({
@@ -161,7 +166,7 @@ export const CommunityPolls: React.FC = () => {
         return {
           id: poll.id,
           title: poll.question,
-          description: '',
+          description: poll.description || '',
           options: options,
           total_votes: poll.total_votes || 0,
           ends_at: poll.expires_at,
@@ -169,14 +174,16 @@ export const CommunityPolls: React.FC = () => {
           created_by: poll.profile_id || '',
           creator_name: poll.profiles?.display_name || 'Anonymous',
           status: 'active' as const,
-          poll_type: 'general' as const
+          poll_type: (poll.poll_type as 'general' | 'artist' | 'event' | 'feature') || 'general',
+          requires_wallet: poll.requires_wallet || false
         };
       }) || [];
 
-      setPolls(formattedPolls);
+      // If no real polls, show mock data for demo
+      setPolls(formattedPolls.length > 0 ? formattedPolls : mockPolls);
     } catch (error) {
       console.error('Error loading polls:', error);
-      setPolls([]);
+      setPolls(mockPolls);
     } finally {
       setLoading(false);
     }

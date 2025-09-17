@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LiveEventCard } from '@/components/LiveEventCard';
 import { CommunityChat } from '@/components/CommunityChat';
 import { CommunityPolls } from '@/components/CommunityPolls';
+import { LiveEventCreator } from '@/components/LiveEventCreator';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -39,6 +40,11 @@ const LiveEvents = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('events');
   const { isAuthenticated } = useAuth();
+
+  const handleEventCreated = (newEvent: LiveEvent) => {
+    setEvents(prev => [...prev, newEvent]);
+    loadEvents(); // Refresh the list
+  };
 
   // Mock data for initial implementation
   const mockEvents: LiveEvent[] = [
@@ -105,21 +111,40 @@ const LiveEvents = () => {
 
   const loadEvents = async () => {
     try {
-      // For now, use mock data
-      setEvents(mockEvents);
-      setLoading(false);
+      setLoading(true);
       
-      // For production, would fetch from database:
-      // const { data, error } = await supabase
-      //   .from('live_events')
-      //   .select('*')
-      //   .order('scheduled_start', { ascending: true });
-      //   .from('live_events')
-      //   .select('*')
-      //   .order('scheduled_start', { ascending: true });
+      // Fetch real events from database
+      const { data: eventsData, error } = await supabase
+        .from('live_events')
+        .select('*')
+        .order('scheduled_start', { ascending: true });
       
-      // if (error) throw error;
-      // setEvents(data || []);
+      if (error) {
+        console.error('Database error:', error);
+        // Fallback to mock data on error
+        setEvents(mockEvents);
+        return;
+      }
+      
+      // Transform database events to match interface
+      const transformedEvents: LiveEvent[] = eventsData?.map(event => ({
+        id: event.id,
+        title: event.title,
+        artist_name: event.artist_name || 'Unknown Artist',
+        artist_id: event.artist_id,
+        description: event.description || '',
+        scheduled_start: event.scheduled_start,
+        status: event.status as 'upcoming' | 'live' | 'ended',
+        thumbnail_url: event.thumbnail_url,
+        ticket_price_ton: event.ticket_price_ton || 0,
+        max_attendees: event.max_attendees,
+        current_attendees: event.current_attendees || 0,
+        created_at: event.created_at
+      })) || [];
+      
+      // If no real events, show mock data for demo
+      setEvents(transformedEvents.length > 0 ? transformedEvents : mockEvents);
+      
     } catch (error) {
       console.error('Error loading events:', error);
       setEvents(mockEvents);
@@ -185,16 +210,22 @@ const LiveEvents = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-lg bg-aurora/20">
-              <PlayCircle className="h-6 w-6 text-aurora" />
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-aurora/20">
+                <PlayCircle className="h-6 w-6 text-aurora" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold">Live Events & Community</h1>
+                <p className="text-muted-foreground">
+                  Join live performances, chat with artists, and participate in the community
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-3xl font-bold">Live Events & Community</h1>
-              <p className="text-muted-foreground">
-                Join live performances, chat with artists, and participate in the community
-              </p>
-            </div>
+            
+            {isAuthenticated && (
+              <LiveEventCreator onEventCreated={handleEventCreated} />
+            )}
           </div>
 
           {/* Stats Grid */}
