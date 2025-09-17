@@ -254,7 +254,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
   if (!isAuthenticated || isLoading) {
     return (
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="glass-panel max-w-2xl">
+        <DialogContent className="glass-panel no-hover-lift max-w-2xl">
           <DialogHeader>
             <DialogTitle>Web3 Profile</DialogTitle>
             <DialogDescription>
@@ -275,7 +275,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="glass-panel max-w-2xl">
+      <DialogContent className="glass-panel no-hover-lift max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Avatar className="h-12 w-12">

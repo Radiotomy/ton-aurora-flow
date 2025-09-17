@@ -15,6 +15,7 @@ import { Web3ProfileModal } from '@/components/Web3ProfileModal';
 import { UnifiedWalletDisplay } from '@/components/UnifiedWalletDisplay';
 import { useWeb3 } from '@/hooks/useWeb3';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 export const WalletButton: React.FC = () => {
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -31,6 +32,7 @@ export const WalletButton: React.FC = () => {
     walletInfo,
   } = useWeb3();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleCopyAddress = () => {
     if (profile?.wallet_address) {
@@ -117,7 +119,7 @@ export const WalletButton: React.FC = () => {
             </div>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-72 glass-panel">
+        <DropdownMenuContent align="end" className="w-72 glass-panel no-hover-lift">
           <DropdownMenuLabel className="pb-3">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
@@ -158,7 +160,7 @@ export const WalletButton: React.FC = () => {
             <span>Manage Profile</span>
           </DropdownMenuItem>
           
-          <DropdownMenuItem onClick={() => window.location.href = '/dashboard'}>
+          <DropdownMenuItem onClick={() => navigate('/dashboard')}>
             <Settings className="h-4 w-4 mr-3" />
             <span>Dashboard</span>
           </DropdownMenuItem>

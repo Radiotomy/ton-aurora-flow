@@ -29,7 +29,7 @@ export const useWeb3 = () => {
   const [isCheckingDns, setIsCheckingDns] = useState(false);
   const lastConnectedAddress = useRef<string | null>(null);
   const hasShownWelcomeToast = useRef<boolean>(false);
-  const connectionToastId = useRef<string | null>(null);
+  const connectionToastId = useRef<string | number | null>(null);
   const isProcessingConnection = useRef<boolean>(false);
   
   // Debounce wallet address changes to prevent excessive updates
@@ -240,6 +240,12 @@ export const useWeb3 = () => {
       if (debouncedWalletAddress && wallet?.account) {
         const currentAddress = debouncedWalletAddress;
         
+        // Dismiss any lingering connect toast when wallet is detected
+        if (connectionToastId.current) {
+          toast.dismiss(connectionToastId.current);
+          connectionToastId.current = null;
+        }
+        
         // Only proceed if this is a new connection or different address
         if (lastConnectedAddress.current !== currentAddress) {
           isProcessingConnection.current = true;
@@ -305,7 +311,7 @@ export const useWeb3 = () => {
       }
 
       // Show connecting toast
-      connectionToastId.current = String(toast.loading('Connecting wallet... Please approve the connection in your TON wallet'));
+      connectionToastId.current = toast.loading('Connecting wallet... Please approve the connection in your TON wallet');
       
       // Proactively open wallet selector modal (improves UX in iframes/mobile)
       try { tonConnectUI.openModal(); } catch {}
