@@ -1,0 +1,16 @@
+{
+  "url": "https://082eb0ee-579e-46a8-a35f-2d335fe4e344.lovableproject.com",
+  "name": "AudioTon - Web3 Music Platform", 
+  "description": "Stream, discover, and collect music on the TON blockchain. Connect your TON wallet to access exclusive tracks, mint NFTs, and join fan clubs.",
+  "iconUrl": "https://082eb0ee-579e-46a8-a35f-2d335fe4e344.lovableproject.com/favicon.ico",
+  "backgroundColor": "#0A0A0B",
+  "themeColor": "#8B5CF6",
+  "tonSite": {
+    "bagId": "32902580153715398944",
+    "proxyUrl": "https://082eb0ee-579e-46a8-a35f-2d335fe4e344.lovableproject.com",
+    "fallbackUrls": [
+      "https://082eb0ee-579e-46a8-a35f-2d335fe4e344.lovableproject.com",
+      "https://audioton.lovable.app"
+    ]
+  }
+}

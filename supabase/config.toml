@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.tonconnect-manifest]
 verify_jwt = false
+
+[functions.ton-site-manifest]
+verify_jwt = false

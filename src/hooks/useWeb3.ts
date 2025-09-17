@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Address, fromNano } from '@ton/core';
 import { useNavigationStability } from '@/hooks/useNavigationStability';
+import { tonDnsService } from '@/services/tonDnsService';
 
 // Performance optimization: debounce hook
 const useDebounce = <T>(value: T, delay: number): T => {
@@ -100,12 +101,11 @@ export const useWeb3 = () => {
     }
   }, []);
 
-  // Check for TON DNS name
+  // Enhanced TON DNS resolution with blockchain integration
   const checkTonDnsName = useCallback(async (address: string) => {
     setIsCheckingDns(true);
     try {
-      // This would typically resolve TON DNS
-      // For now, we'll check our database for stored DNS names
+      // First, check our database for stored DNS names
       const { data: dnsRecord } = await supabase
         .from('profiles')
         .select('ton_dns_name')
@@ -114,6 +114,23 @@ export const useWeb3 = () => {
       
       if (dnsRecord?.ton_dns_name) {
         setTonDnsName(dnsRecord.ton_dns_name);
+        
+        // Verify the DNS record is still valid on TON blockchain
+        try {
+          const resolvedRecord = await tonDnsService.resolveTonDomain(dnsRecord.ton_dns_name);
+          if (resolvedRecord?.address !== address) {
+            console.warn('TON DNS record mismatch, updating database');
+            // Update database if blockchain record doesn't match
+            await supabase
+              .from('profiles')
+              .update({ ton_dns_name: null })
+              .eq('wallet_address', address);
+            setTonDnsName(null);
+          }
+        } catch (resolveError) {
+          console.warn('Could not verify TON DNS on blockchain:', resolveError);
+          // Keep database record even if blockchain verification fails
+        }
       }
     } catch (error) {
       console.error('Error checking DNS:', error);
@@ -463,11 +480,32 @@ export const useWeb3 = () => {
     }
   }, [wallet, tonConnectUI]);
 
-  // Update TON DNS name
+  // Enhanced TON DNS name registration with blockchain integration
   const updateTonDnsName = useCallback(async (dnsName: string) => {
-    if (!profile?.id) return false;
+    if (!profile?.id || !walletAddress) return false;
 
     try {
+      // Validate domain format first
+      if (!tonDnsService.isValidTonDomain(dnsName)) {
+        toast.error('Invalid TON domain format. Use alphanumeric characters and hyphens only.');
+        return false;
+      }
+
+      // Check if domain is already registered
+      const existingRecord = await tonDnsService.resolveTonDomain(dnsName);
+      if (existingRecord?.address && existingRecord.address !== walletAddress) {
+        toast.error('This TON domain is already registered to another address.');
+        return false;
+      }
+
+      // Register domain on TON blockchain
+      const registrationSuccess = await tonDnsService.registerTonDomain(dnsName, walletAddress);
+      if (!registrationSuccess) {
+        toast.error('Failed to register TON domain on blockchain.');
+        return false;
+      }
+
+      // Update database
       const { error } = await supabase
         .from('profiles')
         .update({ 
@@ -481,15 +519,15 @@ export const useWeb3 = () => {
       setTonDnsName(dnsName);
       setProfile({ ...profile, ton_dns_name: dnsName });
       
-      toast.success(`TON DNS updated to ${dnsName}`);
+      toast.success(`TON DNS registered successfully: ${dnsName}`);
 
       return true;
     } catch (error) {
       console.error('Error updating TON DNS:', error);
-      toast.error('Failed to update your TON DNS name');
+      toast.error('Failed to register your TON DNS name');
       return false;
     }
-  }, [profile]);
+  }, [profile, walletAddress]);
 
   // Get wallet type info
   const getWalletInfo = useCallback(() => {

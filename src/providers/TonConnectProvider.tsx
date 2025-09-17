@@ -1,5 +1,6 @@
 import React from 'react';
 import { TonConnectUIProvider } from '@tonconnect/ui-react';
+import { APP_CONFIG } from '@/config/production';
 
 interface TonConnectProviderProps {
   children: React.ReactNode;
@@ -8,9 +9,16 @@ interface TonConnectProviderProps {
 export const TonConnectProvider: React.FC<TonConnectProviderProps> = ({ children }) => {
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
   
+  // Check if we're in TON Sites mode
+  const isTonSite = typeof window !== 'undefined' && 
+    (window.location.hostname.endsWith('.ton') || APP_CONFIG.TON_SITES?.ENABLED);
+  
   // Use dynamic Supabase edge function manifest that adapts to deployment environment
   // Pass the current origin as a parameter to ensure correct domain matching
   const manifestUrl = `https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/tonconnect-manifest?origin=${encodeURIComponent(currentOrigin)}`;
+  
+  // For TON Sites, we also generate a TON Site specific manifest
+  const tonSiteManifestUrl = `https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/ton-site-manifest?origin=${encodeURIComponent(currentOrigin)}&ton=true`;
   
   // Add error handling for TON Connect
   React.useEffect(() => {
@@ -24,10 +32,22 @@ export const TonConnectProvider: React.FC<TonConnectProviderProps> = ({ children
     window.addEventListener('error', handleTonConnectError);
     return () => window.removeEventListener('error', handleTonConnectError);
   }, []);
+
+  // Log TON Sites status for debugging
+  React.useEffect(() => {
+    if (APP_CONFIG.FEATURES?.TON_SITES) {
+      console.log('TON Connect initialized with TON Sites support:', {
+        isTonSite,
+        manifest: manifestUrl,
+        tonSiteManifest: isTonSite ? tonSiteManifestUrl : undefined,
+        origin: currentOrigin
+      });
+    }
+  }, [isTonSite, manifestUrl, tonSiteManifestUrl, currentOrigin]);
   
   return (
     <TonConnectUIProvider 
-      manifestUrl={manifestUrl}
+      manifestUrl={isTonSite ? tonSiteManifestUrl : manifestUrl}
       actionsConfiguration={{
         twaReturnUrl: currentOrigin as `${string}://${string}`
       }}

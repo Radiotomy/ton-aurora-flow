@@ -15,6 +15,7 @@ import { UserFavorites } from '@/components/UserFavorites';
 import { AudioTokenWidget } from '@/components/AudioTokenWidget';
 import { UnifiedWalletDisplay } from '@/components/UnifiedWalletDisplay';
 import { CrossChainBridgeWidget } from '@/components/CrossChainBridgeWidget';
+import { TonDomainStatus } from '@/components/TonDomainStatus';
 import { Music, Users, Heart, Trophy, Wallet, Settings, Coins, Star, Award, Clock, TrendingUp } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -223,10 +224,11 @@ const Dashboard = () => {
 
           <TabsContent value="web3" className="space-y-6">
             {/* Audio Token & Wallet Overview */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
               <AudioTokenWidget />
               <UnifiedWalletDisplay />
               <CrossChainBridgeWidget />
+              <TonDomainStatus />
             </div>
 
             <TokenEconomicsDashboard 

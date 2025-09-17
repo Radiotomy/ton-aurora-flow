@@ -46,7 +46,10 @@ export const PRODUCTION_CONFIG = {
     AI_RECOMMENDATIONS: true,
     VOICE_SEARCH: true,
     TELEGRAM_INTEGRATION: true,
-    ANALYTICS: true
+    ANALYTICS: true,
+    TON_SITES: true,
+    TON_DNS: true,
+    TON_PROXY: true
   },
   
   // Security Configuration
@@ -85,6 +88,20 @@ export const PRODUCTION_CONFIG = {
     RETURN_URL: 'https://audioton.lovable.app',
     HAPTIC_FEEDBACK: true,
     THEME_PARAMS: true
+  },
+
+  // TON Sites Configuration
+  TON_SITES: {
+    ENABLED: true,
+    DOMAIN: 'audioton.ton',
+    PROXY_ENABLED: true,
+    MANIFEST_URL: '/ton-site-manifest.json',
+    DNS_RESOLVER: 'https://dns.ton.org',
+    SITE_BAG_ID: '32902580153715398944', // Example bag ID for TON Storage
+    BACKUP_URLS: [
+      'https://082eb0ee-579e-46a8-a35f-2d335fe4e344.lovableproject.com',
+      'https://audioton.lovable.app'
+    ]
   },
   
   // Content Delivery

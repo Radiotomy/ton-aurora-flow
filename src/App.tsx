@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { TonConnectProvider } from "@/providers/TonConnectProvider";
+import { TonSitesRouter } from "@/components/TonSitesRouter";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { ErrorBoundaryWithTWA } from "@/components/ErrorBoundaryWithTWA";
 import { SecurityProvider } from "@/components/SecurityProvider";
@@ -47,31 +48,33 @@ function AppContent() {
           v7_relativeSplatPath: true
         }}
       >
-        <Navigation />
-        <ErrorBoundaryWithTWA>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/discover" element={<Discover />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/auth/audius/callback" element={<AudiusCallback />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/playlists" element={<Playlists />} />
-            <Route path="/artist/:artistId" element={<ArtistDetail />} />
-            <Route path="/track/:trackId" element={<TrackDetail />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
-            <Route path="/tracks" element={<Index />} />
-            <Route path="/fan-clubs" element={<FanClubs />} />
-            <Route path="/creator-studio" element={<CreatorStudio />} />
-            <Route path="/live-events" element={<LiveEvents />} />
-            <Route path="/marketplace" element={<Marketplace />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </ErrorBoundaryWithTWA>
-        <ErrorBoundaryWithTWA>
-          <AudioPlayer />
-        </ErrorBoundaryWithTWA>
+        <TonSitesRouter>
+          <Navigation />
+          <ErrorBoundaryWithTWA>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/discover" element={<Discover />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/audius/callback" element={<AudiusCallback />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/playlists" element={<Playlists />} />
+              <Route path="/artist/:artistId" element={<ArtistDetail />} />
+              <Route path="/track/:trackId" element={<TrackDetail />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/tracks" element={<Index />} />
+              <Route path="/fan-clubs" element={<FanClubs />} />
+              <Route path="/creator-studio" element={<CreatorStudio />} />
+              <Route path="/live-events" element={<LiveEvents />} />
+              <Route path="/marketplace" element={<Marketplace />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ErrorBoundaryWithTWA>
+          <ErrorBoundaryWithTWA>
+            <AudioPlayer />
+          </ErrorBoundaryWithTWA>
+        </TonSitesRouter>
       </BrowserRouter>
     </div>
   );
