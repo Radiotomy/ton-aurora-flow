@@ -169,7 +169,11 @@
   }
   
   /* Disable hover lift for modal/dropdown containers to prevent pointer jitter */
-  .no-hover-lift:hover {
+  .no-hover-lift:hover,
+  .no-hover-lift .glass-panel:hover,
+  .no-hover-lift .glass-button:hover,
+  .no-hover-lift .hover-scale:hover,
+  .no-hover-lift .aurora-hover:hover {
     transform: none !important;
     box-shadow: var(--glass-shadow) !important;
   }
