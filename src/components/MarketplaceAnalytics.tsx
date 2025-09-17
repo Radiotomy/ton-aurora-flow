@@ -1,275 +1,501 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
-import { Progress } from './ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-import { useRealMarketplaceStats } from '@/hooks/useRealMarketplaceStats';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { NFTMarketplaceService, MarketplaceStats } from '@/services/nftMarketplaceService';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   TrendingUp, 
-  TrendingDown, 
   DollarSign, 
   Users, 
-  Music, 
-  Crown,
-  Star,
   Activity,
-  Loader2
+  BarChart3,
+  PieChart,
+  Music,
+  Star,
+  Clock,
+  Target
 } from 'lucide-react';
 
-interface MarketplaceStats {
-  totalVolume: number;
-  totalSales: number;
-  activeListings: number;
+interface VolumeData {
+  date: string;
+  volume: number;
+  sales: number;
+}
+
+interface TopArtist {
+  id: string;
+  name: string;
+  avatar: string;
+  volume: number;
+  sales: number;
   averagePrice: number;
-  topGenres: Array<{ name: string; percentage: number; sales: number }>;
-  topArtists: Array<{ 
-    id: string; 
-    name: string; 
-    avatar: string; 
-    sales: number; 
-    volume: number; 
-    isVerified: boolean 
-  }>;
-  recentSales: Array<{
-    id: string;
-    title: string;
-    artist: string;
-    price: number;
-    currency: string;
-    timestamp: string;
-  }>;
-  priceHistory: Array<{ date: string; avgPrice: number }>;
 }
 
-interface MarketplaceAnalyticsProps {
-  className?: string;
+interface PriceRange {
+  range: string;
+  count: number;
+  percentage: number;
 }
 
-export const MarketplaceAnalytics: React.FC<MarketplaceAnalyticsProps> = ({ 
-  className = '' 
-}) => {
-  const stats = useRealMarketplaceStats();
+export const MarketplaceAnalytics: React.FC = () => {
+  const [marketplaceStats, setMarketplaceStats] = useState<MarketplaceStats | null>(null);
+  const [volumeData, setVolumeData] = useState<VolumeData[]>([]);
+  const [topArtists, setTopArtists] = useState<TopArtist[]>([]);
+  const [priceRanges, setPriceRanges] = useState<PriceRange[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const formatTimeAgo = (timestamp: string) => {
-    const now = new Date();
-    const then = new Date(timestamp);
-    const diffMs = now.getTime() - then.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    
-    if (diffHours < 1) return 'Just now';
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${Math.floor(diffHours / 24)}d ago`;
+  const [detailedStats, setDetailedStats] = useState({
+    totalListings: 0,
+    activeListings: 0,
+    totalSales: 0,
+    totalVolume: 0,
+    averagePrice: 0,
+    uniqueCollectors: 0,
+    uniqueSellers: 0,
+    floorPrice: 0,
+    topSale: 0,
+    volumeChange24h: 0
+  });
+
+  useEffect(() => {
+    loadAnalytics();
+  }, []);
+
+  const loadAnalytics = async () => {
+    try {
+      setLoading(true);
+      
+      // Load marketplace stats
+      const stats = await NFTMarketplaceService.getMarketplaceStats();
+      setMarketplaceStats(stats);
+
+      // Load detailed analytics from database
+      await loadDetailedAnalytics();
+      await loadVolumeData();
+      await loadTopArtists();
+      await loadPriceDistribution();
+
+    } catch (error) {
+      console.error('Error loading analytics:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  return (
-    <div className={`space-y-6 ${className}`}>
-      {stats.loading && (
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2 text-muted-foreground">Loading marketplace data...</span>
-        </div>
-      )}
+  const loadDetailedAnalytics = async () => {
+    try {
+      // Get all marketplace data
+      const { data: listings, error } = await supabase
+        .from('nft_marketplace')
+        .select(`
+          *,
+          seller:profiles!seller_profile_id(display_name),
+          buyer:profiles!buyer_profile_id(display_name)
+        `);
+
+      if (error) throw error;
+
+      const activeListings = listings?.filter(l => l.status === 'active') || [];
+      const soldListings = listings?.filter(l => l.status === 'sold') || [];
       
-      {stats.error && (
-        <Card className="glass-panel border-destructive/50">
-          <CardContent className="p-4">
-            <p className="text-destructive text-sm">Error loading marketplace data: {stats.error}</p>
+      const totalVolume = soldListings.reduce((sum, l) => sum + parseFloat(l.listing_price.toString()), 0);
+      const averagePrice = soldListings.length > 0 ? totalVolume / soldListings.length : 0;
+      
+      const uniqueCollectors = new Set(soldListings.map(l => l.buyer_profile_id).filter(Boolean)).size;
+      const uniqueSellers = new Set(soldListings.map(l => l.seller_profile_id)).size;
+      
+      const prices = activeListings.map(l => parseFloat(l.listing_price.toString())).sort((a, b) => a - b);
+      const floorPrice = prices.length > 0 ? prices[0] : 0;
+      const topSale = soldListings.length > 0 
+        ? Math.max(...soldListings.map(l => parseFloat(l.listing_price.toString())))
+        : 0;
+
+      // Calculate 24h volume change (simplified)
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const recent24h = soldListings.filter(l => 
+        l.sold_at && new Date(l.sold_at) > yesterday
+      );
+      const volume24h = recent24h.reduce((sum, l) => sum + parseFloat(l.listing_price.toString()), 0);
+      const volumeChange24h = totalVolume > 0 ? ((volume24h / totalVolume) * 100) : 0;
+
+      setDetailedStats({
+        totalListings: listings?.length || 0,
+        activeListings: activeListings.length,
+        totalSales: soldListings.length,
+        totalVolume,
+        averagePrice,
+        uniqueCollectors,
+        uniqueSellers,
+        floorPrice,
+        topSale,
+        volumeChange24h
+      });
+
+    } catch (error) {
+      console.error('Error loading detailed analytics:', error);
+    }
+  };
+
+  const loadVolumeData = async () => {
+    try {
+      const { data: soldListings, error } = await supabase
+        .from('nft_marketplace')
+        .select('listing_price, sold_at')
+        .eq('status', 'sold')
+        .order('sold_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Group by date
+      const volumeByDate: Record<string, { volume: number; sales: number }> = {};
+      
+      soldListings?.forEach(listing => {
+        if (listing.sold_at) {
+          const date = new Date(listing.sold_at).toISOString().split('T')[0];
+          if (!volumeByDate[date]) {
+            volumeByDate[date] = { volume: 0, sales: 0 };
+          }
+          volumeByDate[date].volume += parseFloat(listing.listing_price.toString());
+          volumeByDate[date].sales += 1;
+        }
+      });
+
+      const volumeData = Object.entries(volumeByDate)
+        .map(([date, data]) => ({
+          date,
+          volume: data.volume,
+          sales: data.sales
+        }))
+        .slice(-30); // Last 30 days
+
+      setVolumeData(volumeData);
+
+    } catch (error) {
+      console.error('Error loading volume data:', error);
+    }
+  };
+
+  const loadTopArtists = async () => {
+    try {
+      const { data: soldListings, error } = await supabase
+        .from('nft_marketplace')
+        .select(`
+          listing_price,
+          nft:user_assets!nft_id(metadata)
+        `)
+        .eq('status', 'sold');
+
+      if (error) throw error;
+
+      // Group by artist (using metadata)
+      const artistStats: Record<string, { volume: number; sales: number; prices: number[] }> = {};
+      
+      soldListings?.forEach(listing => {
+        const artistName = listing.nft?.metadata?.artistName || 'Unknown Artist';
+        if (!artistStats[artistName]) {
+          artistStats[artistName] = { volume: 0, sales: 0, prices: [] };
+        }
+        const price = parseFloat(listing.listing_price.toString());
+        artistStats[artistName].volume += price;
+        artistStats[artistName].sales += 1;
+        artistStats[artistName].prices.push(price);
+      });
+
+      const topArtists = Object.entries(artistStats)
+        .map(([name, stats]) => ({
+          id: name.toLowerCase().replace(/\s+/g, '-'),
+          name,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`,
+          volume: stats.volume,
+          sales: stats.sales,
+          averagePrice: stats.volume / stats.sales
+        }))
+        .sort((a, b) => b.volume - a.volume)
+        .slice(0, 10);
+
+      setTopArtists(topArtists);
+
+    } catch (error) {
+      console.error('Error loading top artists:', error);
+    }
+  };
+
+  const loadPriceDistribution = async () => {
+    try {
+      const { data: activeListings, error } = await supabase
+        .from('nft_marketplace')
+        .select('listing_price')
+        .eq('status', 'active');
+
+      if (error) throw error;
+
+      const prices = activeListings?.map(l => parseFloat(l.listing_price.toString())) || [];
+      const total = prices.length;
+
+      if (total === 0) {
+        setPriceRanges([]);
+        return;
+      }
+
+      const ranges = [
+        { range: '< 1 TON', min: 0, max: 1 },
+        { range: '1-5 TON', min: 1, max: 5 },
+        { range: '5-10 TON', min: 5, max: 10 },
+        { range: '10-25 TON', min: 10, max: 25 },
+        { range: '> 25 TON', min: 25, max: Infinity }
+      ];
+
+      const distribution = ranges.map(range => {
+        const count = prices.filter(price => 
+          price >= range.min && (range.max === Infinity ? true : price < range.max)
+        ).length;
+        
+        return {
+          range: range.range,
+          count,
+          percentage: (count / total) * 100
+        };
+      });
+
+      setPriceRanges(distribution);
+
+    } catch (error) {
+      console.error('Error loading price distribution:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="glass-panel animate-pulse">
+              <CardContent className="p-4">
+                <div className="h-16 bg-muted rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Key Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="glass-panel border-glass">
+          <CardContent className="p-4 text-center">
+            <DollarSign className="h-6 w-6 mx-auto text-primary mb-2" />
+            <p className="text-2xl font-bold text-aurora">{detailedStats.totalVolume.toFixed(1)}</p>
+            <p className="text-sm text-muted-foreground">Total Volume (TON)</p>
+            {detailedStats.volumeChange24h !== 0 && (
+              <Badge variant={detailedStats.volumeChange24h > 0 ? "default" : "destructive"} className="mt-1">
+                {detailedStats.volumeChange24h > 0 ? '+' : ''}{detailedStats.volumeChange24h.toFixed(1)}%
+              </Badge>
+            )}
           </CardContent>
         </Card>
-      )}
 
-      {!stats.loading && !stats.error && (
-        <>
-          {/* Key Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="glass-panel border-glass">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Volume</p>
-                <p className="text-2xl font-bold text-aurora">{stats.totalVolume.toFixed(1)}</p>
-                <p className="text-xs text-muted-foreground">TON</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-primary opacity-70" />
-            </div>
-            <div className="flex items-center mt-2 text-xs">
-              <TrendingUp className="h-3 w-3 text-success mr-1" />
-              <span className="text-success">+12.5%</span>
-              <span className="text-muted-foreground ml-1">vs last week</span>
-            </div>
+          <CardContent className="p-4 text-center">
+            <Activity className="h-6 w-6 mx-auto text-secondary mb-2" />
+            <p className="text-2xl font-bold text-aurora">{detailedStats.totalSales}</p>
+            <p className="text-sm text-muted-foreground">Total Sales</p>
           </CardContent>
         </Card>
 
         <Card className="glass-panel border-glass">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Sales</p>
-                <p className="text-2xl font-bold text-aurora">{stats.totalSales}</p>
-              </div>
-              <Activity className="h-8 w-8 text-secondary opacity-70" />
-            </div>
-            <div className="flex items-center mt-2 text-xs">
-              <TrendingUp className="h-3 w-3 text-success mr-1" />
-              <span className="text-success">+8.2%</span>
-              <span className="text-muted-foreground ml-1">vs last week</span>
-            </div>
+          <CardContent className="p-4 text-center">
+            <Target className="h-6 w-6 mx-auto text-accent mb-2" />
+            <p className="text-2xl font-bold text-aurora">{detailedStats.averagePrice.toFixed(1)}</p>
+            <p className="text-sm text-muted-foreground">Average Price (TON)</p>
           </CardContent>
         </Card>
 
         <Card className="glass-panel border-glass">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Active Listings</p>
-                <p className="text-2xl font-bold text-aurora">{stats.activeListings}</p>
-              </div>
-              <Music className="h-8 w-8 text-accent opacity-70" />
-            </div>
-            <div className="flex items-center mt-2 text-xs">
-              <TrendingDown className="h-3 w-3 text-destructive mr-1" />
-              <span className="text-destructive">-3.1%</span>
-              <span className="text-muted-foreground ml-1">vs last week</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="glass-panel border-glass">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Avg. Price</p>
-                <p className="text-2xl font-bold text-aurora">{stats.averagePrice}</p>
-                <p className="text-xs text-muted-foreground">TON</p>
-              </div>
-              <Star className="h-8 w-8 text-warning opacity-70" />
-            </div>
-            <div className="flex items-center mt-2 text-xs">
-              <TrendingUp className="h-3 w-3 text-success mr-1" />
-              <span className="text-success">+5.7%</span>
-              <span className="text-muted-foreground ml-1">vs last week</span>
-            </div>
+          <CardContent className="p-4 text-center">
+            <Users className="h-6 w-6 mx-auto text-success mb-2" />
+            <p className="text-2xl font-bold text-aurora">{detailedStats.uniqueCollectors}</p>
+            <p className="text-sm text-muted-foreground">Unique Collectors</p>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="genres" className="space-y-4">
+      {/* Secondary Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Card className="glass-panel border-glass">
+          <CardContent className="p-4 text-center">
+            <Music className="h-5 w-5 mx-auto text-muted-foreground mb-2" />
+            <p className="text-lg font-bold">{detailedStats.activeListings}</p>
+            <p className="text-xs text-muted-foreground">Active Listings</p>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-panel border-glass">
+          <CardContent className="p-4 text-center">
+            <TrendingUp className="h-5 w-5 mx-auto text-muted-foreground mb-2" />
+            <p className="text-lg font-bold">{detailedStats.floorPrice.toFixed(1)}</p>
+            <p className="text-xs text-muted-foreground">Floor Price (TON)</p>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-panel border-glass">
+          <CardContent className="p-4 text-center">
+            <Star className="h-5 w-5 mx-auto text-muted-foreground mb-2" />
+            <p className="text-lg font-bold">{detailedStats.topSale.toFixed(1)}</p>
+            <p className="text-xs text-muted-foreground">Highest Sale (TON)</p>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-panel border-glass">
+          <CardContent className="p-4 text-center">
+            <Users className="h-5 w-5 mx-auto text-muted-foreground mb-2" />
+            <p className="text-lg font-bold">{detailedStats.uniqueSellers}</p>
+            <p className="text-xs text-muted-foreground">Active Sellers</p>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-panel border-glass">
+          <CardContent className="p-4 text-center">
+            <BarChart3 className="h-5 w-5 mx-auto text-muted-foreground mb-2" />
+            <p className="text-lg font-bold">{detailedStats.totalListings}</p>
+            <p className="text-xs text-muted-foreground">Total Listings</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Analytics Tabs */}
+      <Tabs defaultValue="artists" className="w-full">
         <TabsList className="glass-panel">
-          <TabsTrigger value="genres">Top Genres</TabsTrigger>
           <TabsTrigger value="artists">Top Artists</TabsTrigger>
-          <TabsTrigger value="sales">Recent Sales</TabsTrigger>
+          <TabsTrigger value="prices">Price Distribution</TabsTrigger>
+          <TabsTrigger value="volume">Volume History</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="genres">
+        {/* Top Artists */}
+        <TabsContent value="artists" className="mt-6">
           <Card className="glass-panel border-glass">
             <CardHeader>
-              <CardTitle>Genre Distribution</CardTitle>
-              <CardDescription>
-                Most popular genres in the marketplace
-              </CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Top Artists by Volume
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {stats.topGenres.map((genre, index) => (
-                  <div key={genre.name} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
+              {topArtists.length > 0 ? (
+                <div className="space-y-4">
+                  {topArtists.map((artist, index) => (
+                    <div key={artist.id} className="flex items-center justify-between p-4 rounded-lg bg-background/20">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/20 text-primary font-bold">
                           #{index + 1}
-                        </Badge>
-                        <span className="font-medium">{genre.name}</span>
+                        </div>
+                        <img
+                          src={artist.avatar}
+                          alt={artist.name}
+                          className="w-10 h-10 rounded-full"
+                        />
+                        <div>
+                          <h3 className="font-semibold">{artist.name}</h3>
+                          <p className="text-sm text-muted-foreground">{artist.sales} sales</p>
+                        </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium">{genre.percentage}%</p>
-                        <p className="text-xs text-muted-foreground">{genre.sales} sales</p>
+                        <p className="font-bold text-aurora">{artist.volume.toFixed(1)} TON</p>
+                        <p className="text-sm text-muted-foreground">
+                          Avg: {artist.averagePrice.toFixed(1)} TON
+                        </p>
                       </div>
                     </div>
-                    <Progress value={genre.percentage} className="h-2" />
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-muted-foreground">No sales data available yet</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="artists">
+        {/* Price Distribution */}
+        <TabsContent value="prices" className="mt-6">
           <Card className="glass-panel border-glass">
             <CardHeader>
-              <CardTitle>Top Performing Artists</CardTitle>
-              <CardDescription>
-                Artists with highest sales volume
-              </CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <PieChart className="h-5 w-5" />
+                Price Distribution
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {stats.topArtists.map((artist, index) => (
-                  <div key={artist.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/20">
-                    <div className="flex items-center gap-2">
-                      <Badge variant={index === 0 ? "default" : "outline"} className="text-xs">
-                        {index === 0 ? <Crown className="h-3 w-3 mr-1" /> : `#${index + 1}`}
-                      </Badge>
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={artist.avatar} />
-                        <AvatarFallback>
-                          <Music className="h-5 w-5" />
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                    
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{artist.name}</p>
-                        {artist.isVerified && (
-                          <Badge variant="secondary" className="text-xs bg-primary/20 text-primary">
-                            ✓
-                          </Badge>
-                        )}
+              {priceRanges.length > 0 ? (
+                <div className="space-y-4">
+                  {priceRanges.map((range) => (
+                    <div key={range.range} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{range.range}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {range.count} NFTs ({range.percentage.toFixed(1)}%)
+                        </span>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {artist.sales} sales • {artist.volume.toFixed(1)} TON
-                      </p>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${range.percentage}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <PieChart className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-muted-foreground">No active listings for price analysis</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="sales">
+        {/* Volume History */}
+        <TabsContent value="volume" className="mt-6">
           <Card className="glass-panel border-glass">
             <CardHeader>
-              <CardTitle>Recent Sales</CardTitle>
-              <CardDescription>
-                Latest NFT transactions on the marketplace
-              </CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Volume History (Last 30 Days)
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
-                {stats.recentSales.map((sale) => (
-                  <div key={sale.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/20">
-                    <div>
-                      <p className="font-medium text-sm">{sale.title}</p>
-                      <p className="text-xs text-muted-foreground">by {sale.artist}</p>
+              {volumeData.length > 0 ? (
+                <div className="space-y-4">
+                  {volumeData.slice(-10).map((data) => (
+                    <div key={data.date} className="flex items-center justify-between p-3 rounded-lg bg-background/20">
+                      <div>
+                        <p className="font-medium">{new Date(data.date).toLocaleDateString()}</p>
+                        <p className="text-sm text-muted-foreground">{data.sales} sales</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-aurora">{data.volume.toFixed(2)} TON</p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium text-sm">
-                        {sale.price} {sale.currency}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatTimeAgo(sale.timestamp)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4 opacity-50" />
+                  <p className="text-muted-foreground">No volume history available yet</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-        </>
-      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
-import { AudiusMarketplace } from '@/components/AudiusMarketplace';
+import { NFTMarketplace } from '@/components/NFTMarketplace';
 
-const Marketplace = () => <AudiusMarketplace />;
+const Marketplace = () => <NFTMarketplace />;
 
 export default Marketplace;
