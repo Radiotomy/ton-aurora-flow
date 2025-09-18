@@ -27,7 +27,7 @@ interface NFTCardProps {
   artistId: string;
   artistAvatar: string;
   price: number;
-  currency: 'TON' | 'USD';
+  currency: 'TON' | 'USD' | 'AUDIO';
   artwork: string;
   genre: string;
   duration: string;

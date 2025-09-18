@@ -201,9 +201,9 @@ export const NFTMarketplace: React.FC = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="all">All Prices</SelectItem>
-                          <SelectItem value="low">< 1 TON</SelectItem>
+                          <SelectItem value="low">{'< 1 TON'}</SelectItem>
                           <SelectItem value="medium">1-10 TON</SelectItem>
-                          <SelectItem value="high">> 10 TON</SelectItem>
+                          <SelectItem value="high">{'> 10 TON'}</SelectItem>
                         </SelectContent>
                       </Select>
 

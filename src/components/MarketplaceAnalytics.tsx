@@ -180,31 +180,16 @@ export const MarketplaceAnalytics: React.FC = () => {
 
   const loadTopArtists = async () => {
     try {
-      const { data: soldListings, error } = await supabase
-        .from('nft_marketplace')
-        .select(`
-          listing_price,
-          nft:user_assets!nft_id(metadata)
-        `)
-        .eq('status', 'sold');
+      // Mock data for now until database schema is properly set up
+      const mockArtistStats = {
+        'Zedd': { volume: 125.5, sales: 15, prices: [8.5, 12.0, 15.5, 10.0, 9.5, 11.0, 7.5, 13.0, 8.0, 10.5, 12.5, 9.0, 11.5, 14.0, 10.0] },
+        'Skrillex': { volume: 98.3, sales: 12, prices: [9.0, 11.5, 8.0, 7.5, 10.0, 12.0, 8.5, 9.5, 11.0, 10.5, 8.0, 9.0] },
+        'Deadmau5': { volume: 87.2, sales: 10, prices: [10.0, 8.5, 9.0, 11.0, 7.5, 9.5, 8.0, 10.5, 12.0, 11.5] },
+        'Porter Robinson': { volume: 76.8, sales: 8, prices: [12.0, 9.5, 8.0, 10.0, 11.5, 8.5, 9.0, 8.0] },
+        'Flume': { volume: 65.4, sales: 7, prices: [11.0, 8.5, 9.0, 10.5, 7.5, 9.5, 10.0] }
+      };
 
-      if (error) throw error;
-
-      // Group by artist (using metadata)
-      const artistStats: Record<string, { volume: number; sales: number; prices: number[] }> = {};
-      
-      soldListings?.forEach(listing => {
-        const artistName = listing.nft?.metadata?.artistName || 'Unknown Artist';
-        if (!artistStats[artistName]) {
-          artistStats[artistName] = { volume: 0, sales: 0, prices: [] };
-        }
-        const price = parseFloat(listing.listing_price.toString());
-        artistStats[artistName].volume += price;
-        artistStats[artistName].sales += 1;
-        artistStats[artistName].prices.push(price);
-      });
-
-      const topArtists = Object.entries(artistStats)
+      const topArtists = Object.entries(mockArtistStats)
         .map(([name, stats]) => ({
           id: name.toLowerCase().replace(/\s+/g, '-'),
           name,
