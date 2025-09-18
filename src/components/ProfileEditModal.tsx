@@ -96,7 +96,7 @@ export const ProfileEditModal = ({ open, onOpenChange }: ProfileEditModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto glass-panel">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto bg-background/95 backdrop-blur-md border border-white/10">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-aurora">
             <Music className="h-5 w-5" />
@@ -104,7 +104,7 @@ export const ProfileEditModal = ({ open, onOpenChange }: ProfileEditModalProps) 
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 p-1">
+        <form onSubmit={handleSubmit} className="space-y-6 p-6">
           {/* Avatar Section */}
           <ImageUpload
             value={formData.avatar_url}

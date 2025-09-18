@@ -9,9 +9,9 @@ interface TonConnectProviderProps {
 export const TonConnectProvider: React.FC<TonConnectProviderProps> = ({ children }) => {
   const currentOrigin = typeof window !== 'undefined' ? window.location.origin : '';
   
-  // Check if we're in TON Sites mode
+  // Check if we're actually on a TON domain (not just feature enabled)
   const isTonSite = typeof window !== 'undefined' && 
-    (window.location.hostname.endsWith('.ton') || APP_CONFIG.TON_SITES?.ENABLED);
+    window.location.hostname.endsWith('.ton');
   
   // Use dynamic Supabase edge function manifest that adapts to deployment environment
   // Pass the current origin as a parameter to ensure correct domain matching
