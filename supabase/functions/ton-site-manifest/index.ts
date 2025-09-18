@@ -6,20 +6,6 @@ const corsHeaders = {
   'Content-Type': 'application/json',
 };
 
-interface TonSiteManifest {
-  url: string;
-  name: string;
-  description: string;
-  iconUrl: string;
-  backgroundColor: string;
-  themeColor: string;
-  tonSite: {
-    bagId?: string;
-    proxyUrl: string;
-    fallbackUrls: string[];
-  };
-}
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -32,29 +18,22 @@ serve(async (req) => {
     const origin = url.searchParams.get('origin') || 
                    req.headers.get('origin') || 
                    req.headers.get('referer')?.replace(/\/$/, '') || 
-                   'https://082eb0ee-579e-46a8-a35f-2d335fe4e344.sandbox.lovable.dev';
+                   'https://082eb0ee-579e-46a8-a35f-2d335fe4e344.lovableproject.com';
     
-    // Determine if this is a TON domain request
-    const isTonDomain = origin.includes('.ton') || url.searchParams.get('ton') === 'true';
+    const isTonDomain = url.searchParams.get('ton') === 'true' || origin.includes('.ton');
     
     console.log('TON Site manifest request:', { origin, isTonDomain });
+    console.log('Query params:', Object.fromEntries(url.searchParams.entries()));
     
-    const manifest: TonSiteManifest = {
-      url: origin,
+    // For TON Sites, we may need to use different URLs or handle .ton domains
+    const baseUrl = isTonDomain && origin.includes('.ton') ? origin : origin;
+    
+    const manifest = {
+      url: baseUrl,
       name: "AudioTon - Web3 Music Platform",
-      description: "Stream, discover, and collect music on the TON blockchain. Connect your TON wallet to access exclusive tracks, mint NFTs, and join fan clubs.",
-      iconUrl: `${origin}/favicon.ico`,
-      backgroundColor: "#0A0A0B",
-      themeColor: "#8B5CF6",
-      tonSite: {
-        // In production, this would be the actual TON Storage bag ID
-        bagId: isTonDomain ? "32902580153715398944" : undefined,
-        proxyUrl: origin,
-        fallbackUrls: [
-          "https://082eb0ee-579e-46a8-a35f-2d335fe4e344.lovableproject.com",
-          "https://audioton.lovable.app"
-        ]
-      }
+      iconUrl: `${baseUrl}/favicon.ico`,
+      termsOfUseUrl: `${baseUrl}/terms`,
+      privacyPolicyUrl: `${baseUrl}/privacy`
     };
 
     console.log('Generated TON Site manifest:', manifest);
@@ -64,7 +43,7 @@ serve(async (req) => {
       { 
         headers: {
           ...corsHeaders,
-          'Cache-Control': 'public, max-age=300' // Cache for 5 minutes
+          'Cache-Control': 'no-cache' // Don't cache to ensure fresh URLs
         }
       }
     );
