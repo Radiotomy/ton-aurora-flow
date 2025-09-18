@@ -1180,6 +1180,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_financial_data: {
+        Args: { target_user_id: string }
+        Returns: boolean
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -1189,6 +1193,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      rate_limit_check: {
+        Args: { operation_type: string; user_id: string }
         Returns: boolean
       }
       update_conversion_rates: {
