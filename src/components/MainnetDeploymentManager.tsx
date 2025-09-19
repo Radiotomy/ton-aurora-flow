@@ -78,7 +78,7 @@ export const MainnetDeploymentManager: React.FC = () => {
       const deploymentTx = {
         validUntil: Math.floor(Date.now() / 1000) + 60,
         messages: [{
-          address: MAINNET_DEPLOYMENT_CONFIG.owner.toString(),
+          address: MAINNET_DEPLOYMENT_CONFIG.owner,
           amount: (parseFloat(step.estimatedCost) * 1e9).toString(), // Convert to nanoTON
           payload: btoa(`deploy_${step.id}_contract`)
         }]
@@ -219,7 +219,7 @@ export const MainnetDeploymentManager: React.FC = () => {
             </div>
             <div>
               <span className="font-medium">Treasury Address:</span> 
-              <code className="ml-2 text-xs">{MAINNET_DEPLOYMENT_CONFIG.owner.toString().slice(0, 20)}...</code>
+              <code className="ml-2 text-xs">{MAINNET_DEPLOYMENT_CONFIG.owner.slice(0, 20)}...</code>
             </div>
             <div>
               <span className="font-medium">Platform Fee:</span> {MAINNET_DEPLOYMENT_CONFIG.fee_percentage / 100}%

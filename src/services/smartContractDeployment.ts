@@ -10,7 +10,7 @@ import { FanClubContract, FanClubContractConfig } from '@/contracts/FanClubContr
 import { RewardDistributorContract, RewardDistributorConfig } from '@/contracts/RewardDistributorContract';
 
 export interface DeploymentConfig {
-  owner: Address;
+  owner: string; // friendly address string
   fee_percentage: number; // in basis points (100 = 1%)
   royalty_numerator: number;
   royalty_denominator: number;
@@ -28,7 +28,7 @@ export class SmartContractDeploymentService {
     try {
       const paymentConfig: PaymentContractConfig = {
         seqno: 0,
-        owner: config.owner,
+        owner: Address.parse(config.owner),
         fee_percentage: config.fee_percentage
       };
 
@@ -58,7 +58,7 @@ export class SmartContractDeploymentService {
   ): Promise<{ address: string; contract: NFTCollectionContract }> {
     try {
       const nftConfig: NFTCollectionConfig = {
-        owner: config.owner,
+        owner: Address.parse(config.owner),
         next_item_index: 0,
         content: collectionContent,
         nft_item_code: nftItemCode,
@@ -89,7 +89,7 @@ export class SmartContractDeploymentService {
   ): Promise<{ address: string; contract: FanClubContract }> {
     try {
       const fanClubConfig: FanClubContractConfig = {
-        owner: config.owner,
+        owner: Address.parse(config.owner),
         artist_id: "audioton_platform",
         membership_price: BigInt(10 * 1e9), // 10 TON
         max_supply: 10000,
@@ -120,7 +120,7 @@ export class SmartContractDeploymentService {
   ): Promise<{ address: string; contract: RewardDistributorContract }> {
     try {
       const rewardConfig: RewardDistributorConfig = {
-        owner: config.owner,
+        owner: Address.parse(config.owner),
         reward_pool: BigInt(1000 * 1e9), // 1000 TON initial pool
         distribution_period: 86400 * 7, // Weekly distribution (7 days in seconds)
         min_claim_amount: BigInt(1 * 1e9) // 1 TON minimum claim
@@ -231,14 +231,14 @@ export class SmartContractDeploymentService {
 
 // Export deployment configurations for different environments
 export const MAINNET_DEPLOYMENT_CONFIG: DeploymentConfig = {
-  owner: Address.parse('EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'), // AudioTon treasury
+  owner: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs', // AudioTon treasury
   fee_percentage: 100, // 1% platform fee
   royalty_numerator: 250, // 2.5%
   royalty_denominator: 10000
 };
 
 export const TESTNET_DEPLOYMENT_CONFIG: DeploymentConfig = {
-  owner: Address.parse('kQAO3fiaxUvVqCBaZdnfKCgC0wOp-NJXBOZGaAamOEJ8NJU4'), // Test treasury
+  owner: 'kQAO3fiaxUvVqCBaZdnfKCgC0wOp-NJXBOZGaAamOEJ8NJU4', // Test treasury (friendly address string)
   fee_percentage: 100, // 1% platform fee
   royalty_numerator: 250, // 2.5%
   royalty_denominator: 10000
