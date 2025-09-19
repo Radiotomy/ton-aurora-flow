@@ -20,7 +20,7 @@ export const CONTRACTS = {
   // Payment processor for tips, purchases, and fees
   PAYMENT_PROCESSOR: process.env.NODE_ENV === 'production'
     ? 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs' // Real mainnet address
-    : 'kQDk2VTvn04SUKJrW7rXahzdF8_Qi6utb0wj1OaBRbH-Ovch', // Testnet address
+    : 'kQAO3fiaxUvVqCBaZdnfKCgC0wOp-NJXBOZGaAamOEJ8NJU4', // Testnet address
     
   // Reward distribution for artists and fans
   REWARD_DISTRIBUTOR: process.env.NODE_ENV === 'production'

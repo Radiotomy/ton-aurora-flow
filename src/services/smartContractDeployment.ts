@@ -238,7 +238,7 @@ export const MAINNET_DEPLOYMENT_CONFIG: DeploymentConfig = {
 };
 
 export const TESTNET_DEPLOYMENT_CONFIG: DeploymentConfig = {
-  owner: Address.parse('kQDk2VTvn04SUKJrW7rXahzdF8_Qi6utb0wj1OaBRbH-Ovch'), // Test treasury
+  owner: Address.parse('kQAO3fiaxUvVqCBaZdnfKCgC0wOp-NJXBOZGaAamOEJ8NJU4'), // Test treasury
   fee_percentage: 100, // 1% platform fee
   royalty_numerator: 250, // 2.5%
   royalty_denominator: 10000
