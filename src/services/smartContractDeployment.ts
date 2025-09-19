@@ -33,7 +33,7 @@ export class SmartContractDeploymentService {
       };
 
       const contract = PaymentContract.createFromConfig(paymentConfig, code, 0);
-      const address = contract.address.toString();
+      const address = contract.address.toString({ bounceable: true, testOnly: false });
 
       console.log('Payment Contract deployed to:', address);
       
@@ -66,7 +66,7 @@ export class SmartContractDeploymentService {
       };
 
       const contract = NFTCollectionContract.createFromConfig(nftConfig, collectionCode, 0);
-      const address = contract.address.toString();
+      const address = contract.address.toString({ bounceable: true, testOnly: false });
 
       console.log('NFT Collection Contract deployed to:', address);
       
@@ -97,7 +97,7 @@ export class SmartContractDeploymentService {
       };
 
       const contract = FanClubContract.createFromConfig(fanClubConfig, code, 0);
-      const address = contract.address.toString();
+      const address = contract.address.toString({ bounceable: true, testOnly: false });
 
       console.log('Fan Club Contract deployed to:', address);
       
@@ -127,7 +127,7 @@ export class SmartContractDeploymentService {
       };
 
       const contract = RewardDistributorContract.createFromConfig(rewardConfig, code, 0);
-      const address = contract.address.toString();
+      const address = contract.address.toString({ bounceable: true, testOnly: false });
 
       console.log('Reward Distributor Contract deployed to:', address);
       
