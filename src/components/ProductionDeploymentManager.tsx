@@ -77,7 +77,7 @@ export const ProductionDeploymentManager: React.FC = () => {
     try {
       // Real contract deployment using TON Connect and smart contract service
       let deploymentResult;
-      const contractCode = ContractBytecode.getContractCode(step.id);
+      const contractCode = ContractBytecode.getContractCodeSync(step.id);
       
       switch (step.id) {
         case 'payment-processor':
@@ -89,7 +89,7 @@ export const ProductionDeploymentManager: React.FC = () => {
           
         case 'nft-collection':
           const collectionContent = SmartContractDeploymentService.createCollectionContent();
-          const nftItemCode = ContractBytecode.getContractCode('nft-item');
+          const nftItemCode = ContractBytecode.getContractCodeSync('nft-item');
           deploymentResult = await SmartContractDeploymentService.deployNFTCollectionContract(
             MAINNET_DEPLOYMENT_CONFIG,
             contractCode,
