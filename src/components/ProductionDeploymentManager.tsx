@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Rocket, Shield, Globe, Zap, CheckCircle, AlertTriangle, Clock, ExternalLink } from 'lucide-react';
-import { useTonConnectUI } from '@tonconnect/ui-react';
+import { useWeb3 } from '@/hooks/useWeb3';
 import { toast } from 'sonner';
 import { Address, Cell, beginCell } from '@ton/core';
 import { SmartContractDeploymentService, MAINNET_DEPLOYMENT_CONFIG } from '@/services/smartContractDeployment';
@@ -63,9 +63,7 @@ export const ProductionDeploymentManager: React.FC = () => {
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentProgress, setDeploymentProgress] = useState(0);
   const [totalEstimatedCost] = useState('1.2');
-  const [tonConnectUI] = useTonConnectUI();
-  const connected = tonConnectUI.connected;
-  const wallet = tonConnectUI.wallet;
+  const { isConnected, wallet, walletAddress, formattedBalance } = useWeb3();
 
   const updateStepStatus = useCallback((stepId: string, updates: Partial<DeploymentStep>) => {
     setDeploymentSteps(prev => prev.map(step => 
@@ -149,7 +147,7 @@ export const ProductionDeploymentManager: React.FC = () => {
   };
 
   const startMainnetDeployment = async () => {
-    if (!connected || !wallet) {
+    if (!isConnected || !wallet) {
       toast.error('Please connect your TON wallet first');
       return;
     }
@@ -268,7 +266,7 @@ export const ProductionDeploymentManager: React.FC = () => {
               <span className="text-sm">Smart contracts audited and tested</span>
             </div>
             <div className="flex items-center space-x-2">
-              {connected ? (
+              {isConnected ? (
                 <CheckCircle className="h-4 w-4 text-green-500" />
               ) : (
                 <AlertTriangle className="h-4 w-4 text-yellow-500" />
@@ -371,7 +369,7 @@ export const ProductionDeploymentManager: React.FC = () => {
       <div className="flex justify-center">
         <Button
           onClick={startMainnetDeployment}
-          disabled={!connected || isDeploying}
+          disabled={!isConnected || isDeploying}
           size="lg"
           className="w-full md:w-auto"
         >
