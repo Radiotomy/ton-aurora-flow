@@ -8,7 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { SmartContractDeploymentService, MAINNET_DEPLOYMENT_CONFIG } from '@/services/smartContractDeployment';
-import { CheckCircle, AlertCircle, ExternalLink, Loader2, Rocket } from 'lucide-react';
+import { CheckCircle, AlertCircle, ExternalLink, Loader2, Rocket, Wallet } from 'lucide-react';
 
 interface DeploymentStep {
   id: string;
@@ -198,6 +198,35 @@ export const MainnetDeploymentManager: React.FC = () => {
           Deploy AudioTon's smart contracts to TON mainnet. This will create the payment processor, NFT collection, fan club system, and reward distributor contracts.
         </p>
       </div>
+
+      {/* Wallet Connection Section */}
+      {!tonConnectUI.connected && (
+        <Card className="border-warning/30 bg-warning/5">
+          <CardHeader className="text-center">
+            <div className="mx-auto p-3 rounded-full bg-warning/10 border-2 border-warning/20 w-fit">
+              <Wallet className="h-6 w-6 text-warning" />
+            </div>
+            <CardTitle className="text-warning-foreground">Connect TON Wallet</CardTitle>
+            <CardDescription className="text-warning-foreground/80">
+              Connect your TON wallet to deploy smart contracts to mainnet
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button 
+              onClick={() => tonConnectUI.openModal()}
+              variant="aurora"
+              size="lg"
+              className="px-8"
+            >
+              <Wallet className="h-4 w-4 mr-2" />
+              Connect Wallet
+            </Button>
+            <p className="text-xs text-muted-foreground mt-3">
+              Make sure you have at least 3 TON for deployment costs
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-primary/20">
         <CardHeader>
