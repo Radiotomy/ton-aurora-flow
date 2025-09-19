@@ -67,9 +67,9 @@ export const MiniEQVisualizer: React.FC<MiniEQVisualizerProps> = ({
       {bars.map((height, index) => (
         <div
           key={index}
-          className={`${barWidth} bg-primary/60 rounded-full transition-all duration-150 ease-out`}
+          className={`${barWidth} bg-gradient-to-t from-primary to-accent rounded-full transition-all duration-75 ease-out`}
           style={{ 
-            height: isPlaying ? `${Math.max(height, 10)}%` : '10%',
+            height: isPlaying ? `${Math.max(height, 8)}%` : '8%',
             opacity: isPlaying ? 0.8 : 0.3
           }}
         />

@@ -46,11 +46,11 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
         // Clear canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Create gradient
+        // Create gradient with actual color values
         const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-        gradient.addColorStop(0, 'hsl(var(--primary))');
-        gradient.addColorStop(0.5, 'hsl(var(--accent))');
-        gradient.addColorStop(1, 'hsl(var(--primary-glow))');
+        gradient.addColorStop(0, 'hsl(180, 100%, 60%)');     // primary
+        gradient.addColorStop(0.5, 'hsl(310, 100%, 65%)');   // accent
+        gradient.addColorStop(1, 'hsl(180, 100%, 70%)')      // primary-glow
 
         // Draw frequency bars
         const barWidth = canvas.width / frequencyData.length;
