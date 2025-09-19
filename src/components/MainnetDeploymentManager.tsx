@@ -81,39 +81,30 @@ export const MainnetDeploymentManager: React.FC = () => {
     try {
       updateStepStatus(step.id, { status: 'deploying' });
       
-      // Simulate contract deployment with real TON transaction
-      const mockContractCode = new Uint8Array([0x01, 0x02, 0x03]); // In real implementation, this would be compiled bytecode
+      // DEMO MODE - No real transactions sent
+      // This simulates the deployment process without spending real TON
       
-      // Create deployment transaction
-      const deploymentTx = {
-        validUntil: Math.floor(Date.now() / 1000) + 60,
-        messages: [{
-          address: MAINNET_DEPLOYMENT_CONFIG.owner,
-          amount: (parseFloat(step.estimatedCost) * 1e9).toString(), // Convert to nanoTON
-          payload: btoa(`deploy_${step.id}_contract`)
-        }]
-      };
-
-      // Send via TonConnect
-      const result = await tonConnectUI.sendTransaction(deploymentTx);
+      // Simulate deployment time
+      await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 2000));
       
-      // Generate mock contract address (in real implementation, this would come from deployment result)
-      const mockAddress = `EQ${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+      // Generate demo contract address (testnet format)
+      const demoAddress = `kQ${Math.random().toString(36).substring(2, 15)}${Math.random().toString(36).substring(2, 15)}`;
+      const demoTxHash = `demo_tx_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
       
       updateStepStatus(step.id, { 
         status: 'completed',
-        contractAddress: mockAddress,
-        txHash: result.boc // Transaction hash from TonConnect
+        contractAddress: demoAddress,
+        txHash: demoTxHash
       });
       
       setDeploymentProgress((stepIndex + 1) / deploymentSteps.length * 100);
       
       toast({
-        title: 'Contract Deployed Successfully',
-        description: `${step.title} deployed to ${mockAddress.slice(0, 8)}...`,
+        title: 'Demo Deployment Complete',
+        description: `${step.title} simulated at ${demoAddress.slice(0, 8)}...`,
       });
 
-      return mockAddress;
+      return demoAddress;
       
     } catch (error) {
       console.error(`Failed to deploy ${step.title}:`, error);
@@ -209,37 +200,27 @@ export const MainnetDeploymentManager: React.FC = () => {
         </p>
       </div>
 
-      {/* Wallet Connection Section */}
-      {!isWalletConnected && (
-        <Card className="border-warning/30 bg-warning/5">
-          <CardHeader className="text-center">
-            <div className="mx-auto p-3 rounded-full bg-warning/10 border-2 border-warning/20 w-fit">
-              <Wallet className="h-6 w-6 text-warning" />
-            </div>
-            <CardTitle className="text-warning-foreground">Connect TON Wallet</CardTitle>
-            <CardDescription className="text-warning-foreground/80">
-              Connect your TON wallet to deploy smart contracts to mainnet
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <Button 
-              onClick={() => {
-                console.log('Opening wallet modal...');
-                tonConnectUI.openModal();
-              }}
-              variant="aurora"
-              size="lg"
-              className="px-8"
-            >
-              <Wallet className="h-4 w-4 mr-2" />
-              Connect Wallet
-            </Button>
-            <p className="text-xs text-muted-foreground mt-3">
-              Make sure you have at least 3 TON for deployment costs
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      <Card className="border-warning/30 bg-warning/5">
+        <CardHeader className="text-center">
+          <div className="mx-auto p-3 rounded-full bg-warning/10 border-2 border-warning/20 w-fit">
+            <AlertCircle className="h-6 w-6 text-warning" />
+          </div>
+          <CardTitle className="text-warning-foreground">Demo Mode - No Real Transactions</CardTitle>
+          <CardDescription className="text-warning-foreground/80">
+            This deployment is currently in demo mode. No real TON will be spent and no actual contracts will be deployed.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-center">
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Safe Testing Environment</AlertTitle>
+            <AlertDescription>
+              This simulates the mainnet deployment process without any financial risk. 
+              Real mainnet deployment requires compiled contract bytecode and proper testing.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
 
       {/* Connected Wallet Info */}
       {isWalletConnected && walletInfo && (
@@ -350,12 +331,12 @@ export const MainnetDeploymentManager: React.FC = () => {
                 {isDeploying ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Deploying Contracts...
+                    Running Demo Deployment...
                   </>
                 ) : (
                   <>
                     <Rocket className="h-4 w-4 mr-2" />
-                    Deploy to Mainnet
+                    Start Demo Deployment
                   </>
                 )}
               </Button>
