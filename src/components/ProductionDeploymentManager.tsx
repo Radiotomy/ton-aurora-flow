@@ -6,6 +6,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { Rocket, Shield, Globe, Zap, CheckCircle, AlertTriangle, Clock, ExternalLink } from 'lucide-react';
 import { useWeb3 } from '@/hooks/useWeb3';
+import { useTonConnectUI } from '@tonconnect/ui-react';
 import { toast } from 'sonner';
 import { Address, Cell, beginCell } from '@ton/core';
 import { SmartContractDeploymentService, MAINNET_DEPLOYMENT_CONFIG } from '@/services/smartContractDeployment';
@@ -64,6 +65,7 @@ export const ProductionDeploymentManager: React.FC = () => {
   const [deploymentProgress, setDeploymentProgress] = useState(0);
   const [totalEstimatedCost] = useState('1.2');
   const { isConnected, wallet, walletAddress, formattedBalance } = useWeb3();
+  const [tonConnectUI] = useTonConnectUI();
 
   const updateStepStatus = useCallback((stepId: string, updates: Partial<DeploymentStep>) => {
     setDeploymentSteps(prev => prev.map(step => 
@@ -83,7 +85,8 @@ export const ProductionDeploymentManager: React.FC = () => {
         case 'payment-processor':
           deploymentResult = await SmartContractDeploymentService.deployPaymentContract(
             MAINNET_DEPLOYMENT_CONFIG,
-            contractCode
+            contractCode,
+            tonConnectUI
           );
           break;
           
@@ -94,21 +97,24 @@ export const ProductionDeploymentManager: React.FC = () => {
             MAINNET_DEPLOYMENT_CONFIG,
             contractCode,
             nftItemCode,
-            collectionContent
+            collectionContent,
+            tonConnectUI
           );
           break;
           
         case 'fan-club':
           deploymentResult = await SmartContractDeploymentService.deployFanClubContract(
             MAINNET_DEPLOYMENT_CONFIG,
-            contractCode
+            contractCode,
+            tonConnectUI
           );
           break;
           
         case 'reward-distributor':
           deploymentResult = await SmartContractDeploymentService.deployRewardDistributorContract(
             MAINNET_DEPLOYMENT_CONFIG,
-            contractCode
+            contractCode,
+            tonConnectUI
           );
           break;
           

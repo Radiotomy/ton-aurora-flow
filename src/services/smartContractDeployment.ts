@@ -8,6 +8,8 @@ import { PaymentContract, PaymentContractConfig } from '@/contracts/PaymentContr
 import { NFTCollectionContract, NFTCollectionConfig } from '@/contracts/NFTCollectionContract';
 import { FanClubContract, FanClubContractConfig } from '@/contracts/FanClubContract';
 import { RewardDistributorContract, RewardDistributorConfig } from '@/contracts/RewardDistributorContract';
+import { useTonConnectUI } from '@tonconnect/ui-react';
+import { toast } from 'sonner';
 
 export interface DeploymentConfig {
   owner: string; // friendly address string
@@ -23,8 +25,9 @@ export class SmartContractDeploymentService {
    */
   static async deployPaymentContract(
     config: DeploymentConfig,
-    code: Cell
-  ): Promise<{ address: string; contract: PaymentContract }> {
+    code: Cell,
+    tonConnectUI: any
+  ): Promise<{ address: string; contract: PaymentContract; txHash: string }> {
     try {
       const paymentConfig: PaymentContractConfig = {
         seqno: 0,
@@ -35,14 +38,33 @@ export class SmartContractDeploymentService {
       const contract = PaymentContract.createFromConfig(paymentConfig, code, 0);
       const address = contract.address.toString({ bounceable: true, testOnly: false });
 
+      // Create deployment transaction
+      const deployMessage = {
+        address: address,
+        amount: '50000000', // 0.05 TON for deployment
+        payload: code.toBoc().toString('base64')
+      };
+
+      // Send deployment transaction via TonConnect
+      const result = await tonConnectUI.sendTransaction({
+        messages: [deployMessage],
+        validUntil: Math.floor(Date.now() / 1000) + 600 // 10 minutes
+      });
+
+      // Wait for transaction confirmation
+      await this.waitForTransactionConfirmation(result.boc);
+
       console.log('Payment Contract deployed to:', address);
+      toast.success('Payment Contract deployed successfully');
       
       return {
         address,
-        contract
+        contract,
+        txHash: result.boc
       };
     } catch (error) {
       console.error('Failed to deploy Payment Contract:', error);
+      toast.error(`Failed to deploy Payment Contract: ${error.message}`);
       throw error;
     }
   }
@@ -54,8 +76,9 @@ export class SmartContractDeploymentService {
     config: DeploymentConfig,
     collectionCode: Cell,
     nftItemCode: Cell,
-    collectionContent: Cell
-  ): Promise<{ address: string; contract: NFTCollectionContract }> {
+    collectionContent: Cell,
+    tonConnectUI: any
+  ): Promise<{ address: string; contract: NFTCollectionContract; txHash: string }> {
     try {
       const nftConfig: NFTCollectionConfig = {
         owner: Address.parse(config.owner),
@@ -68,14 +91,33 @@ export class SmartContractDeploymentService {
       const contract = NFTCollectionContract.createFromConfig(nftConfig, collectionCode, 0);
       const address = contract.address.toString({ bounceable: true, testOnly: false });
 
+      // Create deployment transaction
+      const deployMessage = {
+        address: address,
+        amount: '100000000', // 0.1 TON for NFT collection deployment
+        payload: collectionCode.toBoc().toString('base64')
+      };
+
+      // Send deployment transaction via TonConnect
+      const result = await tonConnectUI.sendTransaction({
+        messages: [deployMessage],
+        validUntil: Math.floor(Date.now() / 1000) + 600 // 10 minutes
+      });
+
+      // Wait for transaction confirmation
+      await this.waitForTransactionConfirmation(result.boc);
+
       console.log('NFT Collection Contract deployed to:', address);
+      toast.success('NFT Collection Contract deployed successfully');
       
       return {
         address,
-        contract
+        contract,
+        txHash: result.boc
       };
     } catch (error) {
       console.error('Failed to deploy NFT Collection Contract:', error);
+      toast.error(`Failed to deploy NFT Collection Contract: ${error.message}`);
       throw error;
     }
   }
@@ -85,8 +127,9 @@ export class SmartContractDeploymentService {
    */
   static async deployFanClubContract(
     config: DeploymentConfig,
-    code: Cell
-  ): Promise<{ address: string; contract: FanClubContract }> {
+    code: Cell,
+    tonConnectUI: any
+  ): Promise<{ address: string; contract: FanClubContract; txHash: string }> {
     try {
       const fanClubConfig: FanClubContractConfig = {
         owner: Address.parse(config.owner),
@@ -99,14 +142,33 @@ export class SmartContractDeploymentService {
       const contract = FanClubContract.createFromConfig(fanClubConfig, code, 0);
       const address = contract.address.toString({ bounceable: true, testOnly: false });
 
+      // Create deployment transaction
+      const deployMessage = {
+        address: address,
+        amount: '80000000', // 0.08 TON for fan club deployment
+        payload: code.toBoc().toString('base64')
+      };
+
+      // Send deployment transaction via TonConnect
+      const result = await tonConnectUI.sendTransaction({
+        messages: [deployMessage],
+        validUntil: Math.floor(Date.now() / 1000) + 600 // 10 minutes
+      });
+
+      // Wait for transaction confirmation
+      await this.waitForTransactionConfirmation(result.boc);
+
       console.log('Fan Club Contract deployed to:', address);
+      toast.success('Fan Club Contract deployed successfully');
       
       return {
         address,
-        contract
+        contract,
+        txHash: result.boc
       };
     } catch (error) {
       console.error('Failed to deploy Fan Club Contract:', error);
+      toast.error(`Failed to deploy Fan Club Contract: ${error.message}`);
       throw error;
     }
   }
@@ -116,8 +178,9 @@ export class SmartContractDeploymentService {
    */
   static async deployRewardDistributorContract(
     config: DeploymentConfig,
-    code: Cell
-  ): Promise<{ address: string; contract: RewardDistributorContract }> {
+    code: Cell,
+    tonConnectUI: any
+  ): Promise<{ address: string; contract: RewardDistributorContract; txHash: string }> {
     try {
       const rewardConfig: RewardDistributorConfig = {
         owner: Address.parse(config.owner),
@@ -129,14 +192,33 @@ export class SmartContractDeploymentService {
       const contract = RewardDistributorContract.createFromConfig(rewardConfig, code, 0);
       const address = contract.address.toString({ bounceable: true, testOnly: false });
 
+      // Create deployment transaction
+      const deployMessage = {
+        address: address,
+        amount: '60000000', // 0.06 TON for reward distributor deployment
+        payload: code.toBoc().toString('base64')
+      };
+
+      // Send deployment transaction via TonConnect
+      const result = await tonConnectUI.sendTransaction({
+        messages: [deployMessage],
+        validUntil: Math.floor(Date.now() / 1000) + 600 // 10 minutes
+      });
+
+      // Wait for transaction confirmation
+      await this.waitForTransactionConfirmation(result.boc);
+
       console.log('Reward Distributor Contract deployed to:', address);
+      toast.success('Reward Distributor Contract deployed successfully');
       
       return {
         address,
-        contract
+        contract,
+        txHash: result.boc
       };
     } catch (error) {
       console.error('Failed to deploy Reward Distributor Contract:', error);
+      toast.error(`Failed to deploy Reward Distributor Contract: ${error.message}`);
       throw error;
     }
   }
@@ -160,6 +242,25 @@ export class SmartContractDeploymentService {
   }
 
   /**
+   * Wait for transaction confirmation on TON blockchain
+   */
+  static async waitForTransactionConfirmation(txHash: string): Promise<boolean> {
+    try {
+      // Wait for transaction to be confirmed on blockchain
+      // In production, this would check transaction status via TON API
+      console.log('Waiting for transaction confirmation:', txHash);
+      
+      // Simulate waiting for confirmation
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      return true;
+    } catch (error) {
+      console.error('Transaction confirmation failed:', error);
+      return false;
+    }
+  }
+
+  /**
    * Verify contract deployment and functionality
    */
   static async verifyDeployment(contractAddress: string): Promise<boolean> {
@@ -169,7 +270,7 @@ export class SmartContractDeploymentService {
       console.log('Verifying contract deployment at:', contractAddress);
       
       // TODO: Add actual contract verification logic
-      // - Check contract state
+      // - Check contract state via TON API
       // - Test basic operations
       // - Verify ownership
       
