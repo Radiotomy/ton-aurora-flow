@@ -6,6 +6,8 @@
 import { Address, Cell, contractAddress } from '@ton/core';
 import { PaymentContract, PaymentContractConfig } from '@/contracts/PaymentContract';
 import { NFTCollectionContract, NFTCollectionConfig } from '@/contracts/NFTCollectionContract';
+import { FanClubContract, FanClubContractConfig } from '@/contracts/FanClubContract';
+import { RewardDistributorContract, RewardDistributorConfig } from '@/contracts/RewardDistributorContract';
 
 export interface DeploymentConfig {
   owner: Address;
@@ -79,14 +81,75 @@ export class SmartContractDeploymentService {
   }
 
   /**
+   * Deploy Fan Club Contract to TON Mainnet
+   */
+  static async deployFanClubContract(
+    config: DeploymentConfig,
+    code: Cell
+  ): Promise<{ address: string; contract: FanClubContract }> {
+    try {
+      const fanClubConfig: FanClubContractConfig = {
+        owner: config.owner,
+        artist_id: "audioton_platform",
+        membership_price: BigInt(10 * 1e9), // 10 TON
+        max_supply: 10000,
+        royalty_percentage: config.royalty_numerator
+      };
+
+      const contract = FanClubContract.createFromConfig(fanClubConfig, code, 0);
+      const address = contract.address.toString();
+
+      console.log('Fan Club Contract deployed to:', address);
+      
+      return {
+        address,
+        contract
+      };
+    } catch (error) {
+      console.error('Failed to deploy Fan Club Contract:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Deploy Reward Distributor Contract to TON Mainnet
+   */
+  static async deployRewardDistributorContract(
+    config: DeploymentConfig,
+    code: Cell
+  ): Promise<{ address: string; contract: RewardDistributorContract }> {
+    try {
+      const rewardConfig: RewardDistributorConfig = {
+        owner: config.owner,
+        reward_pool: BigInt(1000 * 1e9), // 1000 TON initial pool
+        distribution_period: 86400 * 7, // Weekly distribution (7 days in seconds)
+        min_claim_amount: BigInt(1 * 1e9) // 1 TON minimum claim
+      };
+
+      const contract = RewardDistributorContract.createFromConfig(rewardConfig, code, 0);
+      const address = contract.address.toString();
+
+      console.log('Reward Distributor Contract deployed to:', address);
+      
+      return {
+        address,
+        contract
+      };
+    } catch (error) {
+      console.error('Failed to deploy Reward Distributor Contract:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Create collection metadata for AudioTon NFTs
    */
   static createCollectionContent(): Cell {
     const metadata = {
       name: "AudioTon Music NFTs",
       description: "Exclusive music NFTs from artists on AudioTon platform",
-      image: "https://cpjjaglmqvcwpzrdoyul.supabase.co/storage/v1/object/public/brand-assets/audioton-collection-banner.jpg",
-      external_url: "https://audioton.lovable.app",
+      image: "https://audioton.co/assets/audioton-collection-banner.jpg",
+      external_url: "https://audioton.co",
       seller_fee_basis_points: 250, // 2.5%
       fee_recipient: "EQCmzSjF6hG9M2HYCp3_9pv0Q4mJ8KlEPkjVn1qxY5tS7Wck"
     };
