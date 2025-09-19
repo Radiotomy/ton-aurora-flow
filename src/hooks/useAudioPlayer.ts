@@ -18,7 +18,15 @@ let sharedAudioContext: AudioContext | null = null;
 let sharedGain: GainNode | null = null;
 let sharedSource: MediaElementAudioSourceNode | null = null;
 let sharedAnalyser: AnalyserNode | null = null;
-let sharedEQNodes: { bass: BiquadFilterNode; mid: BiquadFilterNode; treble: BiquadFilterNode } | null = null;
+let sharedEQNodes: { 
+  subBass: BiquadFilterNode; 
+  bass: BiquadFilterNode; 
+  lowMid: BiquadFilterNode; 
+  mid: BiquadFilterNode; 
+  upperMid: BiquadFilterNode; 
+  presence: BiquadFilterNode; 
+  brilliance: BiquadFilterNode; 
+} | null = null;
 
 // Shared current track state and pub-sub
 let sharedCurrentTrack: CurrentTrack | null = null;
@@ -34,7 +42,15 @@ export const useAudioPlayer = () => {
   const gainNodeRef = useRef<GainNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const eqNodesRef = useRef<{ bass: BiquadFilterNode; mid: BiquadFilterNode; treble: BiquadFilterNode } | null>(null);
+  const eqNodesRef = useRef<{ 
+    subBass: BiquadFilterNode; 
+    bass: BiquadFilterNode; 
+    lowMid: BiquadFilterNode; 
+    mid: BiquadFilterNode; 
+    upperMid: BiquadFilterNode; 
+    presence: BiquadFilterNode; 
+    brilliance: BiquadFilterNode; 
+  } | null>(null);
   
   const [currentTrack, setCurrentTrack] = useState<CurrentTrack | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -48,8 +64,16 @@ export const useAudioPlayer = () => {
   const [queue, setQueue] = useState<CurrentTrack[]>([]);
   const [queueIndex, setQueueIndex] = useState(-1);
   
-  // EQ state
-  const [eqGains, setEqGains] = useState({ bass: 0, mid: 0, treble: 0 });
+  // EQ state - 7-band equalizer
+  const [eqGains, setEqGains] = useState({ 
+    subBass: 0, 
+    bass: 0, 
+    lowMid: 0, 
+    mid: 0, 
+    upperMid: 0, 
+    presence: 0, 
+    brilliance: 0 
+  });
   
   // Frequency analysis data
   const frequencyDataRef = useRef<Uint8Array | null>(null);
@@ -99,27 +123,51 @@ export const useAudioPlayer = () => {
           sharedAnalyser.fftSize = 256;
           sharedAnalyser.smoothingTimeConstant = 0.8;
           
-          // Create EQ nodes
+          // Create 7-band EQ nodes
+          const subBass = sharedAudioContext.createBiquadFilter();
+          subBass.type = 'lowshelf';
+          subBass.frequency.setValueAtTime(60, sharedAudioContext.currentTime);
+          
           const bass = sharedAudioContext.createBiquadFilter();
-          bass.type = 'lowshelf';
-          bass.frequency.setValueAtTime(320, sharedAudioContext.currentTime);
+          bass.type = 'peaking';
+          bass.frequency.setValueAtTime(170, sharedAudioContext.currentTime);
+          bass.Q.setValueAtTime(1, sharedAudioContext.currentTime);
+          
+          const lowMid = sharedAudioContext.createBiquadFilter();
+          lowMid.type = 'peaking';
+          lowMid.frequency.setValueAtTime(350, sharedAudioContext.currentTime);
+          lowMid.Q.setValueAtTime(1, sharedAudioContext.currentTime);
           
           const mid = sharedAudioContext.createBiquadFilter();
           mid.type = 'peaking';
           mid.frequency.setValueAtTime(1000, sharedAudioContext.currentTime);
           mid.Q.setValueAtTime(1, sharedAudioContext.currentTime);
           
-          const treble = sharedAudioContext.createBiquadFilter();
-          treble.type = 'highshelf';
-          treble.frequency.setValueAtTime(3200, sharedAudioContext.currentTime);
+          const upperMid = sharedAudioContext.createBiquadFilter();
+          upperMid.type = 'peaking';
+          upperMid.frequency.setValueAtTime(3500, sharedAudioContext.currentTime);
+          upperMid.Q.setValueAtTime(1, sharedAudioContext.currentTime);
           
-          sharedEQNodes = { bass, mid, treble };
+          const presence = sharedAudioContext.createBiquadFilter();
+          presence.type = 'peaking';
+          presence.frequency.setValueAtTime(5000, sharedAudioContext.currentTime);
+          presence.Q.setValueAtTime(1, sharedAudioContext.currentTime);
           
-          // Connect the audio chain: source -> EQ -> analyser -> gain -> destination
-          sharedSource.connect(bass);
-          bass.connect(mid);
-          mid.connect(treble);
-          treble.connect(sharedAnalyser);
+          const brilliance = sharedAudioContext.createBiquadFilter();
+          brilliance.type = 'highshelf';
+          brilliance.frequency.setValueAtTime(10000, sharedAudioContext.currentTime);
+          
+          sharedEQNodes = { subBass, bass, lowMid, mid, upperMid, presence, brilliance };
+          
+          // Connect the audio chain: source -> EQ (7 bands) -> analyser -> gain -> destination
+          sharedSource.connect(subBass);
+          subBass.connect(bass);
+          bass.connect(lowMid);
+          lowMid.connect(mid);
+          mid.connect(upperMid);
+          upperMid.connect(presence);
+          presence.connect(brilliance);
+          brilliance.connect(sharedAnalyser);
           sharedAnalyser.connect(sharedGain);
           sharedGain.connect(sharedAudioContext.destination);
         }
@@ -479,8 +527,8 @@ export const useAudioPlayer = () => {
     setQueueIndex(0); // Reset to first track after shuffle
   }, []);
 
-  // EQ Controls
-  const updateEQ = useCallback((band: 'bass' | 'mid' | 'treble', gain: number) => {
+  // EQ Controls - 7-band equalizer
+  const updateEQ = useCallback((band: 'subBass' | 'bass' | 'lowMid' | 'mid' | 'upperMid' | 'presence' | 'brilliance', gain: number) => {
     const clampedGain = Math.max(-12, Math.min(12, gain));
     
     if (eqNodesRef.current && audioContextRef.current) {
@@ -497,7 +545,15 @@ export const useAudioPlayer = () => {
         node.gain.setValueAtTime(0, audioContextRef.current!.currentTime);
       });
     }
-    setEqGains({ bass: 0, mid: 0, treble: 0 });
+    setEqGains({ 
+      subBass: 0, 
+      bass: 0, 
+      lowMid: 0, 
+      mid: 0, 
+      upperMid: 0, 
+      presence: 0, 
+      brilliance: 0 
+    });
   }, []);
 
   // Get frequency data for visualizations
