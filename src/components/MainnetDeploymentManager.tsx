@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { useTonConnectUI } from '@tonconnect/ui-react';
+import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { SmartContractDeploymentService, MAINNET_DEPLOYMENT_CONFIG } from '@/services/smartContractDeployment';
 import { CheckCircle, AlertCircle, ExternalLink, Loader2, Rocket, Wallet } from 'lucide-react';
 
@@ -57,11 +57,12 @@ export const MainnetDeploymentManager: React.FC = () => {
   const [deploymentProgress, setDeploymentProgress] = useState(0);
   const [deploymentSummary, setDeploymentSummary] = useState<any>(null);
   const [tonConnectUI] = useTonConnectUI();
+  const wallet = useTonWallet();
   const { toast } = useToast();
   
-  // Get wallet connection state
-  const isWalletConnected = tonConnectUI.connected;
-  const walletInfo = tonConnectUI.wallet;
+  // Get wallet connection state from hook (more reliable than UI.connected)
+  const isWalletConnected = !!wallet;
+  const walletInfo = wallet;
 
   console.log('Deployment Manager - Wallet state:', { 
     connected: isWalletConnected, 
