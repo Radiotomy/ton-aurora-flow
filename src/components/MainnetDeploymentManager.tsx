@@ -58,6 +58,15 @@ export const MainnetDeploymentManager: React.FC = () => {
   const [deploymentSummary, setDeploymentSummary] = useState<any>(null);
   const [tonConnectUI] = useTonConnectUI();
   const { toast } = useToast();
+  
+  // Get wallet connection state
+  const isWalletConnected = tonConnectUI.connected;
+  const walletInfo = tonConnectUI.wallet;
+
+  console.log('Deployment Manager - Wallet state:', { 
+    connected: isWalletConnected, 
+    wallet: walletInfo?.account?.address 
+  });
 
   const updateStepStatus = (stepId: string, updates: Partial<DeploymentStep>) => {
     setDeploymentSteps(prev => 
@@ -120,7 +129,7 @@ export const MainnetDeploymentManager: React.FC = () => {
   };
 
   const startMainnetDeployment = async () => {
-    if (!tonConnectUI.connected) {
+    if (!isWalletConnected) {
       toast({
         title: 'Wallet Not Connected',
         description: 'Please connect your TON wallet first.',
@@ -200,7 +209,7 @@ export const MainnetDeploymentManager: React.FC = () => {
       </div>
 
       {/* Wallet Connection Section */}
-      {!tonConnectUI.connected && (
+      {!isWalletConnected && (
         <Card className="border-warning/30 bg-warning/5">
           <CardHeader className="text-center">
             <div className="mx-auto p-3 rounded-full bg-warning/10 border-2 border-warning/20 w-fit">
@@ -213,7 +222,10 @@ export const MainnetDeploymentManager: React.FC = () => {
           </CardHeader>
           <CardContent className="text-center">
             <Button 
-              onClick={() => tonConnectUI.openModal()}
+              onClick={() => {
+                console.log('Opening wallet modal...');
+                tonConnectUI.openModal();
+              }}
               variant="aurora"
               size="lg"
               className="px-8"
@@ -225,6 +237,21 @@ export const MainnetDeploymentManager: React.FC = () => {
               Make sure you have at least 3 TON for deployment costs
             </p>
           </CardContent>
+        </Card>
+      )}
+
+      {/* Connected Wallet Info */}
+      {isWalletConnected && walletInfo && (
+        <Card className="border-success/30 bg-success/5">
+          <CardHeader className="text-center">
+            <div className="mx-auto p-3 rounded-full bg-success/10 border-2 border-success/20 w-fit">
+              <CheckCircle className="h-6 w-6 text-success" />
+            </div>
+            <CardTitle className="text-success-foreground">Wallet Connected</CardTitle>
+            <CardDescription className="text-success-foreground/80">
+              {walletInfo.account.address.slice(0, 10)}...{walletInfo.account.address.slice(-8)}
+            </CardDescription>
+          </CardHeader>
         </Card>
       )}
 
@@ -315,7 +342,7 @@ export const MainnetDeploymentManager: React.FC = () => {
             <div className="flex justify-center">
               <Button 
                 onClick={startMainnetDeployment}
-                disabled={isDeploying || !tonConnectUI.connected}
+                disabled={isDeploying || !isWalletConnected}
                 size="lg"
                 className="px-8"
               >
