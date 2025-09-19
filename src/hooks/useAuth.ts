@@ -22,6 +22,7 @@ export const useAuth = () => {
 
   const fetchProfile = async (userId: string) => {
     try {
+      // Select all fields for authenticated user's own profile
       const { data } = await supabase
         .from('profiles')
         .select('*')

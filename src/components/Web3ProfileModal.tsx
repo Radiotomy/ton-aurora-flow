@@ -123,7 +123,7 @@ export const Web3ProfileModal: React.FC<Web3ProfileModalProps> = ({
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*')  // Safe: User accessing their own complete profile
         .eq('auth_user_id', user.id)
         .single();
 

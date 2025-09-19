@@ -7,6 +7,7 @@ import { TonSitesRouter } from "@/components/TonSitesRouter";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { ErrorBoundaryWithTWA } from "@/components/ErrorBoundaryWithTWA";
 import { SecurityProvider } from "@/components/SecurityProvider";
+import { ProfileSecurityCheck } from "@/components/ProfileSecurityCheck";
 import { useTelegramWebApp } from "@/hooks/useTelegramWebApp";
 import { analytics } from "@/utils/analytics";
 import { useEffect } from "react";
@@ -48,6 +49,7 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background pb-20">
+      <ProfileSecurityCheck />
       <BrowserRouter
         future={{
           v7_startTransition: true,

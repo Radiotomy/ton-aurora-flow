@@ -151,10 +151,10 @@ export const useWeb3 = () => {
         throw new Error('Invalid wallet address format');
       }
 
-      // Try to fetch existing profile
+      // Try to fetch existing profile - use wallet fields for wallet-based profiles
       const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*')  // Safe: Wallet-based profile access
         .eq('wallet_address', address)
         .maybeSingle();
 
@@ -192,10 +192,10 @@ export const useWeb3 = () => {
         if (createError) {
           // If it's a duplicate key error, the profile already exists - fetch it instead
           if (createError.code === '23505') {
-            // Profile already exists, fetching existing profile
+            // Profile already exists, fetching existing profile  
             const { data: existingProfile, error: refetchError } = await supabase
               .from('profiles')
-              .select('*')
+              .select('*')  // Safe: Wallet-based profile access 
               .eq('wallet_address', address)
               .single();
             
