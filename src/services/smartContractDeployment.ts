@@ -151,7 +151,7 @@ export class SmartContractDeploymentService {
       image: "https://audioton.co/assets/audioton-collection-banner.jpg",
       external_url: "https://audioton.co",
       seller_fee_basis_points: 250, // 2.5%
-      fee_recipient: "EQCmzSjF6hG9M2HYCp3_9pv0Q4mJ8KlEPkjVn1qxY5tS7Wck"
+      fee_recipient: "EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs"
     };
 
     // Convert to Cell format (simplified implementation)
@@ -231,7 +231,7 @@ export class SmartContractDeploymentService {
 
 // Export deployment configurations for different environments
 export const MAINNET_DEPLOYMENT_CONFIG: DeploymentConfig = {
-  owner: Address.parse('EQCmzSjF6hG9M2HYCp3_9pv0Q4mJ8KlEPkjVn1qxY5tS7Wck'), // AudioTon treasury
+  owner: Address.parse('EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs'), // AudioTon treasury
   fee_percentage: 100, // 1% platform fee
   royalty_numerator: 250, // 2.5%
   royalty_denominator: 10000
