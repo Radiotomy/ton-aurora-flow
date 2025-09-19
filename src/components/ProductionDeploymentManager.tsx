@@ -71,7 +71,7 @@ export const ProductionDeploymentManager: React.FC = () => {
     ));
   }, []);
 
-  const deployContract = async (step: DeploymentStep, stepIndex: number): Promise<void> => {
+  const deployContract = async (step: DeploymentStep, stepIndex: number): Promise<string | null> => {
     updateStepStatus(step.id, { status: 'in-progress' });
     
     try {
@@ -137,6 +137,8 @@ export const ProductionDeploymentManager: React.FC = () => {
         description: `Address: ${deploymentResult.address.substring(0, 20)}...`
       });
       
+      return deploymentResult.address;
+      
     } catch (error) {
       updateStepStatus(step.id, { status: 'failed' });
       toast.error(`Failed to deploy ${step.title}`, {
@@ -144,6 +146,10 @@ export const ProductionDeploymentManager: React.FC = () => {
       });
       throw error;
     }
+  };
+
+  const deployContractAndGetAddress = async (step: DeploymentStep, stepIndex: number): Promise<string | null> => {
+    return await deployContract(step, stepIndex);
   };
 
   const startMainnetDeployment = async () => {
@@ -160,29 +166,37 @@ export const ProductionDeploymentManager: React.FC = () => {
         description: 'This will deploy all AudioTon smart contracts to TON mainnet'
       });
 
+      // Collect deployed addresses during deployment
+      const deployedContracts: { [key: string]: string } = {};
+
       // Deploy contracts sequentially to avoid nonce conflicts
       for (let i = 0; i < deploymentSteps.length; i++) {
         const step = deploymentSteps[i];
-        await deployContract(step, i);
+        const deploymentResult = await deployContractAndGetAddress(step, i);
+        
+        // Map step IDs to contract names
+        const contractNameMap: { [key: string]: keyof typeof deployedContracts } = {
+          'payment-processor': 'paymentProcessor',
+          'nft-collection': 'nftCollection',
+          'fan-club': 'fanClub',
+          'reward-distributor': 'rewardDistributor'
+        };
+        
+        const contractName = contractNameMap[step.id];
+        if (contractName && deploymentResult) {
+          deployedContracts[contractName] = deploymentResult;
+        }
       }
 
-      // Generate deployment summary using the smart contract service
-      const deployedContracts = {
-        paymentProcessor: deploymentSteps.find(s => s.id === 'payment-processor')?.contractAddress || '',
-        nftCollection: deploymentSteps.find(s => s.id === 'nft-collection')?.contractAddress || '',
-        fanClub: deploymentSteps.find(s => s.id === 'fan-club')?.contractAddress || '',
-        rewardDistributor: deploymentSteps.find(s => s.id === 'reward-distributor')?.contractAddress || ''
-      };
-
-      const deploymentSummary = SmartContractDeploymentService.generateDeploymentSummary(deployedContracts);
+      const deploymentSummary = SmartContractDeploymentService.generateDeploymentSummary(deployedContracts as any);
       
       // Validate deployed addresses
-      if (validateContractAddresses(deployedContracts)) {
+      if (validateContractAddresses(deployedContracts as any)) {
         // Update production configuration
-        updateProductionConfig(deployedContracts);
+        updateProductionConfig(deployedContracts as any);
         
         // Generate deployment report
-        const deploymentReport = generateDeploymentReport(deployedContracts);
+        const deploymentReport = generateDeploymentReport(deployedContracts as any);
         console.log('Deployment Report:', deploymentReport);
       } else {
         throw new Error('Contract address validation failed');
