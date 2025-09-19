@@ -13,12 +13,12 @@ export const PRODUCTION_CONFIG = {
   TON_NETWORK: 'mainnet' as const,
   TON_WORKCHAIN: 0,
   
-  // Smart Contract Addresses (Production - TO BE UPDATED AFTER MAINNET DEPLOYMENT)
+  // Smart Contract Addresses (Production - DEPLOYED TO MAINNET)
   CONTRACTS: {
-    NFT_COLLECTION: '', // Will be set after mainnet deployment
-    FAN_CLUB: '', // Will be set after mainnet deployment  
-    PAYMENT_PROCESSOR: '', // Will be set after mainnet deployment
-    REWARD_DISTRIBUTOR: '' // Will be set after mainnet deployment
+    NFT_COLLECTION: 'EQCFHSooX5Yc4OFivHybZGtRHti319ypbxhKpvQz_q1d1gLT',
+    FAN_CLUB: 'EQDKCkiHTgT8H9NqMq5002oub3XrDJPIifBJ0gJGWx_N78ub',
+    PAYMENT_PROCESSOR: 'EQBEhEAjFgWja2HD23lN3Z-_AWk6hBb2vWfqqvDudMweXP4t',
+    REWARD_DISTRIBUTOR: 'EQAOPjSEGosElkZ9UmxJioIxqzkgRCSlCIacVOJN0at0wKRU'
   },
 
   // Deployment Configuration
