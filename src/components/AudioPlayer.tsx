@@ -1,8 +1,10 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { MiniEQVisualizer } from '@/components/MiniEQVisualizer';
+import { ExpandedPlayerModal } from '@/components/ExpandedPlayerModal';
 import {
   Play,
   Pause,
@@ -11,6 +13,7 @@ import {
   Volume2,
   VolumeX,
   Music,
+  BarChart3,
   Maximize2,
 } from 'lucide-react';
 
@@ -30,6 +33,8 @@ export const AudioPlayer: React.FC = React.memo(() => {
     skipTime,
     formatTime,
   } = useAudioPlayer();
+
+  const [showExpandedPlayer, setShowExpandedPlayer] = useState(false);
 
   const handleProgressChange = useCallback((value: number[]) => {
     const newTime = (value[0] / 100) * duration;
@@ -65,11 +70,10 @@ export const AudioPlayer: React.FC = React.memo(() => {
                   <Music className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                 </AvatarFallback>
               </Avatar>
-              {isPlaying && (
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-primary rounded-full animate-pulse flex items-center justify-center">
-                  <div className="w-2 h-2 bg-background rounded-full animate-bounce" />
-                </div>
-              )}
+              {/* Mini EQ Visualizer */}
+              <div className="absolute -bottom-1 -right-1">
+                <MiniEQVisualizer isPlaying={isPlaying} size="sm" />
+              </div>
             </div>
             <div className="min-w-0 flex-1">
               <h4 className="font-semibold text-sm sm:text-base truncate text-foreground group-hover:text-primary transition-colors">
@@ -183,14 +187,21 @@ export const AudioPlayer: React.FC = React.memo(() => {
             <Button
               size="icon"
               variant="ghost"
-              className="h-9 w-9 hover:scale-110 transition-all duration-200 hover:bg-accent/20 sm:hidden"
-              title="Expand Player"
+              className="h-9 w-9 hover:scale-110 transition-all duration-200 hover:bg-accent/20"
+              onClick={() => setShowExpandedPlayer(true)}
+              title="Open Visualizer & EQ"
             >
-              <Maximize2 className="h-4 w-4" />
+              <BarChart3 className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Expanded Player Modal */}
+      <ExpandedPlayerModal 
+        isOpen={showExpandedPlayer}
+        onClose={() => setShowExpandedPlayer(false)}
+      />
     </div>
   );
 });

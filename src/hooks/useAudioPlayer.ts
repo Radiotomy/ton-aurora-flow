@@ -17,6 +17,8 @@ let sharedAudio: HTMLAudioElement | null = null;
 let sharedAudioContext: AudioContext | null = null;
 let sharedGain: GainNode | null = null;
 let sharedSource: MediaElementAudioSourceNode | null = null;
+let sharedAnalyser: AnalyserNode | null = null;
+let sharedEQNodes: { bass: BiquadFilterNode; mid: BiquadFilterNode; treble: BiquadFilterNode } | null = null;
 
 // Shared current track state and pub-sub
 let sharedCurrentTrack: CurrentTrack | null = null;
@@ -31,6 +33,8 @@ export const useAudioPlayer = () => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const eqNodesRef = useRef<{ bass: BiquadFilterNode; mid: BiquadFilterNode; treble: BiquadFilterNode } | null>(null);
   
   const [currentTrack, setCurrentTrack] = useState<CurrentTrack | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -43,6 +47,13 @@ export const useAudioPlayer = () => {
   const [error, setError] = useState<string | null>(null);
   const [queue, setQueue] = useState<CurrentTrack[]>([]);
   const [queueIndex, setQueueIndex] = useState(-1);
+  
+  // EQ state
+  const [eqGains, setEqGains] = useState({ bass: 0, mid: 0, treble: 0 });
+  
+  // Frequency analysis data
+  const frequencyDataRef = useRef<Uint8Array | null>(null);
+  const animationFrameRef = useRef<number>(0);
 
   const { isConnected, profile } = useWeb3();
 
@@ -82,7 +93,34 @@ export const useAudioPlayer = () => {
           sharedAudioContext = new Ctx();
           sharedGain = sharedAudioContext.createGain();
           sharedSource = sharedAudioContext.createMediaElementSource(sharedAudio);
-          sharedSource.connect(sharedGain);
+          
+          // Create analyser for visualizations
+          sharedAnalyser = sharedAudioContext.createAnalyser();
+          sharedAnalyser.fftSize = 256;
+          sharedAnalyser.smoothingTimeConstant = 0.8;
+          
+          // Create EQ nodes
+          const bass = sharedAudioContext.createBiquadFilter();
+          bass.type = 'lowshelf';
+          bass.frequency.setValueAtTime(320, sharedAudioContext.currentTime);
+          
+          const mid = sharedAudioContext.createBiquadFilter();
+          mid.type = 'peaking';
+          mid.frequency.setValueAtTime(1000, sharedAudioContext.currentTime);
+          mid.Q.setValueAtTime(1, sharedAudioContext.currentTime);
+          
+          const treble = sharedAudioContext.createBiquadFilter();
+          treble.type = 'highshelf';
+          treble.frequency.setValueAtTime(3200, sharedAudioContext.currentTime);
+          
+          sharedEQNodes = { bass, mid, treble };
+          
+          // Connect the audio chain: source -> EQ -> analyser -> gain -> destination
+          sharedSource.connect(bass);
+          bass.connect(mid);
+          mid.connect(treble);
+          treble.connect(sharedAnalyser);
+          sharedAnalyser.connect(sharedGain);
           sharedGain.connect(sharedAudioContext.destination);
         }
       } catch (err) {
@@ -95,6 +133,13 @@ export const useAudioPlayer = () => {
     audioContextRef.current = sharedAudioContext;
     gainNodeRef.current = sharedGain;
     sourceNodeRef.current = sharedSource;
+    analyserRef.current = sharedAnalyser;
+    eqNodesRef.current = sharedEQNodes;
+
+    // Initialize frequency data array
+    if (sharedAnalyser) {
+      frequencyDataRef.current = new Uint8Array(sharedAnalyser.frequencyBinCount);
+    }
 
     // Subscribe to audio events to sync this hook's state
     const audio = sharedAudio!;
@@ -434,6 +479,36 @@ export const useAudioPlayer = () => {
     setQueueIndex(0); // Reset to first track after shuffle
   }, []);
 
+  // EQ Controls
+  const updateEQ = useCallback((band: 'bass' | 'mid' | 'treble', gain: number) => {
+    const clampedGain = Math.max(-12, Math.min(12, gain));
+    
+    if (eqNodesRef.current && audioContextRef.current) {
+      const node = eqNodesRef.current[band];
+      node.gain.setValueAtTime(clampedGain, audioContextRef.current.currentTime);
+    }
+    
+    setEqGains(prev => ({ ...prev, [band]: clampedGain }));
+  }, []);
+
+  const resetEQ = useCallback(() => {
+    if (eqNodesRef.current && audioContextRef.current) {
+      Object.values(eqNodesRef.current).forEach(node => {
+        node.gain.setValueAtTime(0, audioContextRef.current!.currentTime);
+      });
+    }
+    setEqGains({ bass: 0, mid: 0, treble: 0 });
+  }, []);
+
+  // Get frequency data for visualizations
+  const getFrequencyData = useCallback(() => {
+    if (analyserRef.current && frequencyDataRef.current) {
+      analyserRef.current.getByteFrequencyData(frequencyDataRef.current);
+      return frequencyDataRef.current;
+    }
+    return null;
+  }, []);
+
   // Format time for display
   const formatTime = useCallback((time: number): string => {
     const minutes = Math.floor(time / 60);
@@ -487,8 +562,15 @@ export const useAudioPlayer = () => {
     formatTime,
     progress: duration > 0 ? (currentTime / duration) * 100 : 0,
     
+    // Audio analysis & EQ
+    getFrequencyData,
+    eqGains,
+    updateEQ,
+    resetEQ,
+    
     // Web Audio API context (for future effects)
     audioContext: audioContextRef.current,
     gainNode: gainNodeRef.current,
+    analyser: analyserRef.current,
   };
 };
