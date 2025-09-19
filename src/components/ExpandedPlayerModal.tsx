@@ -99,7 +99,7 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl glass-panel">
+      <DialogContent className="max-w-2xl glass-panel no-hover-lift z-50 pointer-events-auto">
         <DialogHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <DialogTitle className="text-xl font-bold">Audio Visualizer & EQ</DialogTitle>
           <Button 
@@ -163,11 +163,11 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
               </Button>
             </div>
 
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-3 gap-6 no-hover-lift">
               {/* Bass */}
-              <div className="space-y-2">
+              <div className="space-y-2 no-hover-lift">
                 <label className="text-sm font-medium text-center block">Bass</label>
-                <div className="px-2">
+                <div className="px-2 no-hover-lift">
                   <Slider
                     value={[eqGains.bass]}
                     onValueChange={(value) => updateEQ('bass', value[0])}
@@ -175,7 +175,7 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
                     max={12}
                     step={0.5}
                     orientation="vertical"
-                    className="h-24 mx-auto"
+                    className="h-24 mx-auto no-hover-lift pointer-events-auto"
                   />
                 </div>
                 <p className="text-xs text-center text-muted-foreground">
@@ -184,9 +184,9 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
               </div>
 
               {/* Mid */}
-              <div className="space-y-2">
+              <div className="space-y-2 no-hover-lift">
                 <label className="text-sm font-medium text-center block">Mid</label>
-                <div className="px-2">
+                <div className="px-2 no-hover-lift">
                   <Slider
                     value={[eqGains.mid]}
                     onValueChange={(value) => updateEQ('mid', value[0])}
@@ -194,7 +194,7 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
                     max={12}
                     step={0.5}
                     orientation="vertical"
-                    className="h-24 mx-auto"
+                    className="h-24 mx-auto no-hover-lift pointer-events-auto"
                   />
                 </div>
                 <p className="text-xs text-center text-muted-foreground">
@@ -203,9 +203,9 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
               </div>
 
               {/* Treble */}
-              <div className="space-y-2">
+              <div className="space-y-2 no-hover-lift">
                 <label className="text-sm font-medium text-center block">Treble</label>
-                <div className="px-2">
+                <div className="px-2 no-hover-lift">
                   <Slider
                     value={[eqGains.treble]}
                     onValueChange={(value) => updateEQ('treble', value[0])}
@@ -213,7 +213,7 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
                     max={12}
                     step={0.5}
                     orientation="vertical"
-                    className="h-24 mx-auto"
+                    className="h-24 mx-auto no-hover-lift pointer-events-auto"
                   />
                 </div>
                 <p className="text-xs text-center text-muted-foreground">
