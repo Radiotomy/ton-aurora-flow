@@ -2,8 +2,9 @@ import React from 'react';
 import { MainnetDeploymentManager } from '@/components/MainnetDeploymentManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Rocket, Shield, Zap, Globe } from 'lucide-react';
+import { Rocket, Shield, Zap, Globe, ExternalLink } from 'lucide-react';
 
 export default function Deploy() {
   return (
@@ -115,11 +116,25 @@ export default function Deploy() {
         </Card>
 
         {/* Important Notice */}
-        <Alert className="mb-8 border-warning/30 bg-warning/5">
-          <Shield className="h-4 w-4" />
-          <AlertTitle className="text-warning-foreground">Mainnet Deployment Notice</AlertTitle>
-          <AlertDescription className="text-warning-foreground/80">
-            <strong>This deploys to TON mainnet with real TON tokens.</strong> Ensure your wallet has sufficient balance (~3 TON total) and verify all configurations before proceeding. Deployed contracts are immutable and cannot be modified after deployment.
+        <Alert className="mb-8 border-primary/30 bg-primary/5">
+          <Rocket className="h-4 w-4" />
+          <AlertTitle className="text-primary-foreground">Ready for Production Launch</AlertTitle>
+          <AlertDescription className="text-primary-foreground/80 space-y-4">
+            <div>
+              <strong>AudioTon is ready for mainnet deployment!</strong> All core features are implemented and tested. 
+              Deploy smart contracts to TON mainnet to launch your Web3 music platform.
+            </div>
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="sm" asChild>
+                <a href="/mainnet-deploy" className="flex items-center">
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Launch Production Deploy
+                </a>
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Uses real TON tokens • Contracts are immutable
+              </span>
+            </div>
           </AlertDescription>
         </Alert>
 

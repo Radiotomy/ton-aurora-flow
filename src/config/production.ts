@@ -13,12 +13,20 @@ export const PRODUCTION_CONFIG = {
   TON_NETWORK: 'mainnet' as const,
   TON_WORKCHAIN: 0,
   
-  // Smart Contract Addresses (Production)
+  // Smart Contract Addresses (Production - TO BE UPDATED AFTER MAINNET DEPLOYMENT)
   CONTRACTS: {
-    NFT_COLLECTION: 'EQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3diqYENkWsIL0XggGG',
-    FAN_CLUB: 'EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',
-    PAYMENT_PROCESSOR: 'EQDk2VTvn04SUKJrW7rXahzdF8_Qi6utb0wj1OaBRbH-Ovch',
-    REWARD_DISTRIBUTOR: 'EQC5vfkGas_SBp85WVqm_xo4lKelOhv3rPAO6ILdgD2lNvY_'
+    NFT_COLLECTION: '', // Will be set after mainnet deployment
+    FAN_CLUB: '', // Will be set after mainnet deployment  
+    PAYMENT_PROCESSOR: '', // Will be set after mainnet deployment
+    REWARD_DISTRIBUTOR: '' // Will be set after mainnet deployment
+  },
+
+  // Deployment Configuration
+  DEPLOYMENT: {
+    DEPLOYER_MNEMONIC: process.env.DEPLOYER_MNEMONIC,
+    MIN_BALANCE_FOR_DEPLOYMENT: '5.0', // TON
+    DEPLOYMENT_TIMEOUT: 300000, // 5 minutes
+    CONFIRMATION_BLOCKS: 2
   },
   
   // Transaction Configuration
@@ -88,6 +96,18 @@ export const PRODUCTION_CONFIG = {
     RETURN_URL: 'https://audioton.lovable.app',
     HAPTIC_FEEDBACK: true,
     THEME_PARAMS: true
+  },
+
+  // Production Domain Configuration
+  DOMAIN: {
+    PRIMARY: 'https://audioton.lovable.app',
+    TON_DOMAIN: 'audioton.ton',
+    MANIFEST_BASE: 'https://audioton.lovable.app',
+    CORS_ORIGINS: [
+      'https://audioton.lovable.app',
+      'https://t.me',
+      'https://web.telegram.org'
+    ]
   },
 
   // TON Sites Configuration

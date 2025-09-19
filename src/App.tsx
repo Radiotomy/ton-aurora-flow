@@ -25,6 +25,7 @@ import CreatorStudio from "./pages/CreatorStudio";
 import LiveEvents from "./pages/LiveEvents";
 import Marketplace from "./pages/Marketplace";
 import AudiusCallback from "./pages/AudiusCallback";
+import MainnetDeploy from "./pages/MainnetDeploy";
 import Deploy from "./pages/Deploy";
 import Help from "./pages/Help";
 import HelpFans from "./pages/HelpFans";
@@ -73,6 +74,7 @@ function AppContent() {
               <Route path="/live-events" element={<LiveEvents />} />
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/deploy" element={<Deploy />} />
+              <Route path="/mainnet-deploy" element={<MainnetDeploy />} />
               <Route path="/help" element={<Help />} />
               <Route path="/help/fans" element={<HelpFans />} />
               <Route path="/help/artists" element={<HelpArtists />} />
