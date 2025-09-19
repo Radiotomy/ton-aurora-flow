@@ -403,26 +403,113 @@ export const ProductionDeploymentManager: React.FC = () => {
 
       {/* Post-deployment Information */}
       {completedSteps === deploymentSteps.length && (
-        <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-green-700 dark:text-green-300">
-              <CheckCircle className="h-5 w-5" />
-              <span>Deployment Complete!</span>
-            </CardTitle>
-            <CardDescription className="text-green-600 dark:text-green-400">
-              All smart contracts have been successfully deployed to TON mainnet
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Alert>
-              <Globe className="h-4 w-4" />
-              <AlertDescription>
-                <strong>Next Steps:</strong> Update your production configuration with the deployed contract addresses, 
-                then proceed with the Telegram Mini App setup and dApp store submissions.
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2 text-green-700 dark:text-green-300">
+                <CheckCircle className="h-5 w-5" />
+                <span>🎉 Mainnet Deployment Complete!</span>
+              </CardTitle>
+              <CardDescription className="text-green-600 dark:text-green-400">
+                All AudioTon smart contracts have been successfully deployed to TON mainnet
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Deployed Contract Addresses */}
+              <div className="space-y-4">
+                <h4 className="font-semibold text-green-700 dark:text-green-300">Deployed Contract Addresses</h4>
+                <div className="grid gap-3">
+                  {deploymentSteps.filter(step => step.contractAddress).map((step) => (
+                    <div key={step.id} className="flex items-center justify-between p-3 bg-white dark:bg-green-900/20 rounded-lg border">
+                      <div>
+                        <div className="font-medium">{step.title}</div>
+                        <code className="text-xs text-muted-foreground">{step.contractAddress}</code>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigator.clipboard.writeText(step.contractAddress || '')}
+                        className="h-8 w-8 p-0"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Next Steps */}
+              <Alert>
+                <Globe className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>Production Launch Checklist:</strong>
+                  <div className="mt-2 space-y-1 text-sm">
+                    <div>✅ Smart contracts deployed to TON mainnet</div>
+                    <div>📝 Update production config with contract addresses</div>
+                    <div>🤖 Configure Telegram Mini App with production URLs</div>
+                    <div>🚀 Submit to dApp stores and directories</div>
+                    <div>🎵 Launch beta testing with select artists</div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                  onClick={() => {
+                    const contractData = deploymentSteps
+                      .filter(step => step.contractAddress)
+                      .reduce((acc, step) => {
+                        const contractName = {
+                          'payment-processor': 'paymentProcessor',
+                          'nft-collection': 'nftCollection', 
+                          'fan-club': 'fanClub',
+                          'reward-distributor': 'rewardDistributor'
+                        }[step.id];
+                        if (contractName) acc[contractName] = step.contractAddress;
+                        return acc;
+                      }, {} as any);
+                    
+                    navigator.clipboard.writeText(JSON.stringify(contractData, null, 2));
+                    toast.success('Contract addresses copied to clipboard');
+                  }}
+                  className="flex-1"
+                >
+                  📋 Copy All Addresses
+                </Button>
+                
+                <Button
+                  onClick={() => {
+                    const report = generateDeploymentReport(deploymentSteps
+                      .filter(step => step.contractAddress)
+                      .reduce((acc, step) => {
+                        const contractName = {
+                          'payment-processor': 'paymentProcessor',
+                          'nft-collection': 'nftCollection',
+                          'fan-club': 'fanClub', 
+                          'reward-distributor': 'rewardDistributor'
+                        }[step.id];
+                        if (contractName) acc[contractName] = step.contractAddress;
+                        return acc;
+                      }, {} as any));
+                    
+                    const blob = new Blob([report], { type: 'text/markdown' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'audioton-mainnet-deployment-report.md';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  📄 Download Report
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   );
