@@ -25,7 +25,11 @@ import CreatorStudio from "./pages/CreatorStudio";
 import LiveEvents from "./pages/LiveEvents";
 import Marketplace from "./pages/Marketplace";
 import AudiusCallback from "./pages/AudiusCallback";
+import Help from "./pages/Help";
+import HelpFans from "./pages/HelpFans";
+import HelpArtists from "./pages/HelpArtists";
 import Navigation from "./components/Navigation";
+import Footer from "./components/Footer";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +71,9 @@ function AppContent() {
               <Route path="/creator-studio" element={<CreatorStudio />} />
               <Route path="/live-events" element={<LiveEvents />} />
               <Route path="/marketplace" element={<Marketplace />} />
+              <Route path="/help" element={<Help />} />
+              <Route path="/help/fans" element={<HelpFans />} />
+              <Route path="/help/artists" element={<HelpArtists />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
@@ -74,6 +81,7 @@ function AppContent() {
           <ErrorBoundaryWithTWA>
             <AudioPlayer />
           </ErrorBoundaryWithTWA>
+          <Footer />
         </TonSitesRouter>
       </BrowserRouter>
     </div>
