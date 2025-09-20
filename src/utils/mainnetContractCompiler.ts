@@ -4,6 +4,7 @@
  */
 
 import { Cell, beginCell, Address } from '@ton/core';
+import { ContractBytecode } from '@/utils/contractBytecode';
 
 interface CompilationResult {
   code: Cell;
@@ -38,16 +39,22 @@ export class MainnetContractCompiler {
     config: any = {}
   ): Promise<CompilationResult> {
     try {
-      console.log(`Loading pre-compiled ${contractName} contract for mainnet...`);
+      console.log(`Preparing ${contractName} contract code for mainnet...`);
       
-      // Get pre-compiled bytecode
-      const compiledBytecode = COMPILED_CONTRACTS[contractName];
-      if (!compiledBytecode) {
-        throw new Error(`Pre-compiled contract not found: ${contractName}`);
+      // Map to ContractBytecode types
+      const typeMap: Record<string, string> = {
+        payment: 'payment-processor',
+        'nft-collection': 'nft-collection',
+        'fan-club': 'fan-club',
+        'reward-distributor': 'reward-distributor'
+      };
+      const mappedType = typeMap[contractName];
+      if (!mappedType) {
+        throw new Error(`Unknown contract type: ${contractName}`);
       }
       
-      // Decode from base64 to Cell
-      const code = Cell.fromBase64(compiledBytecode);
+      // Obtain code via compiler or fallback
+      const code = await ContractBytecode.getContractCode(mappedType);
       
       // Create initial storage data
       const initData = this.createInitData(contractName, ownerAddress, config);
