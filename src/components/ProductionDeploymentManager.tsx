@@ -485,7 +485,7 @@ export const ProductionDeploymentManager: React.FC = () => {
                 
                 <Button
                   onClick={() => {
-                    const report = generateDeploymentReport(deploymentSteps
+                    const reportData = generateDeploymentReport(deploymentSteps
                       .filter(step => step.contractAddress)
                       .reduce((acc, step) => {
                         const contractName = {
@@ -498,7 +498,45 @@ export const ProductionDeploymentManager: React.FC = () => {
                         return acc;
                       }, {} as any));
                     
-                    const blob = new Blob([report], { type: 'text/markdown' });
+                    // Convert report to markdown format
+                    const markdownReport = `# AudioTon Mainnet Deployment Report
+
+## Deployment Summary
+- **Network**: ${reportData.network}
+- **Timestamp**: ${reportData.timestamp}
+- **Deployer**: ${reportData.deployer}
+- **Total Cost**: ${reportData.totalCost} TON
+
+## Deployed Contracts
+
+### Payment Processor
+- **Address**: \`${reportData.contracts.paymentProcessor}\`
+- **Purpose**: Handles tips, payments, and fee distribution
+
+### NFT Collection
+- **Address**: \`${reportData.contracts.nftCollection}\`
+- **Purpose**: Manages music NFT collection and minting
+
+### Fan Club
+- **Address**: \`${reportData.contracts.fanClub}\`
+- **Purpose**: Manages exclusive fan club memberships
+
+### Reward Distributor
+- **Address**: \`${reportData.contracts.rewardDistributor}\`
+- **Purpose**: Distributes platform rewards to users
+
+## Verification Status
+- **All Contracts Verified**: ${reportData.verification.allContractsVerified ? '✅ Yes' : '❌ No'}
+${reportData.verification.verificationErrors.length > 0 ? `- **Errors**: ${reportData.verification.verificationErrors.join(', ')}` : ''}
+
+## Transaction Hashes
+${Object.entries(reportData.transactionHashes).map(([contract, hash]) => `- **${contract}**: \`${hash}\``).join('\n')}
+
+---
+*Generated on ${new Date().toISOString()}*
+`;
+                    
+                    const blob = new Blob([markdownReport], { type: 'text/markdown' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
