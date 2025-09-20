@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProductionDeploymentManager } from '@/components/ProductionDeploymentManager';
+import { MainnetDeploymentManager } from '@/components/MainnetDeploymentManager';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -132,7 +132,7 @@ export default function MainnetDeploy() {
         </Alert>
 
         {/* Main Deployment Interface */}
-        <ProductionDeploymentManager />
+        <MainnetDeploymentManager />
       </div>
     </div>
   );

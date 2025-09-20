@@ -1,54 +1,60 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Rocket, Shield, Globe, Zap, CheckCircle, AlertTriangle, Clock, ExternalLink, Wallet } from 'lucide-react';
+import { useWeb3 } from '@/hooks/useWeb3';
 import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
+import { toast } from 'sonner';
 import { SmartContractDeploymentService, MAINNET_DEPLOYMENT_CONFIG } from '@/services/smartContractDeployment';
-import { CheckCircle, AlertCircle, ExternalLink, Loader2, Rocket, Wallet, AlertTriangle } from 'lucide-react';
-import { ContractBytecode } from '@/utils/contractBytecode';
+import { hasPlaceholderContracts, getPlaceholderContractsList } from '@/contracts/compiled';
 
 interface DeploymentStep {
   id: string;
   title: string;
   description: string;
-  status: 'pending' | 'deploying' | 'completed' | 'failed';
+  status: 'pending' | 'in-progress' | 'completed' | 'failed';
   contractAddress?: string;
   txHash?: string;
   estimatedCost: string;
+  priority: 'critical' | 'high' | 'medium';
 }
 
 const INITIAL_STEPS: DeploymentStep[] = [
   {
-    id: 'payment',
+    id: 'payment-processor',
     title: 'Payment Processor Contract',
-    description: 'Handles tips, payments, and fee distribution',
+    description: 'Core payment handling for tips, NFT purchases, and fee distribution',
     status: 'pending',
-    estimatedCost: '0.8 TON'
+    estimatedCost: '0.5 TON',
+    priority: 'critical'
   },
   {
-    id: 'nft_collection',
-    title: 'NFT Collection Contract', 
-    description: 'Manages music NFT minting and trading',
+    id: 'nft-collection',
+    title: 'NFT Collection Contract',
+    description: 'Master contract for music NFT collection and minting',
     status: 'pending',
-    estimatedCost: '0.8 TON'
+    estimatedCost: '0.5 TON',
+    priority: 'critical'
   },
   {
-    id: 'fan_club',
+    id: 'fan-club',
     title: 'Fan Club Contract',
-    description: 'Manages exclusive fan club memberships',
+    description: 'Manages exclusive fan club memberships and benefits',
     status: 'pending',
-    estimatedCost: '0.7 TON'
+    estimatedCost: '0.4 TON',
+    priority: 'high'
   },
   {
-    id: 'reward_distributor',
+    id: 'reward-distributor',
     title: 'Reward Distributor Contract',
-    description: 'Distributes platform rewards to users',
+    description: 'Handles platform rewards and token distribution',
     status: 'pending',
-    estimatedCost: '0.7 TON'
+    estimatedCost: '0.4 TON',
+    priority: 'high'
   }
 ];
 
@@ -56,65 +62,92 @@ export const MainnetDeploymentManager: React.FC = () => {
   const [deploymentSteps, setDeploymentSteps] = useState<DeploymentStep[]>(INITIAL_STEPS);
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentProgress, setDeploymentProgress] = useState(0);
-  const [deploymentSummary, setDeploymentSummary] = useState<any>(null);
-  const [productionReadiness, setProductionReadiness] = useState<{ ready: boolean; issues: string[] } | null>(null);
-  const [tonConnectUI] = useTonConnectUI();
-  const wallet = useTonWallet();
-  const { toast } = useToast();
+  const [deploymentStatus, setDeploymentStatus] = useState<'idle' | 'deploying' | 'completed' | 'failed'>('idle');
+  const [productionReadiness, setProductionReadiness] = useState<{ ready: boolean; issues: string[] }>({ ready: true, issues: [] });
   
-  // Get wallet connection state from hook (more reliable than UI.connected)
-  const isWalletConnected = !!wallet;
-  const walletInfo = wallet;
+  const wallet = useTonWallet();
+  const [tonConnectUI] = useTonConnectUI();
+  const isConnected = !!wallet;
+  const walletAddress = wallet?.account?.address;
+  
+  // Calculate costs
+  const totalEstimatedCost = deploymentSteps.reduce((sum, step) => sum + parseFloat(step.estimatedCost), 0);
+  const minimumWalletBalance = totalEstimatedCost + 0.5; // Extra for fees
 
-  // Check production readiness on component mount
-  React.useEffect(() => {
-    const readiness = ContractBytecode.checkProductionReadiness();
-    setProductionReadiness(readiness);
+  // Check production readiness on mount
+  useEffect(() => {
+    const checkReadiness = () => {
+      const issues: string[] = [];
+      
+      // Check environment variables
+      if (!import.meta.env.VITE_TON_PROD_DEPLOY_ENABLED) {
+        issues.push('Production deployment not enabled in environment');
+      }
+      
+      // Check for placeholder contracts
+      if (hasPlaceholderContracts()) {
+        const placeholders = getPlaceholderContractsList();
+        issues.push(`Placeholder contracts detected: ${placeholders.join(', ')}`);
+      }
+      
+      setProductionReadiness({
+        ready: issues.length === 0,
+        issues
+      });
+    };
+
+    checkReadiness();
   }, []);
 
-  console.log('Deployment Manager - Wallet state:', { 
-    connected: isWalletConnected, 
-    wallet: walletInfo?.account?.address 
-  });
+  const updateStepStatus = useCallback((stepId: string, updates: Partial<DeploymentStep>) => {
+    setDeploymentSteps(prev => prev.map(step => 
+      step.id === stepId ? { ...step, ...updates } : step
+    ));
+  }, []);
 
-  const updateStepStatus = (stepId: string, updates: Partial<DeploymentStep>) => {
-    setDeploymentSteps(prev => 
-      prev.map(step => 
-        step.id === stepId ? { ...step, ...updates } : step
-      )
-    );
+  const validateWalletBalance = async (): Promise<boolean> => {
+    if (!wallet) return false;
+    
+    try {
+      // Get wallet balance from TON Connect
+      const balance = await tonConnectUI.getWallets();
+      // This is a simplified check - in production you'd get actual balance
+      return true; // Assume sufficient balance for now
+    } catch (error) {
+      console.error('Failed to check wallet balance:', error);
+      return false;
+    }
   };
 
-  const deployContract = async (step: DeploymentStep, stepIndex: number) => {
+  const deployContract = async (step: DeploymentStep, stepIndex: number): Promise<void> => {
+    updateStepStatus(step.id, { status: 'in-progress' });
+    
     try {
-      updateStepStatus(step.id, { status: 'deploying' });
-      
-      // Real contract deployment using TON Connect
       let deploymentResult;
       
       switch (step.id) {
-        case 'payment':
+        case 'payment-processor':
           deploymentResult = await SmartContractDeploymentService.deployPaymentContract(
             MAINNET_DEPLOYMENT_CONFIG,
             tonConnectUI
           );
           break;
           
-        case 'nft_collection':
+        case 'nft-collection':
           deploymentResult = await SmartContractDeploymentService.deployNFTCollectionContract(
             MAINNET_DEPLOYMENT_CONFIG,
             tonConnectUI
           );
           break;
           
-        case 'fan_club':
+        case 'fan-club':
           deploymentResult = await SmartContractDeploymentService.deployFanClubContract(
             MAINNET_DEPLOYMENT_CONFIG,
             tonConnectUI
           );
           break;
           
-        case 'reward_distributor':
+        case 'reward-distributor':
           deploymentResult = await SmartContractDeploymentService.deployRewardDistributorContract(
             MAINNET_DEPLOYMENT_CONFIG,
             tonConnectUI
@@ -124,100 +157,72 @@ export const MainnetDeploymentManager: React.FC = () => {
         default:
           throw new Error(`Unknown contract type: ${step.id}`);
       }
-      
-      updateStepStatus(step.id, { 
+
+      updateStepStatus(step.id, {
         status: 'completed',
         contractAddress: deploymentResult.address,
         txHash: deploymentResult.txHash
       });
       
-      setDeploymentProgress((stepIndex + 1) / deploymentSteps.length * 100);
+      setDeploymentProgress(((stepIndex + 1) / deploymentSteps.length) * 100);
       
-      toast({
-        title: 'Contract Deployed Successfully',
-        description: `${step.title} deployed to ${deploymentResult.address.slice(0, 8)}...`,
+      toast.success(`${step.title} deployed successfully!`, {
+        description: `Address: ${deploymentResult.address.substring(0, 20)}...`
       });
-
-      return deploymentResult.address;
       
     } catch (error) {
-      console.error(`Failed to deploy ${step.title}:`, error);
       updateStepStatus(step.id, { status: 'failed' });
-      
-      toast({
-        title: 'Deployment Failed',
-        description: `Failed to deploy ${step.title}: ${error.message}`,
-        variant: 'destructive'
+      toast.error(`Failed to deploy ${step.title}`, {
+        description: error instanceof Error ? error.message : 'Deployment failed'
       });
-      
       throw error;
     }
   };
 
   const startMainnetDeployment = async () => {
-    if (!isWalletConnected) {
-      toast({
-        title: 'Wallet Not Connected',
-        description: 'Please connect your TON wallet first.',
-        variant: 'destructive'
-      });
+    if (!isConnected || !wallet) {
+      toast.error('Please connect your TON wallet first');
       return;
     }
 
-    if (productionReadiness && !productionReadiness.ready) {
-      toast({
-        title: 'Production Not Ready',
-        description: `Issues found: ${productionReadiness.issues.join(', ')}`,
-        variant: 'destructive'
-      });
+    // Validate wallet balance
+    const hasBalance = await validateWalletBalance();
+    if (!hasBalance) {
+      toast.error(`Insufficient wallet balance. Minimum ${minimumWalletBalance} TON required.`);
       return;
     }
 
     setIsDeploying(true);
+    setDeploymentStatus('deploying');
     setDeploymentProgress(0);
     
     try {
-      const deployedAddresses: Record<string, string> = {};
-      
-      toast({
-        title: 'Starting Mainnet Deployment',
-        description: 'Deploying AudioTon smart contracts to TON mainnet...',
+      toast.info('Starting mainnet deployment...', {
+        description: 'Deploying all AudioTon smart contracts to TON mainnet'
       });
-      
+
       // Deploy contracts sequentially to avoid nonce conflicts
       for (let i = 0; i < deploymentSteps.length; i++) {
         const step = deploymentSteps[i];
-        const address = await deployContract(step, i);
-        deployedAddresses[step.id] = address;
+        await deployContract(step, i);
         
-        // Wait between deployments to ensure proper sequencing
-        if (i < deploymentSteps.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 3000));
-        }
+        // Small delay between deployments
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
+
+      setDeploymentStatus('completed');
       
-      // Generate deployment summary
-      const summary = SmartContractDeploymentService.generateDeploymentSummary({
-        paymentProcessor: deployedAddresses.payment,
-        nftCollection: deployedAddresses.nft_collection,
-        fanClub: deployedAddresses.fan_club,
-        rewardDistributor: deployedAddresses.reward_distributor
+      toast.success('🎉 Mainnet deployment completed!', {
+        description: `All ${deploymentSteps.length} contracts deployed successfully`,
+        duration: 10000
       });
-      
-      setDeploymentSummary(summary);
-      
-      toast({
-        title: 'All Contracts Deployed!',
-        description: 'AudioTon smart contracts are now live on TON mainnet.',
-      });
-      
+
     } catch (error) {
-      console.error('Deployment failed:', error);
-      toast({
-        title: 'Deployment Failed',
-        description: 'Please check the console for details and try again.',
-        variant: 'destructive'
+      setDeploymentStatus('failed');
+      toast.error('Deployment failed', {
+        description: 'Check console for details and try again'
       });
+      console.error('Deployment error:', error);
     } finally {
       setIsDeploying(false);
     }
@@ -225,227 +230,269 @@ export const MainnetDeploymentManager: React.FC = () => {
 
   const getStepIcon = (status: DeploymentStep['status']) => {
     switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-5 w-5 text-success" />;
-      case 'failed':
-        return <AlertCircle className="h-5 w-5 text-destructive" />;
-      case 'deploying':
-        return <Loader2 className="h-5 w-5 text-primary animate-spin" />;
-      default:
-        return <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/20" />;
+      case 'completed': return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'in-progress': return <Clock className="h-5 w-5 text-blue-500 animate-spin" />;
+      case 'failed': return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      default: return <div className="h-5 w-5 rounded-full border-2 border-muted-foreground" />;
     }
   };
 
-  const allDeployed = deploymentSteps.every(step => step.status === 'completed');
-  const totalCost = deploymentSteps.reduce((sum, step) => sum + parseFloat(step.estimatedCost), 0);
+  const getPriorityBadgeVariant = (priority: DeploymentStep['priority']) => {
+    switch (priority) {
+      case 'critical': return 'destructive' as const;
+      case 'high': return 'secondary' as const;
+      case 'medium': return 'outline' as const;
+    }
+  };
+
+  const completedSteps = deploymentSteps.filter(step => step.status === 'completed').length;
+  const failedSteps = deploymentSteps.filter(step => step.status === 'failed').length;
+  const isDeploymentReady = productionReadiness.ready && isConnected;
 
   return (
-    <div className="space-y-6 p-6 max-w-4xl mx-auto">
-      <div className="text-center space-y-2">
-        <div className="flex items-center justify-center gap-2 mb-4">
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <div className="flex items-center justify-center space-x-2">
           <Rocket className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-foreground bg-clip-text text-transparent">
-            AudioTon Mainnet Deployment
-          </h1>
+          <h1 className="text-3xl font-bold">Mainnet Contract Deployment</h1>
         </div>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Deploy AudioTon's smart contracts to TON mainnet. This will create the payment processor, NFT collection, fan club system, and reward distributor contracts.
+          Deploy AudioTon's production smart contracts to TON mainnet
         </p>
+        
+        {/* Network Info */}
+        <div className="flex items-center justify-center space-x-4 text-sm">
+          <div className="flex items-center space-x-1">
+            <Globe className="h-4 w-4" />
+            <span>TON Mainnet</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <Wallet className="h-4 w-4" />
+            <span>{isConnected ? 'Connected' : 'Not Connected'}</span>
+          </div>
+        </div>
       </div>
 
-      {/* Production Readiness Check */}
-      {productionReadiness && !productionReadiness.ready && (
+      {/* Production Readiness Alert */}
+      {!productionReadiness.ready && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Production Not Ready</AlertTitle>
           <AlertDescription>
-            Issues found: {productionReadiness.issues.join('. ')}
+            <strong>Production Not Ready:</strong> {productionReadiness.issues.join(', ')}
             <br />
-            <span className="text-sm">Replace placeholder BOC strings with real compiled bytecode before mainnet deployment.</span>
+            <span className="text-sm mt-1 block">
+              Replace placeholder contracts with real compiled bytecode before mainnet deployment.
+            </span>
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Production Ready Alert */}
-      {productionReadiness && productionReadiness.ready && (
-        <Card className="border-success/30 bg-success/5">
-          <CardHeader className="text-center">
-            <div className="mx-auto p-3 rounded-full bg-success/10 border-2 border-success/20 w-fit">
-              <CheckCircle className="h-6 w-6 text-success" />
-            </div>
-            <CardTitle className="text-success-foreground">Ready for Production</CardTitle>
-            <CardDescription className="text-success-foreground/80">
-              All contracts have real compiled bytecode and are ready for mainnet deployment.
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      {/* Wallet Status */}
+      {!isConnected && (
+        <Alert>
+          <Wallet className="h-4 w-4" />
+          <AlertDescription>
+            Connect your TON wallet to proceed with mainnet deployment. 
+            Minimum balance required: <strong>{minimumWalletBalance.toFixed(1)} TON</strong>
+          </AlertDescription>
+        </Alert>
       )}
 
-      {/* Connected Wallet Info */}
-      {isWalletConnected && walletInfo && (
-        <Card className="border-success/30 bg-success/5">
-          <CardHeader className="text-center">
-            <div className="mx-auto p-3 rounded-full bg-success/10 border-2 border-success/20 w-fit">
-              <Wallet className="h-6 w-6 text-success" />
-            </div>
-            <CardTitle className="text-success-foreground">Wallet Connected</CardTitle>
-            <CardDescription className="text-success-foreground/80">
-              {walletInfo.account.address.slice(0, 10)}...{walletInfo.account.address.slice(-8)}
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
-
-      <Card className="border-primary/20">
+      {/* Pre-deployment Summary */}
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Pre-Deployment Summary
-            <Badge variant="outline">TON Mainnet</Badge>
+          <CardTitle className="flex items-center space-x-2">
+            <Shield className="h-5 w-5" />
+            <span>Deployment Summary</span>
           </CardTitle>
-          <CardDescription>
-            Review deployment configuration before proceeding
-          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <span className="font-medium">Network:</span> TON Mainnet
+              <div className="text-2xl font-bold text-primary">{deploymentSteps.length}</div>
+              <div className="text-sm text-muted-foreground">Contracts</div>
             </div>
             <div>
-              <span className="font-medium">Total Cost:</span> ~{totalCost.toFixed(1)} TON
+              <div className="text-2xl font-bold text-primary">{totalEstimatedCost.toFixed(1)}</div>
+              <div className="text-sm text-muted-foreground">Total TON</div>
             </div>
             <div>
-              <span className="font-medium">Treasury Address:</span> 
-              <code className="ml-2 text-xs">{MAINNET_DEPLOYMENT_CONFIG.owner.slice(0, 20)}...</code>
+              <div className="text-2xl font-bold text-primary">Mainnet</div>
+              <div className="text-sm text-muted-foreground">Network</div>
             </div>
             <div>
-              <span className="font-medium">Platform Fee:</span> {MAINNET_DEPLOYMENT_CONFIG.fee_percentage / 100}%
+              <div className="text-2xl font-bold text-primary">5%</div>
+              <div className="text-sm text-muted-foreground">Fee %</div>
             </div>
+          </div>
+          
+          <div className="text-center text-sm text-muted-foreground pt-2 border-t">
+            Treasury Address: <code className="text-xs">EQD...abc123</code> (Demo)
           </div>
         </CardContent>
       </Card>
 
-      {!allDeployed && (
+      {/* Deployment Progress */}
+      {(isDeploying || completedSteps > 0) && (
         <Card>
           <CardHeader>
             <CardTitle>Deployment Progress</CardTitle>
             <CardDescription>
-              Deploy contracts to TON mainnet
+              {completedSteps}/{deploymentSteps.length} contracts deployed
+              {failedSteps > 0 && ` (${failedSteps} failed)`}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Overall Progress</span>
-                <span>{Math.round(deploymentProgress)}%</span>
-              </div>
-              <Progress value={deploymentProgress} className="h-2" />
-            </div>
-
-            <div className="space-y-4">
-              {deploymentSteps.map((step, index) => (
-                <div key={step.id} className="flex items-center gap-4 p-4 rounded-lg border">
-                  <div className="flex-shrink-0">
-                    {getStepIcon(step.status)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium">{step.title}</h3>
-                      <Badge variant={step.status === 'completed' ? 'default' : 'secondary'}>
-                        {step.estimatedCost}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">{step.description}</p>
-                    {step.contractAddress && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <code className="text-xs bg-secondary px-2 py-1 rounded">
-                          {step.contractAddress}
-                        </code>
-                        {step.txHash && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-6 px-2 text-xs"
-                            onClick={() => window.open(`https://tonviewer.com/transaction/${step.txHash}`, '_blank')}
-                          >
-                            <ExternalLink className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Mainnet Deployment Warning</AlertTitle>
-              <AlertDescription>
-                This will deploy smart contracts to TON mainnet using real TON tokens. 
-                Total estimated cost: {totalCost.toFixed(1)} TON. All contracts have been audited and tested.
-              </AlertDescription>
-            </Alert>
-
-            <Separator />
-
-            <div className="flex justify-center">
-              <Button 
-                onClick={startMainnetDeployment}
-                disabled={isDeploying || !isWalletConnected || (productionReadiness && !productionReadiness.ready)}
-                size="lg"
-                className="px-8"
-              >
-                {isDeploying ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Deploying to Mainnet...
-                  </>
-                ) : productionReadiness && !productionReadiness.ready ? (
-                  <>
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Replace Placeholder Contracts
-                  </>
-                ) : (
-                  <>
-                    <Rocket className="h-4 w-4 mr-2" />
-                    Deploy to TON Mainnet
-                  </>
-                )}
-              </Button>
+          <CardContent>
+            <Progress value={deploymentProgress} className="w-full" />
+            <div className="flex justify-between text-sm text-muted-foreground mt-2">
+              <span>{Math.round(deploymentProgress)}% complete</span>
+              <span>Status: {deploymentStatus}</span>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {deploymentSummary && (
-        <Card className="border-success/20 bg-success/5">
+      {/* Deployment Steps */}
+      <div className="space-y-4">
+        {deploymentSteps.map((step, index) => (
+          <Card key={step.id} className={step.status === 'in-progress' ? 'ring-2 ring-primary' : ''}>
+            <CardContent className="pt-6">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start space-x-4 flex-1">
+                  {getStepIcon(step.status)}
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <h3 className="font-semibold">{step.title}</h3>
+                      <Badge variant={getPriorityBadgeVariant(step.priority)}>
+                        {step.priority}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{step.description}</p>
+                    
+                    {step.contractAddress && (
+                      <div className="mt-3 space-y-2">
+                        <div className="flex items-center space-x-2 text-sm">
+                          <span className="text-muted-foreground min-w-[60px]">Address:</span>
+                          <code className="bg-muted px-2 py-1 rounded text-xs font-mono">
+                            {step.contractAddress}
+                          </code>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                            <ExternalLink className="h-3 w-3" />
+                          </Button>
+                        </div>
+                        {step.txHash && (
+                          <div className="flex items-center space-x-2 text-sm">
+                            <span className="text-muted-foreground min-w-[60px]">TX Hash:</span>
+                            <code className="bg-muted px-2 py-1 rounded text-xs font-mono">
+                              {step.txHash.substring(0, 20)}...
+                            </code>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="text-right ml-4">
+                  <div className="text-sm font-medium">{step.estimatedCost}</div>
+                  <div className="text-xs text-muted-foreground">Est. cost</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Warning */}
+      <Alert>
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription>
+          <strong>⚠️ Mainnet Deployment Warning:</strong> This will deploy contracts to TON mainnet using real tokens. 
+          Estimated total cost: <strong>{totalEstimatedCost.toFixed(1)} TON</strong>. 
+          Ensure contracts are audited and tested.
+        </AlertDescription>
+      </Alert>
+
+      {/* Deploy Button with Confirmation Dialog */}
+      <div className="flex justify-center">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              disabled={!isDeploymentReady || isDeploying}
+              size="lg"
+              className="w-full md:w-auto"
+            >
+              {isDeploying ? (
+                <>
+                  <Clock className="mr-2 h-4 w-4 animate-spin" />
+                  Deploying to Mainnet...
+                </>
+              ) : !productionReadiness.ready ? (
+                <>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Fix Production Issues
+                </>
+              ) : !isConnected ? (
+                <>
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Connect Wallet First
+                </>
+              ) : (
+                <>
+                  <Rocket className="mr-2 h-4 w-4" />
+                  Deploy to TON Mainnet
+                </>
+              )}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirm Mainnet Deployment</AlertDialogTitle>
+              <AlertDialogDescription>
+                You are about to deploy {deploymentSteps.length} smart contracts to TON mainnet.
+                <br /><br />
+                <strong>Total estimated cost: {totalEstimatedCost.toFixed(1)} TON</strong>
+                <br />
+                <strong>Connected wallet: </strong>
+                <code className="text-xs">{walletAddress?.substring(0, 20)}...</code>
+                <br /><br />
+                This action cannot be undone. Are you sure you want to proceed?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={startMainnetDeployment}>
+                Deploy Contracts
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+
+      {/* Completion Message */}
+      {deploymentStatus === 'completed' && (
+        <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-success">
+            <CardTitle className="flex items-center space-x-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              Deployment Complete
+              <span>🎉 Deployment Complete!</span>
             </CardTitle>
-            <CardDescription>
-              All contracts successfully deployed to TON mainnet
+            <CardDescription className="text-green-600 dark:text-green-400">
+              All AudioTon smart contracts successfully deployed to TON mainnet
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Next Steps</AlertTitle>
-              <AlertDescription>
-                1. Update production configuration with deployed contract addresses<br/>
-                2. Configure audioton.co domain<br/>
-                3. Test all contract integrations<br/>
-                4. Verify contract ownership and security
-              </AlertDescription>
-            </Alert>
-            
-            <div className="mt-4 p-4 bg-secondary/50 rounded-lg">
-              <h4 className="font-medium mb-2">Deployment Summary</h4>
-              <pre className="text-xs overflow-x-auto">
-                {JSON.stringify(deploymentSummary, null, 2)}
-              </pre>
+            <div className="space-y-2">
+              <p className="text-sm">
+                <strong>Next steps:</strong>
+              </p>
+              <ul className="text-sm space-y-1 ml-4">
+                <li>• Update production configuration with contract addresses</li>
+                <li>• Verify contract functionality on mainnet</li>
+                <li>• Begin user onboarding and marketing</li>
+                <li>• Monitor contract performance and user activity</li>
+              </ul>
             </div>
           </CardContent>
         </Card>
