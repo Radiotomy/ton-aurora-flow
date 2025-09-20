@@ -22,7 +22,8 @@ import {
   LogOut,
   Radio,
   ShoppingCart,
-  ArrowRightLeft
+  ArrowRightLeft,
+  Rocket
 } from 'lucide-react';
 
 const Navigation = () => {
@@ -42,11 +43,17 @@ const Navigation = () => {
     { icon: Music, label: 'Playlists', href: '/playlists' },
     { icon: Radio, label: 'Live Events', href: '/live-events' },
     { icon: Users, label: 'Fan Clubs', href: '/fan-clubs' },
+    { icon: Rocket, label: 'Deploy', href: '/mainnet-deploy' },
   ];
 
   // Only show Creator Studio for artists
   const artistNavItems = [
     { icon: Palette, label: 'Creator Studio', href: '/creator-studio' },
+  ];
+
+  // Developer/admin items
+  const devNavItems = [
+    { icon: Rocket, label: 'Deploy', href: '/mainnet-deploy' },
   ];
 
   const allNavItems = [...navItems, ...(canAccessCreatorStudio() ? artistNavItems : [])];
