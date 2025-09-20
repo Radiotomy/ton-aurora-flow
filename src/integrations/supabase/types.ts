@@ -779,6 +779,36 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_log: {
+        Row: {
+          action_type: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          record_id: string | null
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       stream_sessions: {
         Row: {
           event_id: string
@@ -1183,6 +1213,14 @@ export type Database = {
       can_access_financial_data: {
         Args: { target_user_id: string }
         Returns: boolean
+      }
+      can_access_financial_data_secure: {
+        Args: { target_profile_id: string }
+        Returns: boolean
+      }
+      get_safe_profile_fields: {
+        Args: Record<PropertyKey, never>
+        Returns: string
       }
       get_user_role: {
         Args: { _user_id: string }
