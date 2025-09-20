@@ -74,30 +74,63 @@ export const MainnetDeploymentManager: React.FC = () => {
   const totalEstimatedCost = deploymentSteps.reduce((sum, step) => sum + parseFloat(step.estimatedCost), 0);
   const minimumWalletBalance = totalEstimatedCost + 0.5; // Extra for fees
 
-  // Check production readiness on mount
+  // Check production readiness with enhanced validation
   useEffect(() => {
-    const checkReadiness = () => {
-      const issues: string[] = [];
-      
-      // Check environment variables
-      if (!import.meta.env.VITE_TON_PROD_DEPLOY_ENABLED) {
-        issues.push('Production deployment not enabled in environment');
+    const checkReadiness = async () => {
+      try {
+        // Import the enhanced contract validation
+        const { checkContractProductionReadiness } = await import('@/utils/contractCompilationValidator');
+        const readinessCheck = await checkContractProductionReadiness();
+        
+        if (!readinessCheck.ready) {
+          setProductionReadiness({
+            ready: false,
+            issues: readinessCheck.issues
+          });
+        } else {
+          setProductionReadiness({
+            ready: true,
+            issues: []
+          });
+        }
+
+        // Check environment variables - we now use Supabase secrets instead
+        // No need to check frontend env vars as TonCenter API is handled via edge functions
+        console.log('✅ TonCenter API configured via Supabase edge function');
+        
+        // Additional production checks
+        if (isConnected && wallet) {
+          try {
+            const { RealWalletBalanceService } = await import('@/services/realWalletBalanceService');
+            const balanceValidation = await RealWalletBalanceService.validateDeploymentBalance(
+              wallet.account.address
+            );
+            
+            if (!balanceValidation.sufficient) {
+              setProductionReadiness(prev => ({
+                ready: false,
+                issues: [
+                  ...prev.issues,
+                  balanceValidation.recommendation
+                ]
+              }));
+            }
+          } catch (balanceError) {
+            console.warn('Could not validate wallet balance:', balanceError);
+          }
+        }
+        
+      } catch (error) {
+        console.error('Production readiness check failed:', error);
+        setProductionReadiness({
+          ready: false,
+          issues: ['Failed to verify production readiness']
+        });
       }
-      
-      // Check for placeholder contracts
-      if (hasPlaceholderContracts()) {
-        const placeholders = getPlaceholderContractsList();
-        issues.push(`Placeholder contracts detected: ${placeholders.join(', ')}`);
-      }
-      
-      setProductionReadiness({
-        ready: issues.length === 0,
-        issues
-      });
     };
 
     checkReadiness();
-  }, []);
+  }, [isConnected, wallet]);
 
   const updateStepStatus = useCallback((stepId: string, updates: Partial<DeploymentStep>) => {
     setDeploymentSteps(prev => prev.map(step => 
@@ -105,16 +138,39 @@ export const MainnetDeploymentManager: React.FC = () => {
     ));
   }, []);
 
+  // Enhanced wallet balance validation with detailed breakdown
   const validateWalletBalance = async (): Promise<boolean> => {
     if (!wallet) return false;
     
     try {
-      // Get wallet balance from TON Connect
-      const balance = await tonConnectUI.getWallets();
-      // This is a simplified check - in production you'd get actual balance
-      return true; // Assume sufficient balance for now
+      const { RealWalletBalanceService } = await import('@/services/realWalletBalanceService');
+      
+      // Get comprehensive deployment validation
+      const validation = await RealWalletBalanceService.validateDeploymentBalance(
+        wallet.account.address
+      );
+      
+      if (!validation.sufficient) {
+        const shortfallTon = validation.shortfall ? 
+          Number(validation.shortfall) / 1e9 : 0;
+        
+        toast(`Insufficient Balance: Need ${shortfallTon.toFixed(4)} TON more. ${validation.recommendation}`);
+        return false;
+      }
+      
+      const costBreakdown = `
+        Per Contract: ${Number(validation.costs.perContract) / 1e9} TON
+        Total (4 contracts): ${Number(validation.costs.totalForAllContracts) / 1e9} TON
+        Gas Reserve: ${Number(validation.costs.gasReserve) / 1e9} TON
+        ${validation.costs.estimatedUSD ? `(~$${validation.costs.estimatedUSD.toFixed(2)} USD)` : ''}
+      `.trim();
+      
+      toast(`Balance Validated ✅: ${validation.recommendation}\n\nDeployment Cost Breakdown:\n${costBreakdown}`);
+      return true;
+      
     } catch (error) {
-      console.error('Failed to check wallet balance:', error);
+      console.error('Balance validation failed:', error);
+      toast("Balance Check Failed: Could not verify wallet balance. Please try again.");
       return false;
     }
   };

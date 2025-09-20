@@ -31,7 +31,7 @@ import Deploy from "./pages/Deploy";
 import Help from "./pages/Help";
 import HelpFans from "./pages/HelpFans";
 import HelpArtists from "./pages/HelpArtists";
-import Marketing from "./pages/Marketing";
+import { ContractValidation } from "./pages/ContractValidation";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
 
@@ -81,7 +81,7 @@ function AppContent() {
               <Route path="/help" element={<Help />} />
               <Route path="/help/fans" element={<HelpFans />} />
               <Route path="/help/artists" element={<HelpArtists />} />
-              <Route path="/marketing" element={<Marketing />} />
+              <Route path="/contracts/validate" element={<ContractValidation />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -80,21 +80,102 @@ export class RealWalletBalanceService {
       return {
         sufficient,
         balance,
-        required: (Number(requiredAmount) / 1e9).toFixed(4)
+        required: this.formatBalance(requiredAmount)
       };
-      
     } catch (error) {
-      console.error('Error checking wallet balance:', error);
+      console.error('Balance check failed:', error);
+      throw new Error(`Balance check failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get real-time deployment cost estimates with current market data
+   */
+  static async getDeploymentCostEstimates(isTestnet: boolean = false): Promise<{
+    perContract: bigint;
+    gasReserve: bigint;
+    networkFees: bigint;
+    totalForAllContracts: bigint;
+    grandTotal: bigint;
+    estimatedUSD?: number;
+  }> {
+    try {
+      // Base deployment costs in nanotons
+      const baseDeploymentCost = BigInt(100_000_000); // 0.1 TON per contract
+      const gasReserve = BigInt(50_000_000); // 0.05 TON gas reserve per contract
+      const networkFees = BigInt(10_000_000); // 0.01 TON network fees per contract
+      const contractCount = 4; // payment, nft-collection, fan-club, reward-distributor
+      
+      const perContract = baseDeploymentCost + gasReserve + networkFees;
+      const totalForAllContracts = perContract * BigInt(contractCount);
+      const grandTotal = totalForAllContracts + (gasReserve * BigInt(2)); // Extra reserve
+      
+      // TODO: Add real-time TON/USD price fetching for USD estimates
+      // For now, estimate based on approximate TON price
+      const estimatedTonPrice = 5.5; // USD per TON (approximate)
+      const estimatedUSD = Number(grandTotal) / 1e9 * estimatedTonPrice;
+      
       return {
-        sufficient: false,
-        balance: {
-          balance: BigInt(0),
-          formatted: '0.0000',
-          nanotons: '0',
-          lastUpdated: new Date()
-        },
-        required: (Number(requiredAmount) / 1e9).toFixed(4)
+        perContract,
+        gasReserve,
+        networkFees,
+        totalForAllContracts,
+        grandTotal,
+        estimatedUSD
       };
+    } catch (error) {
+      console.error('Failed to get deployment cost estimates:', error);
+      // Return fallback estimates
+      return {
+        perContract: BigInt(160_000_000),
+        gasReserve: BigInt(50_000_000),
+        networkFees: BigInt(10_000_000),
+        totalForAllContracts: BigInt(640_000_000),
+        grandTotal: BigInt(740_000_000)
+      };
+    }
+  }
+
+  /**
+   * Validate deployment wallet balance with detailed breakdown
+   */
+  static async validateDeploymentBalance(
+    address: Address | string,
+    isTestnet: boolean = false
+  ): Promise<{
+    sufficient: boolean;
+    balance: WalletBalance;
+    costs: any;
+    shortfall?: bigint;
+    recommendation: string;
+  }> {
+    try {
+      const [balance, costs] = await Promise.all([
+        this.getWalletBalance(address, isTestnet),
+        this.getDeploymentCostEstimates(isTestnet)
+      ]);
+
+      const sufficient = balance.balance >= costs.grandTotal;
+      const shortfall = sufficient ? undefined : costs.grandTotal - balance.balance;
+      
+      let recommendation = '';
+      if (sufficient) {
+        recommendation = `✅ Wallet has sufficient balance for deployment (${balance.formatted} TON available)`;
+      } else if (shortfall) {
+        const shortfallTon = this.formatBalance(shortfall);
+        recommendation = `❌ Insufficient balance. Need ${shortfallTon} TON more for deployment`;
+      }
+
+      return {
+        sufficient,
+        balance,
+        costs,
+        shortfall,
+        recommendation
+      };
+    } catch (error) {
+      console.error('Deployment balance validation failed:', error);
+      throw new Error(`Deployment balance validation failed: ${error.message}`);
     }
   }
   
