@@ -741,7 +741,7 @@ int get_balance() method_id {
       return {
         code,
         abi: JSON.stringify(abi),
-        sourceHash,
+        sourceHash: sourceHash.toString(),
         gasUsage,
         size
       };
