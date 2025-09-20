@@ -119,7 +119,7 @@ export class ContractCompilationValidator {
       
       // 5. Test mainnet compilation
       try {
-        const dummyAddress = Address.parse('EQD0vdSA_NHOzzQe2zGHnhsrw-VXQGJKiGkwZBEUiWrN1HTl');
+        const dummyAddress = Address.parse('EQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c');
         const mainnetCompiled = await MainnetContractCompiler.compileContract(
           contractName, 
           dummyAddress,
