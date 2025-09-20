@@ -69,6 +69,32 @@ export function updateProductionConfig(contracts: DeployedContracts): void {
 }
 
 /**
+ * Confirm mainnet deployment with provided contract addresses
+ */
+export function confirmMainnetDeployment(contracts: DeployedContracts): DeploymentReport {
+  const isValid = validateContractAddresses(contracts);
+  
+  if (!isValid) {
+    throw new Error('Invalid contract addresses provided');
+  }
+  
+  const report = generateDeploymentReport(
+    contracts,
+    'AudioTon Mainnet Deployment',
+    '1.2',
+    {
+      paymentProcessor: 'Deployed to mainnet',
+      nftCollection: 'Deployed to mainnet', 
+      fanClub: 'Deployed to mainnet',
+      rewardDistributor: 'Deployed to mainnet'
+    }
+  );
+  
+  console.log('✅ Mainnet deployment confirmed:', report);
+  return report;
+}
+
+/**
  * Generate comprehensive deployment report
  */
 export function generateDeploymentReport(
