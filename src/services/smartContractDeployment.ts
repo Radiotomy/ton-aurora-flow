@@ -8,7 +8,7 @@ import { PaymentContract, PaymentContractConfig } from '@/contracts/PaymentContr
 import { NFTCollectionContract, NFTCollectionConfig } from '@/contracts/NFTCollectionContract';
 import { FanClubContract, FanClubContractConfig } from '@/contracts/FanClubContract';
 import { RewardDistributorContract, RewardDistributorConfig } from '@/contracts/RewardDistributorContract';
-import { compileContractWithBlueprint } from '@/utils/blueprintCompiler';
+import { compileMainnetContract } from '@/utils/mainnetContractCompiler';
 import { toast } from 'sonner';
 
 export interface DeploymentConfig {
@@ -30,9 +30,9 @@ export class SmartContractDeploymentService {
     try {
       console.log('Compiling Payment Contract with real FunC...');
       
-      // Compile contract using Blueprint
+      // Compile contract using real mainnet compiler
       const ownerAddress = Address.parse(config.owner);
-      const compilation = await compileContractWithBlueprint('payment', ownerAddress, {
+      const compilation = await compileMainnetContract('payment', ownerAddress, {
         feePercentage: config.fee_percentage
       });
 
@@ -102,9 +102,9 @@ export class SmartContractDeploymentService {
     try {
       console.log('Compiling NFT Collection Contract with real FunC...');
       
-      // Compile contract using Blueprint
+      // Compile contract using real mainnet compiler
       const ownerAddress = Address.parse(config.owner);
-      const compilation = await compileContractWithBlueprint('nft-collection', ownerAddress, {
+      const compilation = await compileMainnetContract('nft-collection', ownerAddress, {
         royaltyNumerator: config.royalty_numerator,
         royaltyDenominator: config.royalty_denominator,
         royaltyAddress: ownerAddress
@@ -173,9 +173,9 @@ export class SmartContractDeploymentService {
     try {
       console.log('Compiling Fan Club Contract with real FunC...');
       
-      // Compile contract using Blueprint
+      // Compile contract using real mainnet compiler
       const ownerAddress = Address.parse(config.owner);
-      const compilation = await compileContractWithBlueprint('fan-club', ownerAddress, {
+      const compilation = await compileMainnetContract('fan-club', ownerAddress, {
         artistId: "audioton_platform",
         membershipPrice: BigInt(10 * 1e9), // 10 TON
         maxSupply: 10000,
@@ -245,9 +245,9 @@ export class SmartContractDeploymentService {
     try {
       console.log('Compiling Reward Distributor Contract with real FunC...');
       
-      // Compile contract using Blueprint
+      // Compile contract using real mainnet compiler
       const ownerAddress = Address.parse(config.owner);
-      const compilation = await compileContractWithBlueprint('reward-distributor', ownerAddress, {
+      const compilation = await compileMainnetContract('reward-distributor', ownerAddress, {
         initialPool: BigInt(1000 * 1e9), // 1000 TON initial pool
         distributionPeriod: 86400 * 7, // Weekly (7 days in seconds)
         minClaimAmount: BigInt(1 * 1e9) // 1 TON minimum claim

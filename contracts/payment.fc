@@ -1,0 +1,160 @@
+;; AudioTon Payment Contract - Production Mainnet Version
+;; Handles tips, NFT purchases, and fan club memberships with fee collection
+
+#include "imports/stdlib.fc";
+#include "imports/params.fc";
+#include "imports/op-codes.fc";
+
+;; Operation codes
+const int op::tip = 0x01;
+const int op::payment = 0x02;
+const int op::withdraw = 0x03;
+
+;; Error codes
+const int error::unauthorized = 401;
+const int error::insufficient_funds = 402;
+const int error::invalid_amount = 403;
+
+;; Storage structure:
+;; seqno:32 owner_addr:267 fee_percentage:16
+
+(int, slice, int) load_data() inline {
+    slice ds = get_data().begin_parse();
+    return (
+        ds~load_uint(32),    ;; seqno
+        ds~load_msg_addr(),  ;; owner address
+        ds~load_uint(16)     ;; fee percentage (basis points)
+    );
+}
+
+() save_data(int seqno, slice owner_addr, int fee_percentage) impure inline {
+    set_data(
+        begin_cell()
+            .store_uint(seqno, 32)
+            .store_slice(owner_addr)
+            .store_uint(fee_percentage, 16)
+            .end_cell()
+    );
+}
+
+() send_money(slice to_addr, int amount, int mode) impure inline {
+    cell msg = begin_cell()
+        .store_uint(0x10, 6) ;; nobounce
+        .store_slice(to_addr)
+        .store_coins(amount)
+        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+        .end_cell();
+    send_raw_message(msg, mode);
+}
+
+() process_tip(slice sender_addr, int msg_value, slice in_msg) impure {
+    (int seqno, slice owner_addr, int fee_percentage) = load_data();
+    
+    int query_id = in_msg~load_uint(64);
+    slice recipient_addr = in_msg~load_msg_addr();
+    slice message = in_msg~load_ref().begin_parse();
+    
+    ;; Calculate fee (fee_percentage is in basis points)
+    int fee_amount = (msg_value * fee_percentage) / 10000;
+    int tip_amount = msg_value - fee_amount;
+    
+    throw_unless(error::invalid_amount, tip_amount > 0);
+    
+    ;; Send tip to recipient
+    send_money(recipient_addr, tip_amount, 1);
+    
+    ;; Send fee to owner if fee > 0
+    if (fee_amount > 0) {
+        send_money(owner_addr, fee_amount, 1);
+    }
+    
+    ;; Update seqno
+    save_data(seqno + 1, owner_addr, fee_percentage);
+}
+
+() process_payment(slice sender_addr, int msg_value, slice in_msg) impure {
+    (int seqno, slice owner_addr, int fee_percentage) = load_data();
+    
+    int query_id = in_msg~load_uint(64);
+    slice recipient_addr = in_msg~load_msg_addr();
+    slice payment_type = in_msg~load_ref().begin_parse();
+    slice item_id = in_msg~load_ref().begin_parse();
+    
+    ;; Calculate fee
+    int fee_amount = (msg_value * fee_percentage) / 10000;
+    int payment_amount = msg_value - fee_amount;
+    
+    throw_unless(error::invalid_amount, payment_amount > 0);
+    
+    ;; Send payment to recipient
+    send_money(recipient_addr, payment_amount, 1);
+    
+    ;; Send fee to owner if fee > 0
+    if (fee_amount > 0) {
+        send_money(owner_addr, fee_amount, 1);
+    }
+    
+    ;; Update seqno
+    save_data(seqno + 1, owner_addr, fee_percentage);
+}
+
+() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+    if (in_msg_body.slice_empty?()) { ;; Simple transfer
+        return ();
+    }
+    
+    slice cs = in_msg_full.begin_parse();
+    int flags = cs~load_uint(4);
+    
+    if (flags & 1) { ;; Bounced message
+        return ();
+    }
+    
+    slice sender_addr = cs~load_msg_addr();
+    
+    int op = in_msg_body~load_uint(32);
+    
+    if (op == op::tip) {
+        process_tip(sender_addr, msg_value, in_msg_body);
+        return ();
+    }
+    
+    if (op == op::payment) {
+        process_payment(sender_addr, msg_value, in_msg_body);
+        return ();
+    }
+    
+    if (op == op::withdraw) {
+        (int seqno, slice owner_addr, int fee_percentage) = load_data();
+        throw_unless(error::unauthorized, equal_slices(sender_addr, owner_addr));
+        
+        int withdraw_amount = in_msg_body~load_coins();
+        throw_unless(error::insufficient_funds, my_balance >= withdraw_amount);
+        
+        send_money(owner_addr, withdraw_amount, 1);
+        save_data(seqno + 1, owner_addr, fee_percentage);
+        return ();
+    }
+    
+    throw(0xffff); ;; Unknown operation
+}
+
+;; Get methods
+int get_seqno() method_id {
+    (int seqno, _, _) = load_data();
+    return seqno;
+}
+
+slice get_owner() method_id {
+    (_, slice owner_addr, _) = load_data();
+    return owner_addr;
+}
+
+int get_fee_percentage() method_id {
+    (_, _, int fee_percentage) = load_data();
+    return fee_percentage;
+}
+
+int get_balance() method_id {
+    return get_balance();
+}

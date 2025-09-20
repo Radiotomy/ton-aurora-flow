@@ -1,0 +1,42 @@
+;; Standard library for FunC smart contracts
+;; Common functions and utilities
+
+;; Cell manipulation
+forall X -> X null() asm "PUSHNULL";
+forall X -> (X, ()) ~impure_touch() impure asm "NOP";
+
+;; Slice operations
+int slice_refs(slice s) asm "SREFS";
+int slice_bits(slice s) asm "SBITS";
+(slice, int) slice_last(slice s, int len) asm "SSUBSLICE" "SWAP";
+
+;; Builder operations  
+builder begin_cell() asm "NEWC";
+cell end_cell(builder b) asm "ENDC";
+builder store_ref(builder b, cell c) asm(c b) "STREF";
+builder store_uint(builder b, int x, int len) asm(x b len) "STUX";
+builder store_int(builder b, int x, int len) asm(x b len) "STIX";
+
+;; Dictionary operations
+(cell, int) pfxdict_get?(cell dict, int key_len, slice key) asm(key dict key_len) "PFXDICTGET" "NULLSWAPIFNOT";
+(cell, int) pfxdict_set?(cell dict, int key_len, slice key, slice value) asm(value key dict key_len) "PFXDICTSET";
+
+;; Message operations
+() send_raw_message(cell msg, int mode) impure asm "SENDRAWMSG";
+cell config_param(int x) asm "CONFIGPARAM";
+
+;; Math operations
+int min(int x, int y) asm "MIN";
+int max(int x, int y) asm "MAX";
+
+;; Hashing
+int cell_hash(cell c) asm "HASHCU";
+int slice_hash(slice s) asm "HASHSU";
+
+;; Exception handling
+() throw(int excno) impure asm "THROW";
+() throw_if(int excno, int cond) impure asm "THROWIF";
+() throw_unless(int excno, int cond) impure asm "THROWIFNOT";
+
+;; Comparison
+int equal_slices(slice a, slice b) asm "SDEQ";

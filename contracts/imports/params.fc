@@ -1,0 +1,27 @@
+;; AudioTon Contract Parameters
+;; Common constants and parameters used across contracts
+
+;; Gas and fee constants
+const int MIN_TON_FOR_STORAGE = 50000000; ;; 0.05 TON
+const int MINT_FEE = 20000000; ;; 0.02 TON  
+const int TRANSFER_FEE = 10000000; ;; 0.01 TON
+
+;; Platform fees (in basis points - 100 = 1%)
+const int DEFAULT_PLATFORM_FEE = 100; ;; 1%
+const int MAX_PLATFORM_FEE = 500; ;; 5%
+
+;; Royalty constants
+const int DEFAULT_ROYALTY = 250; ;; 2.5%
+const int MAX_ROYALTY = 1000; ;; 10%
+const int ROYALTY_BASE = 10000; ;; 100% = 10000 basis points
+
+;; Time constants
+const int SECOND = 1;
+const int MINUTE = 60;
+const int HOUR = 3600;
+const int DAY = 86400;
+const int WEEK = 604800;
+
+;; Collection limits
+const int MAX_BATCH_MINT = 255;
+const int MAX_COLLECTION_SIZE = 10000;
