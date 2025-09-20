@@ -8,7 +8,6 @@ import { Rocket, Shield, Globe, Zap, CheckCircle, AlertTriangle, Clock, External
 import { useWeb3 } from '@/hooks/useWeb3';
 import { useTonConnectUI } from '@tonconnect/ui-react';
 import { toast } from 'sonner';
-import { Address, Cell, beginCell } from '@ton/core';
 import { SmartContractDeploymentService, MAINNET_DEPLOYMENT_CONFIG } from '@/services/smartContractDeployment';
 import { ContractBytecode } from '@/utils/contractBytecode';
 import { updateProductionConfig, validateContractAddresses, generateDeploymentReport, type DeployedContracts } from '@/utils/configUpdater';
@@ -38,7 +37,7 @@ const MAINNET_DEPLOYMENT_STEPS: DeploymentStep[] = [
     title: 'NFT Collection Contract',
     description: 'Master contract for music NFT collection and minting',
     status: 'pending',
-    estimatedCost: '0.3 TON',
+    estimatedCost: '0.5 TON',
     priority: 'critical'
   },
   {
@@ -46,7 +45,7 @@ const MAINNET_DEPLOYMENT_STEPS: DeploymentStep[] = [
     title: 'Fan Club Contract',
     description: 'Manages exclusive fan club memberships and benefits',
     status: 'pending',
-    estimatedCost: '0.2 TON',
+    estimatedCost: '0.4 TON',
     priority: 'high'
   },
   {
@@ -54,7 +53,7 @@ const MAINNET_DEPLOYMENT_STEPS: DeploymentStep[] = [
     title: 'Reward Distributor Contract',
     description: 'Handles platform rewards and token distribution',
     status: 'pending',
-    estimatedCost: '0.2 TON',
+    estimatedCost: '0.4 TON',
     priority: 'high'
   }
 ];
@@ -63,9 +62,16 @@ export const ProductionDeploymentManager: React.FC = () => {
   const [deploymentSteps, setDeploymentSteps] = useState<DeploymentStep[]>(MAINNET_DEPLOYMENT_STEPS);
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentProgress, setDeploymentProgress] = useState(0);
-  const [totalEstimatedCost] = useState('1.2');
+  const [totalEstimatedCost] = useState('1.8');
+  const [productionReadiness, setProductionReadiness] = useState<{ ready: boolean; issues: string[] } | null>(null);
   const { isConnected, wallet, walletAddress, formattedBalance } = useWeb3();
   const [tonConnectUI] = useTonConnectUI();
+
+  // Check production readiness on component mount
+  React.useEffect(() => {
+    const readiness = ContractBytecode.checkProductionReadiness();
+    setProductionReadiness(readiness);
+  }, []);
 
   const updateStepStatus = useCallback((stepId: string, updates: Partial<DeploymentStep>) => {
     setDeploymentSteps(prev => prev.map(step => 
@@ -366,6 +372,18 @@ export const ProductionDeploymentManager: React.FC = () => {
         ))}
       </div>
 
+      {/* Production Readiness Check */}
+      {productionReadiness && !productionReadiness.ready && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Production Not Ready:</strong> {productionReadiness.issues.join('. ')}
+            <br />
+            <span className="text-sm">Replace placeholder BOC strings with real compiled bytecode before mainnet deployment.</span>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Critical Warning */}
       <Alert>
         <AlertTriangle className="h-4 w-4" />
@@ -379,7 +397,7 @@ export const ProductionDeploymentManager: React.FC = () => {
       <div className="flex justify-center">
         <Button
           onClick={startMainnetDeployment}
-          disabled={!isConnected || isDeploying}
+          disabled={!isConnected || isDeploying || (productionReadiness && !productionReadiness.ready)}
           size="lg"
           className="w-full md:w-auto"
         >
@@ -387,6 +405,11 @@ export const ProductionDeploymentManager: React.FC = () => {
             <>
               <Clock className="mr-2 h-4 w-4 animate-spin" />
               Deploying to Mainnet...
+            </>
+          ) : productionReadiness && !productionReadiness.ready ? (
+            <>
+              <Shield className="mr-2 h-4 w-4" />
+              Replace Placeholder Contracts
             </>
           ) : (
             <>

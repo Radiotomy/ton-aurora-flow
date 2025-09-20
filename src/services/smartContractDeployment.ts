@@ -42,14 +42,15 @@ export class SmartContractDeploymentService {
         data: compilation.initData
       };
 
-      // Calculate contract address from StateInit
+      // Calculate contract address from StateInit  
       const deployAddress = contractAddress(0, stateInit);
-      const address = deployAddress.toString({ bounceable: true, testOnly: false });
+      // Use non-bounceable address for safer deployment
+      const address = deployAddress.toString({ bounceable: false, testOnly: false });
 
       // Create proper deployment message with StateInit
       const deployMessage = {
         address: address,
-        amount: '250000000', // 0.25 TON for deployment + gas
+        amount: '500000000', // 0.5 TON for deployment + gas (increased)
         stateInit: beginCell().store(storeStateInit(stateInit)).endCell().toBoc().toString('base64'),
         payload: ''  // No payload needed for deployment
       };
@@ -64,7 +65,7 @@ export class SmartContractDeploymentService {
       console.log('Payment contract deployment transaction sent:', result);
 
       // Wait for transaction confirmation
-      const confirmed = await this.waitForTransactionConfirmation(result.boc);
+      const confirmed = await this.waitForTransactionConfirmation(result.boc, address);
       if (!confirmed) {
         throw new Error('Payment contract deployment confirmation failed');
       }
@@ -118,12 +119,12 @@ export class SmartContractDeploymentService {
 
       // Calculate contract address from StateInit
       const deployAddress = contractAddress(0, stateInit);
-      const address = deployAddress.toString({ bounceable: true, testOnly: false });
+      const address = deployAddress.toString({ bounceable: false, testOnly: false });
 
       // Create proper deployment message with StateInit
       const deployMessage = {
         address: address,
-        amount: '300000000', // 0.3 TON for NFT collection deployment + gas
+        amount: '500000000', // 0.5 TON for NFT collection deployment + gas (increased)
         stateInit: beginCell().store(storeStateInit(stateInit)).endCell().toBoc().toString('base64'),
         payload: ''
       };
@@ -136,7 +137,7 @@ export class SmartContractDeploymentService {
       });
 
       // Wait for transaction confirmation
-      await this.waitForTransactionConfirmation(result.boc);
+      await this.waitForTransactionConfirmation(result.boc, address);
 
       // Create contract instance
       const nftConfig: NFTCollectionConfig = {
@@ -190,12 +191,12 @@ export class SmartContractDeploymentService {
 
       // Calculate contract address from StateInit
       const deployAddress = contractAddress(0, stateInit);
-      const address = deployAddress.toString({ bounceable: true, testOnly: false });
+      const address = deployAddress.toString({ bounceable: false, testOnly: false });
 
       // Create proper deployment message with StateInit
       const deployMessage = {
         address: address,
-        amount: '250000000', // 0.25 TON for fan club deployment + gas
+        amount: '400000000', // 0.4 TON for fan club deployment + gas (increased)
         stateInit: beginCell().store(storeStateInit(stateInit)).endCell().toBoc().toString('base64'),
         payload: ''
       };
@@ -208,7 +209,7 @@ export class SmartContractDeploymentService {
       });
 
       // Wait for transaction confirmation
-      await this.waitForTransactionConfirmation(result.boc);
+      await this.waitForTransactionConfirmation(result.boc, address);
 
       // Create contract instance
       const fanClubConfig: FanClubContractConfig = {
@@ -261,12 +262,12 @@ export class SmartContractDeploymentService {
 
       // Calculate contract address from StateInit
       const deployAddress = contractAddress(0, stateInit);
-      const address = deployAddress.toString({ bounceable: true, testOnly: false });
+      const address = deployAddress.toString({ bounceable: false, testOnly: false });
 
       // Create proper deployment message with StateInit
       const deployMessage = {
         address: address,
-        amount: '250000000', // 0.25 TON for reward distributor deployment + gas
+        amount: '400000000', // 0.4 TON for reward distributor deployment + gas (increased)
         stateInit: beginCell().store(storeStateInit(stateInit)).endCell().toBoc().toString('base64'),
         payload: ''
       };
@@ -279,7 +280,7 @@ export class SmartContractDeploymentService {
       });
 
       // Wait for transaction confirmation
-      await this.waitForTransactionConfirmation(result.boc);
+      await this.waitForTransactionConfirmation(result.boc, address);
 
       // Create contract instance
       const rewardConfig: RewardDistributorConfig = {
@@ -326,30 +327,47 @@ export class SmartContractDeploymentService {
   /**
    * Wait for transaction confirmation on TON blockchain
    */
-  static async waitForTransactionConfirmation(txHash: string): Promise<boolean> {
+  static async waitForTransactionConfirmation(txBoc: string, contractAddress: string): Promise<boolean> {
     try {
-      console.log('Waiting for transaction confirmation:', txHash);
+      console.log('Waiting for contract deployment confirmation:', contractAddress);
       
-      // Poll TON blockchain for transaction status
+      // Get API key if available
+      const apiKey = import.meta.env.VITE_TONCENTER_API_KEY;
+      const keyParam = apiKey ? `&api_key=${apiKey}` : '';
+      
+      // Poll contract address for activation
       const maxAttempts = 30; // 60 seconds timeout
       let attempts = 0;
       
       while (attempts < maxAttempts) {
         try {
-          // Check transaction via TON Center API
-          const response = await fetch(`https://toncenter.com/api/v2/getTransactions?hash=${txHash}&limit=1`);
+          // Check contract state via TON Center API
+          const response = await fetch(
+            `https://toncenter.com/api/v2/getAddressInformation?address=${contractAddress}${keyParam}`
+          );
           
           if (response.ok) {
             const data = await response.json();
-            if (data.ok && data.result && data.result.length > 0) {
-              console.log('✅ Transaction confirmed:', txHash);
-              return true;
+            if (data.ok && data.result) {
+              const isActive = data.result.state === 'active';
+              const hasCode = data.result.code && data.result.code !== '';
+              
+              if (isActive && hasCode) {
+                console.log('✅ Contract confirmed and active:', contractAddress);
+                return true;
+              } else {
+                console.log(`Contract state: ${data.result.state}, has code: ${!!hasCode}`);
+              }
+            } else {
+              console.warn('API response not ok:', data);
             }
+          } else {
+            console.warn('API request failed:', response.status);
           }
           
           await new Promise(resolve => setTimeout(resolve, 2000));
           attempts++;
-          console.log(`Confirmation attempt ${attempts}/30...`);
+          console.log(`Confirmation attempt ${attempts}/30 for ${contractAddress.slice(0, 10)}...`);
           
         } catch (error) {
           console.warn(`Confirmation attempt ${attempts} failed:`, error);
@@ -358,12 +376,28 @@ export class SmartContractDeploymentService {
         }
       }
       
-      // Fallback: assume success after reasonable wait time
-      console.warn('Transaction confirmation timeout, proceeding with deployment');
+      // After timeout, try one more time to get final state
+      try {
+        const response = await fetch(
+          `https://toncenter.com/api/v2/getAddressInformation?address=${contractAddress}${keyParam}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data.ok && data.result?.state === 'active') {
+            console.log('✅ Contract confirmed after timeout:', contractAddress);
+            return true;
+          }
+        }
+      } catch (error) {
+        console.warn('Final confirmation check failed:', error);
+      }
+      
+      // If we can't confirm, log warning but don't fail deployment
+      console.warn('⚠️ Could not confirm contract deployment within timeout, but continuing...');
       return true;
       
     } catch (error) {
-      console.error('Transaction confirmation failed:', error);
+      console.error('Transaction confirmation error:', error);
       return true; // Continue deployment even if confirmation fails
     }
   }

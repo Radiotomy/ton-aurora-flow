@@ -4,7 +4,14 @@
  */
 
 import { Cell, beginCell } from '@ton/core';
-import { RealContractCompiler, compileContract } from './realContractCompiler';
+import { 
+  getPaymentContractCode,
+  getNFTCollectionContractCode, 
+  getFanClubContractCode,
+  getRewardDistributorContractCode,
+  hasPlaceholderContracts,
+  getPlaceholderContractsList
+} from '@/contracts/compiled';
 
 /**
  * Generate contract bytecode using proper compilation
@@ -74,48 +81,43 @@ export class ContractBytecode {
   }
 
   /**
-   * Get contract code by type (now using real compilation)
+   * Get contract code by type (now using real compiled BOCs or validated placeholders)
    */
   static async getContractCode(contractType: string): Promise<Cell> {
-    try {
-      console.log(`Compiling ${contractType} contract from source...`);
-      
-      // Map contract types to source names
-      const contractMap: Record<string, string> = {
-        'payment-processor': 'payment',
-        'nft-collection': 'nft-collection',
-        'nft-item': 'nft-item',
-        'fan-club': 'fan-club',
-        'reward-distributor': 'reward-distributor'
-      };
-      
-      const sourceName = contractMap[contractType];
-      if (!sourceName) {
+    console.log(`Loading ${contractType} contract code...`);
+    
+    // Load real compiled contract bytecode
+    switch (contractType) {
+      case 'payment-processor':
+        return getPaymentContractCode();
+      case 'nft-collection':
+        return getNFTCollectionContractCode();
+      case 'nft-item':
+        return this.getNFTItemCode(); // Still using placeholder - add compiled version later
+      case 'fan-club':
+        return getFanClubContractCode();
+      case 'reward-distributor':
+        return getRewardDistributorContractCode();
+      default:
         throw new Error(`Unknown contract type: ${contractType}`);
-      }
-      
-      // Use real contract compilation
-      return await compileContract(sourceName);
-      
-    } catch (error) {
-      console.warn(`Real compilation failed for ${contractType}, using fallback:`, error);
-      
-      // Fallback to enhanced placeholder bytecode
-      switch (contractType) {
-        case 'payment-processor':
-          return this.getPaymentProcessorCode();
-        case 'nft-collection':
-          return this.getNFTCollectionCode();
-        case 'nft-item':
-          return this.getNFTItemCode();
-        case 'fan-club':
-          return this.getFanClubCode();
-        case 'reward-distributor':
-          return this.getRewardDistributorCode();
-        default:
-          throw new Error(`Unknown contract type: ${contractType}`);
-      }
     }
+  }
+
+  /**
+   * Check if deployment should be blocked due to placeholder contracts
+   */
+  static checkProductionReadiness(): { ready: boolean; issues: string[] } {
+    const issues: string[] = [];
+    
+    if (hasPlaceholderContracts()) {
+      const placeholders = getPlaceholderContractsList();
+      issues.push(`Placeholder contracts detected: ${placeholders.join(', ')}`);
+    }
+    
+    return {
+      ready: issues.length === 0,
+      issues
+    };
   }
   
   /**
