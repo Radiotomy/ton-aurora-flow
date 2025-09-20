@@ -137,7 +137,10 @@ export class SmartContractDeploymentService {
       });
 
       // Wait for transaction confirmation
-      await this.waitForTransactionConfirmation(result.boc, address);
+      const confirmed = await this.waitForTransactionConfirmation(result.boc, address);
+      if (!confirmed) {
+        throw new Error('NFT Collection contract deployment confirmation failed');
+      }
 
       // Create contract instance
       const nftConfig: NFTCollectionConfig = {
@@ -209,7 +212,10 @@ export class SmartContractDeploymentService {
       });
 
       // Wait for transaction confirmation
-      await this.waitForTransactionConfirmation(result.boc, address);
+      const confirmed = await this.waitForTransactionConfirmation(result.boc, address);
+      if (!confirmed) {
+        throw new Error('Fan Club contract deployment confirmation failed');
+      }
 
       // Create contract instance
       const fanClubConfig: FanClubContractConfig = {
@@ -280,7 +286,10 @@ export class SmartContractDeploymentService {
       });
 
       // Wait for transaction confirmation
-      await this.waitForTransactionConfirmation(result.boc, address);
+      const confirmed = await this.waitForTransactionConfirmation(result.boc, address);
+      if (!confirmed) {
+        throw new Error('Reward Distributor contract deployment confirmation failed');
+      }
 
       // Create contract instance
       const rewardConfig: RewardDistributorConfig = {
@@ -392,13 +401,13 @@ export class SmartContractDeploymentService {
         console.warn('Final confirmation check failed:', error);
       }
       
-      // If we can't confirm, log warning but don't fail deployment
-      console.warn('⚠️ Could not confirm contract deployment within timeout, but continuing...');
-      return true;
+      // Timed out without confirmation
+      console.warn('⚠️ Could not confirm contract deployment within timeout');
+      return false;
       
     } catch (error) {
       console.error('Transaction confirmation error:', error);
-      return true; // Continue deployment even if confirmation fails
+      return false;
     }
   }
 

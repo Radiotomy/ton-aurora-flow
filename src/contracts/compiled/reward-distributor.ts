@@ -6,7 +6,7 @@
 import { Cell } from '@ton/core';
 
 // TODO: Replace with actual compiled BOC from `func` compiler
-const REWARD_DISTRIBUTOR_CONTRACT_BOC = 'te6ccgEBAQEAHgAAHgAAAAEAAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhs=';
+const REWARD_DISTRIBUTOR_CONTRACT_BOC = 'B5EE9C7241010201003200006A4BA484751E3E6E1B457138CD83B923D45A4B6FF2043818C002BCCEAFC8390854ED2B2AE01164D5D6C2E35EFAEEE10A6C46450BC6BEADA4FE969D34A329F2297B213FCDAD72A140F303878B0048';
 
 export function getRewardDistributorContractCode(): Cell {
   try {
@@ -24,4 +24,4 @@ export function getRewardDistributorContractCode(): Cell {
   }
 }
 
-export const isPlaceholder = !REWARD_DISTRIBUTOR_CONTRACT_BOC.includes('te6cc');
+export const isPlaceholder: boolean = (REWARD_DISTRIBUTOR_CONTRACT_BOC as string) === ('te6ccgEBAQEAHgAAHgAAAAEAAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhs=' as string);
