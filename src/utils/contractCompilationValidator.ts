@@ -225,12 +225,8 @@ export class ContractCompilationValidator {
         return false; // Too short to be real
       }
       
-      // Look for characteristic FunC compilation patterns
-      if (bocHex.includes('te6cc') && bocHex.length > 200) {
-        return true; // Likely real BOC
-      }
-      
-      return true; // Assume real if passes basic checks
+      // BOC magic string check is not applicable here; rely on size and basic structure
+      return cellSize >= 50;
     } catch (error) {
       return false;
     }

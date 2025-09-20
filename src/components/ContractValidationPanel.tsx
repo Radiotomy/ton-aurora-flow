@@ -138,7 +138,7 @@ export const ContractValidationPanel = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={runValidation}
+              onClick={async () => { await runValidation(); await checkReadiness(); }}
               disabled={isValidating}
             >
               {isValidating ? (
