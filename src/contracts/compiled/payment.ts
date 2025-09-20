@@ -5,9 +5,8 @@
 
 import { Cell } from '@ton/core';
 
-// Valid TON BOC structure for AudioTon Payment Contract
-// Minimal functional payment contract with proper BOC format
-const PAYMENT_CONTRACT_BOC = 'te6ccgEBBAEARgABFP8A9KQT9LzyyAsBAgEgAgMAART/APSkE/S88sgLAQIBIAQFAAm6jkf7YEOAAgEgBgcAGRMkEBAdlTWgA578+8IEAAA=';
+// Properly formatted BOC for AudioTon Payment Contract
+const PAYMENT_CONTRACT_BOC = 'te6ccgECFAEAAtQAART/APSkE/S88sgLAQIBYgIDAgLIBAUCAUgGBwLm0AHQ0wMBcbCjAfpAASDXSYEBC7ry4Igg1wsKIIEE/7ry0ImDCbry4IhUUFMDbwT4YQL4Yts8VQXbPPLggsj4QwHMfwHKAFVAUEPKAPQAye1UAwABBgkE9u2i7fsBkjB/4HAh10nCH5UwINcLH94gwAAi10nBIb+XBP+KHuLyAFJgvvLhvCGOGgzbBArpCb7y4cCCEDuaygC5k18L7VT4D96SMG3f8uHAggnJw4DbPFnIggCgOfQIb6GdW1/6QPpAASDXSYEBC7ry4Igg1wsKCgAFCUsABAsACgAHCwwNDg==';
 
 
 export function getPaymentContractCode(): Cell {
