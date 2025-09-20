@@ -68,13 +68,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "artist_applications_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       audio_rewards_history: {
@@ -252,24 +245,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "chat_messages_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "live_events_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "chat_messages_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chat_messages_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
           {
@@ -332,13 +311,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "community_polls_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       cross_token_transactions: {
@@ -389,13 +361,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "cross_token_transactions_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       event_tickets: {
@@ -438,24 +403,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "event_tickets_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "live_events_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "event_tickets_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_tickets_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -496,13 +447,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fan_club_memberships_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       listening_history: {
@@ -539,13 +483,6 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "listening_history_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -688,13 +625,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "payment_preferences_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       playlist_tracks: {
@@ -800,13 +730,6 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "poll_votes_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -926,24 +849,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "stream_sessions_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "live_events_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "stream_sessions_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "stream_sessions_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -976,13 +885,6 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "token_balances_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1051,13 +953,6 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "track_collections_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1156,24 +1051,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "transactions_from_profile_id_fkey"
-            columns: ["from_profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "transactions_to_profile_id_fkey"
             columns: ["to_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "transactions_to_profile_id_fkey"
-            columns: ["to_profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1212,13 +1093,6 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_assets_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1333,84 +1207,7 @@ export type Database = {
       }
     }
     Views: {
-      live_events_public: {
-        Row: {
-          artist_id: string | null
-          created_at: string | null
-          current_attendees: number | null
-          description: string | null
-          id: string | null
-          is_live: boolean | null
-          max_attendees: number | null
-          requires_ticket: boolean | null
-          scheduled_end: string | null
-          scheduled_start: string | null
-          status: string | null
-          thumbnail_url: string | null
-          ticket_price_ton: number | null
-          title: string | null
-        }
-        Insert: {
-          artist_id?: string | null
-          created_at?: string | null
-          current_attendees?: number | null
-          description?: string | null
-          id?: string | null
-          is_live?: boolean | null
-          max_attendees?: number | null
-          requires_ticket?: boolean | null
-          scheduled_end?: string | null
-          scheduled_start?: string | null
-          status?: string | null
-          thumbnail_url?: string | null
-          ticket_price_ton?: number | null
-          title?: string | null
-        }
-        Update: {
-          artist_id?: string | null
-          created_at?: string | null
-          current_attendees?: number | null
-          description?: string | null
-          id?: string | null
-          is_live?: boolean | null
-          max_attendees?: number | null
-          requires_ticket?: boolean | null
-          scheduled_end?: string | null
-          scheduled_start?: string | null
-          status?: string | null
-          thumbnail_url?: string | null
-          ticket_price_ton?: number | null
-          title?: string | null
-        }
-        Relationships: []
-      }
-      profiles_public: {
-        Row: {
-          avatar_url: string | null
-          bio: string | null
-          created_at: string | null
-          display_name: string | null
-          id: string | null
-          reputation_score: number | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          id?: string | null
-          reputation_score?: number | null
-        }
-        Update: {
-          avatar_url?: string | null
-          bio?: string | null
-          created_at?: string | null
-          display_name?: string | null
-          id?: string | null
-          reputation_score?: number | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       can_access_financial_data: {
