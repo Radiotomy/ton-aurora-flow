@@ -18,7 +18,7 @@ serve(async (req) => {
     const origin = url.searchParams.get('origin') || 
                    req.headers.get('origin') || 
                    req.headers.get('referer')?.replace(/\/$/, '') || 
-                   'https://082eb0ee-579e-46a8-a35f-2d335fe4e344.sandbox.lovable.dev';
+                   'https://audioton.co';
     
     console.log('Request origin:', origin);
     console.log('Query params:', Object.fromEntries(url.searchParams.entries()));

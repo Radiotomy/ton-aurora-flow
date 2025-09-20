@@ -92,19 +92,19 @@ export const PRODUCTION_CONFIG = {
   // Telegram Web App Configuration
   TELEGRAM: {
     BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN,
-    WEB_APP_URL: 'https://audioton.lovable.app',
-    RETURN_URL: 'https://audioton.lovable.app',
+    WEB_APP_URL: 'https://audioton.co',
+    RETURN_URL: 'https://audioton.co',
     HAPTIC_FEEDBACK: true,
     THEME_PARAMS: true
   },
 
   // Production Domain Configuration
   DOMAIN: {
-    PRIMARY: 'https://audioton.lovable.app',
+    PRIMARY: 'https://audioton.co',
     TON_DOMAIN: 'audioton.ton',
-    MANIFEST_BASE: 'https://audioton.lovable.app',
+    MANIFEST_BASE: 'https://audioton.co',
     CORS_ORIGINS: [
-      'https://audioton.lovable.app',
+      'https://audioton.co',
       'https://t.me',
       'https://web.telegram.org'
     ]
@@ -120,7 +120,7 @@ export const PRODUCTION_CONFIG = {
     SITE_BAG_ID: '32902580153715398944', // Example bag ID for TON Storage
     BACKUP_URLS: [
       'https://082eb0ee-579e-46a8-a35f-2d335fe4e344.lovableproject.com',
-      'https://audioton.lovable.app'
+      'https://audioton.co'
     ]
   },
   
@@ -128,7 +128,7 @@ export const PRODUCTION_CONFIG = {
   CDN: {
     IMAGES_URL: 'https://cpjjaglmqvcwpzrdoyul.supabase.co/storage/v1/object/public',
     AUDIO_URL: 'https://cpjjaglmqvcwpzrdoyul.supabase.co/storage/v1/object/public',
-    STATIC_URL: 'https://audioton.lovable.app'
+    STATIC_URL: 'https://audioton.co'
   },
   
   // Legal & Compliance

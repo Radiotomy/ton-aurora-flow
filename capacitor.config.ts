@@ -10,7 +10,7 @@ const config: CapacitorConfig = {
     // TON Sites support configuration
     allowNavigation: [
       "https://082eb0ee-579e-46a8-a35f-2d335fe4e344.lovableproject.com",
-      "https://audioton.lovable.app",
+      "https://audioton.co",
       "https://audioton.ton",
       "*.ton" // Allow all TON domains
     ]
