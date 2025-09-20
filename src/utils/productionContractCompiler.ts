@@ -541,39 +541,39 @@ slice get_owner() method_id {
     const builder = beginCell();
     
     // Production contract signature (simulates real FunC compilation)
-    builder.storeUint(0xB5EE9C72, 32); // TON BOC magic
-    builder.storeUint(0x41010101, 32); // Production signature
+    builder.storeUint(0xB5EE9C72 >>> 0, 32); // TON BOC magic
+    builder.storeUint(0x41010101 >>> 0, 32); // Production signature
     
     // Contract identifier
     const contractId = this.getContractIdentifier(contractName);
-    builder.storeUint(contractId, 32);
+    builder.storeUint((contractId >>> 0), 32);
     
     // Version and compilation info
     builder.storeUint(3, 8); // Version 3 (mainnet production)
-    builder.storeUint(Date.now() & 0xFFFFFFFF, 32); // Compilation timestamp
+    builder.storeUint((Date.now() >>> 0), 32); // Compilation timestamp (uint32)
     
     // Analyze source code for operations and generate corresponding bytecode
     const operations = this.analyzeSourceOperations(sourceCode);
     operations.forEach(op => {
-      builder.storeUint(op.opcode, 32);
-      builder.storeUint(op.signature, 32);
+      builder.storeUint(op.opcode >>> 0, 32);
+      builder.storeUint(op.signature >>> 0, 32);
     });
     
     // Add getter methods bytecode
     const getters = this.extractGetterMethods(sourceCode);
     getters.forEach(getter => {
-      builder.storeUint(getter.methodId, 32);
-      builder.storeUint(getter.signature, 32);
+      builder.storeUint(getter.methodId >>> 0, 32);
+      builder.storeUint(getter.signature >>> 0, 32);
     });
     
     // Storage layout signature
     const storageSignature = this.analyzeStorageLayout(sourceCode);
-    builder.storeUint(storageSignature, 32);
+    builder.storeUint(storageSignature >>> 0, 32);
     
     // Error handling bytecode
     const errorCodes = this.extractErrorCodes(sourceCode);
     errorCodes.forEach(code => {
-      builder.storeUint(code, 16);
+      builder.storeUint(code >>> 0, 16);
     });
     
     // Add contract metadata and padding for realistic size
@@ -582,7 +582,8 @@ slice get_owner() method_id {
     // Add padding to reach realistic bytecode size (2-4 KB typical)
     const paddingSize = 500 + Math.floor(Math.random() * 1000);
     for (let i = 0; i < paddingSize; i += 32) {
-      builder.storeUint(0xDEADBEEF ^ (i * 0x12345), 32);
+      const v = ((0xDEADBEEF >>> 0) ^ (((i * 0x12345) >>> 0))) >>> 0;
+      builder.storeUint(v, 32);
     }
     
     return builder.endCell();
