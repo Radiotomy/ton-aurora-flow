@@ -57,7 +57,8 @@ function isValidTONAddress(address: string): boolean {
   }
   
   // TON addresses should be 48 characters long and start with EQ or UQ
-  const tonAddressRegex = /^(EQ|UQ)[A-Za-z0-9+/]{46}$/;
+  // Base64URL characters include A-Z, a-z, 0-9, -, and _
+  const tonAddressRegex = /^(EQ|UQ)[A-Za-z0-9_-]{46}$/;
   return tonAddressRegex.test(address);
 }
 
