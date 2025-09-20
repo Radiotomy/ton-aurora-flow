@@ -1246,9 +1246,21 @@ export type Database = {
         Args: { operation_type: string; user_id: string }
         Returns: boolean
       }
+      secure_rate_limit_check: {
+        Args: {
+          max_operations?: number
+          operation_type: string
+          time_window?: unknown
+        }
+        Returns: boolean
+      }
       update_conversion_rates: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      validate_data_access: {
+        Args: { requested_table: string; user_context?: string }
+        Returns: boolean
       }
     }
     Enums: {
