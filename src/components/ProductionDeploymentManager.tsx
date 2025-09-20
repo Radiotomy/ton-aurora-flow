@@ -77,27 +77,20 @@ export const ProductionDeploymentManager: React.FC = () => {
     updateStepStatus(step.id, { status: 'in-progress' });
     
     try {
-      // Real contract deployment using TON Connect and smart contract service
+      // Real contract deployment using TON Connect and Blueprint compilation
       let deploymentResult;
-      const contractCode = ContractBytecode.getContractCodeSync(step.id);
       
       switch (step.id) {
         case 'payment-processor':
           deploymentResult = await SmartContractDeploymentService.deployPaymentContract(
             MAINNET_DEPLOYMENT_CONFIG,
-            contractCode,
             tonConnectUI
           );
           break;
           
         case 'nft-collection':
-          const collectionContent = SmartContractDeploymentService.createCollectionContent();
-          const nftItemCode = ContractBytecode.getContractCodeSync('nft-item');
           deploymentResult = await SmartContractDeploymentService.deployNFTCollectionContract(
             MAINNET_DEPLOYMENT_CONFIG,
-            contractCode,
-            nftItemCode,
-            collectionContent,
             tonConnectUI
           );
           break;
@@ -105,7 +98,6 @@ export const ProductionDeploymentManager: React.FC = () => {
         case 'fan-club':
           deploymentResult = await SmartContractDeploymentService.deployFanClubContract(
             MAINNET_DEPLOYMENT_CONFIG,
-            contractCode,
             tonConnectUI
           );
           break;
@@ -113,7 +105,6 @@ export const ProductionDeploymentManager: React.FC = () => {
         case 'reward-distributor':
           deploymentResult = await SmartContractDeploymentService.deployRewardDistributorContract(
             MAINNET_DEPLOYMENT_CONFIG,
-            contractCode,
             tonConnectUI
           );
           break;
