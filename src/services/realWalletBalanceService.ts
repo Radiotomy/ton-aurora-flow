@@ -27,33 +27,36 @@ export class RealWalletBalanceService {
   private static readonly TONCENTER_TESTNET_API = 'https://testnet.toncenter.com/api/v2';
   
   /**
-   * Get real-time wallet balance from TON blockchain
+   * Get real-time wallet balance from TON blockchain via Supabase edge function
    */
   static async getWalletBalance(address: Address | string, isTestnet: boolean = false): Promise<WalletBalance> {
     try {
       const addressString = typeof address === 'string' ? address : address.toString();
-      const apiBase = isTestnet ? this.TONCENTER_TESTNET_API : this.TONCENTER_MAINNET_API;
       
-      // Get API key from environment
-      const apiKey = import.meta.env.TONCENTER_API_KEY;
-      
-      const url = `${apiBase}/getAddressInformation?address=${addressString}${apiKey ? `&api_key=${apiKey}` : ''}`;
-      
-      const response = await fetch(url);
-      const data: TonCenterResponse = await response.json();
-      
-      if (!data.ok) {
-        throw new Error('Failed to fetch balance from TonCenter API');
+      const response = await fetch('https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/ton-wallet-balance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwamphZ2xtcXZjd3B6cmRveXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NjQ5OTQsImV4cCI6MjA3MTE0MDk5NH0.FlRvJf4wVnQ96gaJJdli0AIcPQ0DmBU0yGiU0sudZeU`
+        },
+        body: JSON.stringify({
+          address: addressString,
+          isTestnet
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch balance from edge function');
       }
-      
-      const balanceNanotons = BigInt(data.result.balance);
-      const balanceTon = Number(balanceNanotons) / 1e9;
+
+      const data = await response.json();
       
       return {
-        balance: balanceNanotons,
-        formatted: balanceTon.toFixed(4),
-        nanotons: balanceNanotons.toString(),
-        lastUpdated: new Date()
+        balance: BigInt(data.balance),
+        formatted: data.formatted,
+        nanotons: data.nanotons,
+        lastUpdated: new Date(data.lastUpdated)
       };
       
     } catch (error) {
