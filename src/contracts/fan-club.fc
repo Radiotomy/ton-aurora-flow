@@ -1,0 +1,160 @@
+;; AudioTon Fan Club Contract
+;; Manages exclusive fan memberships and benefits
+
+#include "imports/stdlib.fc";
+
+const int ERROR_NOT_OWNER = 100;
+const int ERROR_INSUFFICIENT_PAYMENT = 101;
+const int ERROR_MEMBERSHIP_EXISTS = 102;
+const int ERROR_NO_MEMBERSHIP = 103;
+
+;; Storage format:
+;; owner:MsgAddress artist_id:uint64 membership_price:Coins max_supply:uint32 current_supply:uint32 royalty_percentage:uint16
+
+(slice, int, int, int, int, int) load_data() inline {
+  var ds = get_data().begin_parse();
+  return (
+    ds~load_msg_addr(),  ;; owner
+    ds~load_uint(64),    ;; artist_id
+    ds~load_coins(),     ;; membership_price
+    ds~load_uint(32),    ;; max_supply
+    ds~load_uint(32),    ;; current_supply
+    ds~load_uint(16)     ;; royalty_percentage
+  );
+}
+
+() save_data(slice owner, int artist_id, int membership_price, int max_supply, int current_supply, int royalty_percentage) impure inline {
+  set_data(begin_cell()
+    .store_slice(owner)
+    .store_uint(artist_id, 64)
+    .store_coins(membership_price)
+    .store_uint(max_supply, 32)
+    .store_uint(current_supply, 32)
+    .store_uint(royalty_percentage, 16)
+    .end_cell());
+}
+
+() send_money(slice to_addr, int amount, int mode) impure inline {
+  var msg = begin_cell()
+    .store_uint(0x18, 6)
+    .store_slice(to_addr)
+    .store_coins(amount)
+    .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+    .end_cell();
+  send_raw_message(msg, mode);
+}
+
+(slice, int, int, int) get_membership_info(slice member_addr) method_id {
+  ;; In production, this would read from persistent storage
+  ;; For now, return default values
+  return (
+    "general",  ;; tier
+    now(),      ;; joined_at
+    1,          ;; is_active
+    0           ;; benefits_claimed
+  );
+}
+
+() process_membership_join(slice member_addr, int msg_value, slice tier) impure {
+  (slice owner, int artist_id, int membership_price, int max_supply, int current_supply, int royalty_percentage) = load_data();
+  
+  throw_unless(ERROR_INSUFFICIENT_PAYMENT, msg_value >= membership_price);
+  throw_unless(ERROR_MEMBERSHIP_EXISTS, current_supply < max_supply);
+  
+  ;; Calculate platform fee
+  int fee_amount = msg_value * royalty_percentage / 10000;
+  int artist_payment = msg_value - fee_amount - 10000000; ;; Reserve gas
+  
+  ;; Send payment to artist (owner)
+  send_money(owner, artist_payment, 1);
+  
+  ;; Store membership info (simplified - in production use persistent storage)
+  save_data(owner, artist_id, membership_price, max_supply, current_supply + 1, royalty_percentage);
+  
+  ;; Emit membership event
+  emit_log_simple(0x6d656d50, begin_cell() ;; "memP"
+    .store_slice(member_addr)
+    .store_uint(artist_id, 64)
+    .store_slice(tier)
+    .store_uint(now(), 32)
+    .end_cell());
+}
+
+() process_membership_update(slice member_addr, slice new_tier) impure {
+  ;; Update membership tier
+  ;; In production, this would update persistent storage
+  
+  ;; Emit update event
+  emit_log_simple(0x6d656d55, begin_cell() ;; "memU"
+    .store_slice(member_addr)
+    .store_slice(new_tier)
+    .store_uint(now(), 32)
+    .end_cell());
+}
+
+() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+  if (in_msg_body.slice_empty?()) {
+    return ();
+  }
+  
+  slice cs = in_msg_full.begin_parse();
+  int flags = cs~load_uint(4);
+  
+  if (flags & 1) { ;; ignore bounced messages
+    return ();
+  }
+  
+  slice sender_addr = cs~load_msg_addr();
+  
+  int op = in_msg_body~load_uint(32);
+  int query_id = in_msg_body~load_uint(64);
+  
+  if (op == 0x01) { ;; join membership
+    slice member_addr = in_msg_body~load_msg_addr();
+    slice tier = in_msg_body~load_ref().begin_parse().preload_ref();
+    
+    process_membership_join(member_addr, msg_value, tier);
+    return ();
+  }
+  
+  if (op == 0x02) { ;; update membership
+    slice member_addr = in_msg_body~load_msg_addr();
+    slice new_tier = in_msg_body~load_ref().begin_parse().preload_ref();
+    
+    process_membership_update(member_addr, new_tier);
+    return ();
+  }
+  
+  if (op == 0x03) { ;; withdraw (owner only)
+    (slice owner, int artist_id, int membership_price, int max_supply, int current_supply, int royalty_percentage) = load_data();
+    throw_unless(ERROR_NOT_OWNER, equal_slices(sender_addr, owner));
+    
+    int withdraw_amount = in_msg_body~load_coins();
+    throw_unless(ERROR_INSUFFICIENT_PAYMENT, withdraw_amount <= my_balance - 10000000);
+    
+    send_money(owner, withdraw_amount, 1);
+    return ();
+  }
+  
+  throw(0xffff); ;; unknown operation
+}
+
+;; Get methods
+(slice, int, int) get_club_stats() method_id {
+  (slice owner, int artist_id, int membership_price, int max_supply, int current_supply, int royalty_percentage) = load_data();
+  return (owner, current_supply, max_supply);
+}
+
+int get_membership_price() method_id {
+  (_, _, int membership_price, _, _, _) = load_data();
+  return membership_price;
+}
+
+slice get_owner() method_id {
+  (slice owner, _, _, _, _, _) = load_data();
+  return owner;
+}
+
+int get_balance() method_id {
+  return get_balance().pair_first();
+}

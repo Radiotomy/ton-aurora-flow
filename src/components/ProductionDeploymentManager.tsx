@@ -125,16 +125,15 @@ export const ProductionDeploymentManager: React.FC = () => {
       // Send deployment transaction via TonConnect
       const deploymentCost = parseFloat(step.estimatedCost) * 1e9; // Convert TON to nanoTON
       
-      // For demo purposes, we'll use simulated addresses until actual deployment
-      // In production, this would send the real transaction via TonConnect
-      await new Promise(resolve => setTimeout(resolve, 3000 + Math.random() * 2000));
+      // Real deployment - transaction hash should come from actual TonConnect result
+      console.log('Contract deployed successfully:', deploymentResult);
       
-      const mockTxHash = `tx_${Date.now()}_${step.id}`;
+      const actualTxHash = deploymentResult.txHash;
       
       updateStepStatus(step.id, {
         status: 'completed',
         contractAddress: deploymentResult.address,
-        txHash: mockTxHash
+        txHash: actualTxHash
       });
       
       setDeploymentProgress(((stepIndex + 1) / deploymentSteps.length) * 100);

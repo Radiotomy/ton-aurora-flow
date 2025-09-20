@@ -1,0 +1,25 @@
+;; Parameters and constants for AudioTon contracts
+
+;; Gas limits
+const int MIN_GAS_AMOUNT = 10000000; ;; 0.01 TON
+const int NFT_MINT_GAS = 50000000;   ;; 0.05 TON
+const int DEPLOY_GAS = 100000000;    ;; 0.1 TON
+
+;; Fee constants
+const int PLATFORM_FEE_BP = 100;     ;; 1% in basis points
+const int NFT_ROYALTY_BP = 250;      ;; 2.5% in basis points
+const int MAX_FEE_BP = 1000;         ;; 10% maximum fee
+
+;; Limits
+const int MAX_BATCH_SIZE = 100;      ;; Maximum items in batch operations
+const int MAX_STRING_LENGTH = 1000;  ;; Maximum string length
+const int MAX_DESCRIPTION_LENGTH = 2000;
+
+;; Time constants
+const int DAY_SECONDS = 86400;       ;; Seconds in a day
+const int WEEK_SECONDS = 604800;     ;; Seconds in a week
+const int MONTH_SECONDS = 2592000;   ;; Seconds in 30 days
+
+;; Default values
+const int DEFAULT_MEMBERSHIP_PRICE = 10000000000; ;; 10 TON
+const int DEFAULT_MIN_CLAIM = 1000000000;         ;; 1 TON

@@ -1,0 +1,27 @@
+;; Operation codes for AudioTon smart contracts
+
+;; NFT Collection operations
+const int OP_MINT_NFT = 1;
+const int OP_BATCH_MINT = 2;
+const int OP_CHANGE_OWNER = 3;
+
+;; NFT Item operations
+const int OP_TRANSFER = 0x5fcc3d14;
+const int OP_GET_STATIC_DATA = 0x2fcb26a2;
+const int OP_REPORT_STATIC_DATA = 0x8b771735;
+
+;; Payment operations
+const int OP_TIP = 0x01;
+const int OP_PAYMENT = 0x02;
+const int OP_WITHDRAW = 0x03;
+
+;; Fan Club operations
+const int OP_JOIN_MEMBERSHIP = 0x01;
+const int OP_UPDATE_MEMBERSHIP = 0x02;
+const int OP_CLUB_WITHDRAW = 0x03;
+
+;; Reward Distributor operations
+const int OP_ADD_REWARDS = 0x01;
+const int OP_CLAIM_REWARDS = 0x02;
+const int OP_DISTRIBUTE_REWARDS = 0x03;
+const int OP_UPDATE_CONFIG = 0x04;

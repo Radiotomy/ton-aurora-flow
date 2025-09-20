@@ -1,0 +1,42 @@
+;; Standard library functions for AudioTon contracts
+
+;; Basic comparison functions
+int equal_slices(slice a, slice b) asm "SDEQ";
+
+;; Dictionary operations
+(slice, int) udict_get?(cell dict, int key_len, int index) asm(index dict key_len) "DICTUGET" "NULLSWAPIFNOT";
+
+;; Message operations
+builder store_msg_addr(builder b, slice s) asm(s b) "STSLICER";
+slice load_msg_addr(slice s) asm "LDMSGADDR";
+
+;; Time operations
+int now() asm "NOW";
+
+;; Workchain operations
+int workchain() asm "0 PUSHINT";
+
+;; Hash operations
+int slice_hash(slice s) asm "HASHSU";
+int cell_hash(cell c) asm "HASHCU";
+
+;; Address operations
+slice my_address() asm "MYADDR";
+
+;; Storage operations
+cell get_data() asm "c4 PUSH";
+() set_data(cell c) impure asm "c4 POP";
+
+;; Logging
+() emit_log_simple(int event_id, cell data) impure asm(data event_id) "RAWRESERVE";
+
+;; Message sending
+() send_raw_message(cell msg, int mode) impure asm "SENDRAWMSG";
+
+;; Balance operations
+[int, cell] get_balance() asm "BALANCE";
+
+;; Exception handling
+() throw(int exception) impure asm "THROW";
+() throw_unless(int excno, int cond) impure asm "THROWARGIFNOT";
+() throw_if(int excno, int cond) impure asm "THROWARGIF";

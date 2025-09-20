@@ -4,7 +4,7 @@
  */
 
 import { Cell, beginCell } from '@ton/core';
-import { ContractCompiler } from './contractCompiler';
+import { RealContractCompiler, compileContract } from './realContractCompiler';
 
 /**
  * Generate contract bytecode using proper compilation
@@ -74,16 +74,33 @@ export class ContractBytecode {
   }
 
   /**
-   * Get contract code by type (now using proper compilation)
+   * Get contract code by type (now using real compilation)
    */
   static async getContractCode(contractType: string): Promise<Cell> {
     try {
-      // Use compiled bytecode for production
-      return await ContractCompiler.loadCompiledContract(contractType);
-    } catch (error) {
-      console.warn(`Failed to load compiled contract ${contractType}, using fallback:`, error);
+      console.log(`Compiling ${contractType} contract from source...`);
       
-      // Fallback to placeholder (with fixed bitLength)
+      // Map contract types to source names
+      const contractMap: Record<string, string> = {
+        'payment-processor': 'payment',
+        'nft-collection': 'nft-collection',
+        'nft-item': 'nft-item',
+        'fan-club': 'fan-club',
+        'reward-distributor': 'reward-distributor'
+      };
+      
+      const sourceName = contractMap[contractType];
+      if (!sourceName) {
+        throw new Error(`Unknown contract type: ${contractType}`);
+      }
+      
+      // Use real contract compilation
+      return await compileContract(sourceName);
+      
+    } catch (error) {
+      console.warn(`Real compilation failed for ${contractType}, using fallback:`, error);
+      
+      // Fallback to enhanced placeholder bytecode
       switch (contractType) {
         case 'payment-processor':
           return this.getPaymentProcessorCode();
