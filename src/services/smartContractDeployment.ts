@@ -50,7 +50,7 @@ export class SmartContractDeploymentService {
       // Create proper deployment message with StateInit
       const deployMessage = {
         address: address,
-        amount: '500000000', // 0.5 TON for deployment + gas (increased)
+        amount: '800000000', // 0.8 TON for deployment + gas (increased)
         stateInit: beginCell().store(storeStateInit(stateInit)).endCell().toBoc().toString('base64'),
         payload: ''  // No payload needed for deployment
       };
@@ -64,10 +64,10 @@ export class SmartContractDeploymentService {
 
       console.log('Payment contract deployment transaction sent:', result);
 
-      // Wait for transaction confirmation
+      // Wait for transaction confirmation with strict validation
       const confirmed = await this.waitForTransactionConfirmation(result.boc, address);
       if (!confirmed) {
-        throw new Error('Payment contract deployment confirmation failed');
+        throw new Error('Payment contract deployment failed: Transaction not confirmed or bounced');
       }
 
       // Create contract instance
@@ -124,7 +124,7 @@ export class SmartContractDeploymentService {
       // Create proper deployment message with StateInit
       const deployMessage = {
         address: address,
-        amount: '500000000', // 0.5 TON for NFT collection deployment + gas (increased)
+        amount: '800000000', // 0.8 TON for NFT collection deployment + gas (increased)
         stateInit: beginCell().store(storeStateInit(stateInit)).endCell().toBoc().toString('base64'),
         payload: ''
       };
@@ -136,10 +136,10 @@ export class SmartContractDeploymentService {
         validUntil: Math.floor(Date.now() / 1000) + 600
       });
 
-      // Wait for transaction confirmation
+      // Wait for transaction confirmation with strict validation
       const confirmed = await this.waitForTransactionConfirmation(result.boc, address);
       if (!confirmed) {
-        throw new Error('NFT Collection contract deployment confirmation failed');
+        throw new Error('NFT Collection contract deployment failed: Transaction not confirmed or bounced');
       }
 
       // Create contract instance
@@ -199,7 +199,7 @@ export class SmartContractDeploymentService {
       // Create proper deployment message with StateInit
       const deployMessage = {
         address: address,
-        amount: '400000000', // 0.4 TON for fan club deployment + gas (increased)
+        amount: '700000000', // 0.7 TON for fan club deployment + gas (increased)
         stateInit: beginCell().store(storeStateInit(stateInit)).endCell().toBoc().toString('base64'),
         payload: ''
       };
@@ -211,10 +211,10 @@ export class SmartContractDeploymentService {
         validUntil: Math.floor(Date.now() / 1000) + 600
       });
 
-      // Wait for transaction confirmation
+      // Wait for transaction confirmation with strict validation
       const confirmed = await this.waitForTransactionConfirmation(result.boc, address);
       if (!confirmed) {
-        throw new Error('Fan Club contract deployment confirmation failed');
+        throw new Error('Fan Club contract deployment failed: Transaction not confirmed or bounced');
       }
 
       // Create contract instance
@@ -273,7 +273,7 @@ export class SmartContractDeploymentService {
       // Create proper deployment message with StateInit
       const deployMessage = {
         address: address,
-        amount: '400000000', // 0.4 TON for reward distributor deployment + gas (increased)
+        amount: '700000000', // 0.7 TON for reward distributor deployment + gas (increased)
         stateInit: beginCell().store(storeStateInit(stateInit)).endCell().toBoc().toString('base64'),
         payload: ''
       };
@@ -285,10 +285,10 @@ export class SmartContractDeploymentService {
         validUntil: Math.floor(Date.now() / 1000) + 600
       });
 
-      // Wait for transaction confirmation
+      // Wait for transaction confirmation with strict validation
       const confirmed = await this.waitForTransactionConfirmation(result.boc, address);
       if (!confirmed) {
-        throw new Error('Reward Distributor contract deployment confirmation failed');
+        throw new Error('Reward Distributor contract deployment failed: Transaction not confirmed or bounced');
       }
 
       // Create contract instance
@@ -334,7 +334,7 @@ export class SmartContractDeploymentService {
   }
 
   /**
-   * Wait for transaction confirmation on TON blockchain
+   * Wait for transaction confirmation on TON blockchain with proper validation
    */
   static async waitForTransactionConfirmation(txBoc: string, contractAddress: string): Promise<boolean> {
     try {
@@ -345,7 +345,7 @@ export class SmartContractDeploymentService {
       const keyParam = apiKey ? `&api_key=${apiKey}` : '';
       
       // Poll contract address for activation
-      const maxAttempts = 30; // 60 seconds timeout
+      const maxAttempts = 60; // 2 minutes timeout (increased)
       let attempts = 0;
       
       while (attempts < maxAttempts) {
@@ -360,12 +360,17 @@ export class SmartContractDeploymentService {
             if (data.ok && data.result) {
               const isActive = data.result.state === 'active';
               const hasCode = data.result.code && data.result.code !== '';
+              const balance = parseInt(data.result.balance || '0');
               
-              if (isActive && hasCode) {
+              // Contract is successfully deployed if it's active, has code, and has balance
+              if (isActive && hasCode && balance > 0) {
                 console.log('✅ Contract confirmed and active:', contractAddress);
                 return true;
+              } else if (data.result.state === 'uninitialized' && balance === 0) {
+                // Transaction might have bounced
+                console.warn('Contract state uninitialized with zero balance - possible bounce');
               } else {
-                console.log(`Contract state: ${data.result.state}, has code: ${!!hasCode}`);
+                console.log(`Contract state: ${data.result.state}, has code: ${!!hasCode}, balance: ${balance}`);
               }
             } else {
               console.warn('API response not ok:', data);
@@ -376,7 +381,7 @@ export class SmartContractDeploymentService {
           
           await new Promise(resolve => setTimeout(resolve, 2000));
           attempts++;
-          console.log(`Confirmation attempt ${attempts}/30 for ${contractAddress.slice(0, 10)}...`);
+          console.log(`Confirmation attempt ${attempts}/${maxAttempts} for ${contractAddress.slice(0, 10)}...`);
           
         } catch (error) {
           console.warn(`Confirmation attempt ${attempts} failed:`, error);
@@ -385,14 +390,14 @@ export class SmartContractDeploymentService {
         }
       }
       
-      // After timeout, try one more time to get final state
+      // Final check after timeout
       try {
         const response = await fetch(
           `https://toncenter.com/api/v2/getAddressInformation?address=${contractAddress}${keyParam}`
         );
         if (response.ok) {
           const data = await response.json();
-          if (data.ok && data.result?.state === 'active') {
+          if (data.ok && data.result?.state === 'active' && data.result.code) {
             console.log('✅ Contract confirmed after timeout:', contractAddress);
             return true;
           }
@@ -402,7 +407,7 @@ export class SmartContractDeploymentService {
       }
       
       // Timed out without confirmation
-      console.warn('⚠️ Could not confirm contract deployment within timeout');
+      console.error('❌ Contract deployment confirmation failed - transaction may have bounced');
       return false;
       
     } catch (error) {
@@ -486,41 +491,38 @@ export class SmartContractDeploymentService {
         },
         'Fan Club': {
           address: contracts.fanClub,
-          purpose: 'Manages exclusive fan club memberships',
-          features: 'Tiered access, exclusive content, voting rights'
+          purpose: 'Powers exclusive fan club memberships',
+          membership: '10 TON base price, tiered benefits'
         },
         'Reward Distributor': {
           address: contracts.rewardDistributor,
           purpose: 'Distributes platform rewards to users',
-          mechanism: 'Automated weekly distributions based on engagement'
+          distribution: 'Weekly cycles, 1 TON minimum claim'
         }
       },
-      security: {
-        audited: true,
-        multiSig: true,
-        upgradeability: 'Immutable contracts for maximum security',
-        ownershipTransfer: 'Multi-signature required'
-      },
-      gasOptimization: {
-        tipTransaction: '~0.01 TON',
-        nftMint: '~0.05 TON',
-        membershipJoin: '~0.03 TON'
-      }
+      totalGasCost: '3.0 TON estimated',
+      nextSteps: [
+        'Update production configuration',
+        'Test contract interactions',
+        'Deploy to production domain',
+        'Launch marketing campaign'
+      ]
     };
   }
 }
 
-// Export deployment configurations for different environments
+// Mainnet deployment configuration
 export const MAINNET_DEPLOYMENT_CONFIG: DeploymentConfig = {
   owner: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs', // AudioTon treasury
   fee_percentage: 100, // 1% platform fee
-  royalty_numerator: 250, // 2.5%
+  royalty_numerator: 250, // 2.5% royalty
   royalty_denominator: 10000
 };
 
+// Testnet deployment configuration
 export const TESTNET_DEPLOYMENT_CONFIG: DeploymentConfig = {
-  owner: 'kQAO3fiaxUvVqCBaZdnfKCgC0wOp-NJXBOZGaAamOEJ8NJU4', // Test treasury (friendly address string)
+  owner: 'kQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs', // AudioTon testnet treasury
   fee_percentage: 100, // 1% platform fee
-  royalty_numerator: 250, // 2.5%
+  royalty_numerator: 250, // 2.5% royalty
   royalty_denominator: 10000
 };
