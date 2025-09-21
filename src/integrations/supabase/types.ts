@@ -1227,6 +1227,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      get_current_user_profile_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_safe_profile_fields: {
         Args: Record<PropertyKey, never>
         Returns: string
