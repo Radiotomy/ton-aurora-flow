@@ -3,6 +3,18 @@ project_id = "cpjjaglmqvcwpzrdoyul"
 [functions.audius-api]
 verify_jwt = false
 
+[functions.ton-wallet-balance]
+verify_jwt = false
+
+[functions.ton-transaction-history]
+verify_jwt = false
+
+[functions.ton-fee-estimation]
+verify_jwt = false
+
+[functions.ton-market-data]
+verify_jwt = false
+
 [functions.tonconnect-manifest]
 verify_jwt = false
 

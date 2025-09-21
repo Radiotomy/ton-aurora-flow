@@ -10,6 +10,8 @@ interface WalletBalance {
   formatted: string;        // Balance in TON (human readable)
   nanotons: string;        // Balance in nanotons
   lastUpdated: Date;
+  chainstackPowered?: boolean; // Indicates if powered by Chainstack
+  network?: string;        // Network type (mainnet/testnet)
 }
 
 interface TonCenterResponse {
@@ -27,7 +29,7 @@ export class RealWalletBalanceService {
   private static readonly TONCENTER_TESTNET_API = 'https://testnet.toncenter.com/api/v2';
   
   /**
-   * Get real-time wallet balance from TON blockchain via Supabase edge function
+   * Get real-time wallet balance from TON blockchain via Chainstack API
    */
   static async getWalletBalance(address: Address | string, isTestnet: boolean = false): Promise<WalletBalance> {
     try {
@@ -47,7 +49,7 @@ export class RealWalletBalanceService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch balance from edge function');
+        throw new Error(errorData.error || 'Failed to fetch balance via Chainstack');
       }
 
       const data = await response.json();
@@ -56,12 +58,112 @@ export class RealWalletBalanceService {
         balance: BigInt(data.balance),
         formatted: data.formatted,
         nanotons: data.nanotons,
-        lastUpdated: new Date(data.lastUpdated)
+        lastUpdated: new Date(data.lastUpdated),
+        chainstackPowered: data.chainstackPowered || false,
+        network: data.network || (isTestnet ? 'testnet' : 'mainnet')
       };
       
     } catch (error) {
-      console.error('Error fetching wallet balance:', error);
-      throw new Error(`Failed to get wallet balance: ${error.message}`);
+      console.error('Chainstack wallet balance error:', error);
+      throw new Error(`Failed to get wallet balance via Chainstack: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get transaction history using Chainstack
+   */
+  static async getTransactionHistory(
+    address: Address | string,
+    limit: number = 10,
+    offset: number = 0,
+    isTestnet: boolean = false
+  ) {
+    try {
+      const addressString = typeof address === 'string' ? address : address.toString();
+      
+      const response = await fetch('https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/ton-transaction-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwamphZ2xtcXZjd3B6cmRveXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NjQ5OTQsImV4cCI6MjA3MTE0MDk5NH0.FlRvJf4wVnQ96gaJJdli0AIcPQ0DmBU0yGiU0sudZeU`
+        },
+        body: JSON.stringify({
+          address: addressString,
+          limit,
+          offset,
+          isTestnet
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch transaction history via Chainstack');
+      }
+
+      return await response.json();
+      
+    } catch (error) {
+      console.error('Chainstack transaction history error:', error);
+      throw new Error(`Failed to get transaction history via Chainstack: ${error.message}`);
+    }
+  }
+
+  /**
+   * Estimate transaction fees using Chainstack
+   */
+  static async estimateFee(
+    fromAddress: Address | string,
+    toAddress: Address | string,
+    amount: bigint,
+    operationType: string = 'transfer',
+    isTestnet: boolean = false
+  ) {
+    try {
+      const fromAddressString = typeof fromAddress === 'string' ? fromAddress : fromAddress.toString();
+      const toAddressString = typeof toAddress === 'string' ? toAddress : toAddress.toString();
+      
+      const response = await fetch('https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/ton-fee-estimation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwamphZ2xtcXZjd3B6cmRveXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NjQ5OTQsImV4cCI6MjA3MTE0MDk5NH0.FlRvJf4wVnQ96gaJJdli0AIcPQ0DmBU0yGiU0sudZeU`
+        },
+        body: JSON.stringify({
+          fromAddress: fromAddressString,
+          toAddress: toAddressString,
+          amount: amount.toString(),
+          operationType,
+          isTestnet
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.warn('Chainstack fee estimation failed, using fallback:', data.error);
+        return {
+          estimatedFee: '50000000', // 0.05 TON
+          recommendedFee: '60000000', // 0.06 TON
+          formattedFee: '0.050000',
+          formattedRecommended: '0.060000',
+          fallback: true,
+          operationType
+        };
+      }
+
+      return data;
+      
+    } catch (error) {
+      console.error('Chainstack fee estimation error:', error);
+      return {
+        estimatedFee: '50000000', // 0.05 TON fallback
+        recommendedFee: '60000000', // 0.06 TON with buffer
+        formattedFee: '0.050000',
+        formattedRecommended: '0.060000',
+        fallback: true,
+        operationType,
+        error: error.message
+      };
     }
   }
   

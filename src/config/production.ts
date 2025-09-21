@@ -7,6 +7,12 @@ export const PRODUCTION_CONFIG = {
   // API Endpoints
   API_BASE_URL: 'https://cpjjaglmqvcwpzrdoyul.supabase.co',
   AUDIUS_API_URL: 'https://discoveryprovider.audius.co',
+  
+  // Chainstack Configuration (Primary) 
+  CHAINSTACK_API_URL: 'https://nd-123-456-789.p2pify.com', // Replace with your actual endpoint
+  CHAINSTACK_API_VERSION: 'v3',
+  
+  // TonCenter Configuration (Fallback)
   TON_API_URL: 'https://toncenter.com/api/v2',
   
   // Blockchain Configuration
@@ -144,6 +150,10 @@ export const PRODUCTION_CONFIG = {
 export const DEVELOPMENT_CONFIG = {
   ...PRODUCTION_CONFIG,
   TON_NETWORK: 'testnet' as const,
+  
+  // Chainstack testnet endpoint
+  CHAINSTACK_API_URL: 'https://nd-123-456-789.p2pify.com', // Replace with your testnet endpoint
+  
   CONTRACTS: {
     NFT_COLLECTION: 'kQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3diqYENkWsIL0XggGG',
     FAN_CLUB: 'kQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c',

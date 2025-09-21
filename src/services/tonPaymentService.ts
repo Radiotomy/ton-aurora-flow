@@ -283,9 +283,49 @@ export class TonPaymentService {
     }
   }
 
-  async estimateGasFee(): Promise<string> {
-    // Return estimated gas fee in TON
-    return '0.01';
+  async estimateGasFee(
+    fromAddress?: string,
+    toAddress?: string,
+    amount?: string,
+    operationType: string = 'transfer'
+  ): Promise<string> {
+    // Use Chainstack for real-time fee estimation
+    if (fromAddress && toAddress && amount) {
+      try {
+        const response = await fetch('https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/ton-fee-estimation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwamphZ2xtcXZjd3B6cmRveXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NjQ5OTQsImV4cCI6MjA3MTE0MDk5NH0.FlRvJf4wVnQ96gaJJdli0AIcPQ0DmBU0yGiU0sudZeU`
+          },
+          body: JSON.stringify({
+            fromAddress,
+            toAddress,
+            amount: toNano(amount).toString(),
+            operationType
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && !data.fallback) {
+          return data.formattedRecommended;
+        }
+      } catch (error) {
+        console.warn('Chainstack fee estimation failed, using fallback:', error);
+      }
+    }
+    
+    // Fallback fees based on operation type
+    const fallbackFees = {
+      'transfer': '0.05',
+      'nft_mint': '0.2',
+      'nft_transfer': '0.1',
+      'fan_club': '0.15',
+      'tip': '0.03'
+    };
+    
+    return fallbackFees[operationType] || '0.05';
   }
 }
 
