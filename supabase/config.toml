@@ -15,6 +15,9 @@ verify_jwt = false
 [functions.ton-market-data]
 verify_jwt = false
 
+[functions.ton-batch-operations]
+verify_jwt = false
+
 [functions.tonconnect-manifest]
 verify_jwt = false
 
