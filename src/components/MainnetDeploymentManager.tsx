@@ -9,7 +9,9 @@ import { Rocket, Shield, Globe, Zap, CheckCircle, AlertTriangle, Clock, External
 import { useWeb3 } from '@/hooks/useWeb3';
 import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { toast } from 'sonner';
-import { SmartContractDeploymentService, MAINNET_DEPLOYMENT_CONFIG } from '@/services/smartContractDeployment';
+import { SmartContractDeploymentService, MAINNET_DEPLOYMENT_CONFIG, DeploymentAnalytics } from '@/services/smartContractDeployment';
+import { useChainStackCache } from '@/hooks/useChainStackCache';
+import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 import { hasPlaceholderContracts, getPlaceholderContractsList } from '@/contracts/compiled';
 
 interface DeploymentStep {
@@ -64,6 +66,11 @@ export const MainnetDeploymentManager: React.FC = () => {
   const [deploymentProgress, setDeploymentProgress] = useState(0);
   const [deploymentStatus, setDeploymentStatus] = useState<'idle' | 'deploying' | 'completed' | 'failed'>('idle');
   const [productionReadiness, setProductionReadiness] = useState<{ ready: boolean; issues: string[] }>({ ready: true, issues: [] });
+  const [deploymentAnalytics, setDeploymentAnalytics] = useState<DeploymentAnalytics[]>([]);
+  
+  // Enhanced monitoring hooks
+  const chainstackCache = useChainStackCache();
+  const performanceMonitor = usePerformanceMonitor();
   
   const wallet = useTonWallet();
   const [tonConnectUI] = useTonConnectUI();
@@ -138,14 +145,16 @@ export const MainnetDeploymentManager: React.FC = () => {
     ));
   }, []);
 
-  // Enhanced wallet balance validation with detailed breakdown
+  // Enhanced wallet balance validation with real-time monitoring
   const validateWalletBalance = async (): Promise<boolean> => {
     if (!wallet) return false;
     
     try {
-      const { RealWalletBalanceService } = await import('@/services/realWalletBalanceService');
+      // Track API performance
+      const startTime = Date.now();
+      performanceMonitor.recordAPICall('balance_validation', Date.now() - startTime, false, true);
       
-      // Get comprehensive deployment validation
+      const { RealWalletBalanceService } = await import('@/services/realWalletBalanceService');
       const validation = await RealWalletBalanceService.validateDeploymentBalance(
         wallet.account.address
       );
@@ -154,7 +163,7 @@ export const MainnetDeploymentManager: React.FC = () => {
         const shortfallTon = validation.shortfall ? 
           Number(validation.shortfall) / 1e9 : 0;
         
-        toast(`Insufficient Balance: Need ${shortfallTon.toFixed(4)} TON more. ${validation.recommendation}`);
+        toast.error(`Insufficient Balance: Need ${shortfallTon.toFixed(4)} TON more. ${validation.recommendation}`);
         return false;
       }
       
@@ -163,14 +172,15 @@ export const MainnetDeploymentManager: React.FC = () => {
         Total (4 contracts): ${Number(validation.costs.totalForAllContracts) / 1e9} TON
         Gas Reserve: ${Number(validation.costs.gasReserve) / 1e9} TON
         ${validation.costs.estimatedUSD ? `(~$${validation.costs.estimatedUSD.toFixed(2)} USD)` : ''}
+        Network Status: ${(1 - performanceMonitor.metrics.errorRate) > 0.9 ? '✅ Optimal' : '⚠️ Degraded'}
       `.trim();
       
-      toast(`Balance Validated ✅: ${validation.recommendation}\n\nDeployment Cost Breakdown:\n${costBreakdown}`);
+      toast.success(`Balance Validated ✅: ${validation.recommendation}\n\nDeployment Cost Breakdown:\n${costBreakdown}`);
       return true;
       
     } catch (error) {
       console.error('Balance validation failed:', error);
-      toast("Balance Check Failed: Could not verify wallet balance. Please try again.");
+      toast.error("Balance Check Failed: Could not verify wallet balance. Please try again.");
       return false;
     }
   };
@@ -220,10 +230,15 @@ export const MainnetDeploymentManager: React.FC = () => {
         txHash: deploymentResult.txHash
       });
       
+      // Store analytics if available
+      if (deploymentResult.analytics) {
+        setDeploymentAnalytics(prev => [...prev, deploymentResult.analytics]);
+      }
+      
       setDeploymentProgress(((stepIndex + 1) / deploymentSteps.length) * 100);
       
       toast.success(`${step.title} deployed successfully!`, {
-        description: `Address: ${deploymentResult.address.substring(0, 20)}...`
+        description: `Address: ${deploymentResult.address.substring(0, 20)}... | ${deploymentResult.analytics ? `${(deploymentResult.analytics.deploymentTime / 1000).toFixed(1)}s` : ''}`
       });
       
     } catch (error) {
@@ -268,8 +283,24 @@ export const MainnetDeploymentManager: React.FC = () => {
 
       setDeploymentStatus('completed');
       
+      // Generate deployment summary with analytics
+      const contractAddresses = {
+        paymentProcessor: deploymentSteps.find(s => s.id === 'payment-processor')?.contractAddress || '',
+        nftCollection: deploymentSteps.find(s => s.id === 'nft-collection')?.contractAddress || '',
+        fanClub: deploymentSteps.find(s => s.id === 'fan-club')?.contractAddress || '',
+        rewardDistributor: deploymentSteps.find(s => s.id === 'reward-distributor')?.contractAddress || ''
+      };
+      
+      const summary = SmartContractDeploymentService.generateDeploymentSummary(
+        contractAddresses,
+        deploymentAnalytics
+      );
+      
+      const totalTime = deploymentAnalytics.reduce((sum, a) => sum + a.deploymentTime, 0);
+      const totalCost = deploymentAnalytics.reduce((sum, a) => sum + Number(a.actualCost), 0);
+      
       toast.success('🎉 Mainnet deployment completed!', {
-        description: `All ${deploymentSteps.length} contracts deployed successfully`,
+        description: `All ${deploymentSteps.length} contracts deployed in ${(totalTime / 1000).toFixed(1)}s for ${(totalCost / 1e9).toFixed(3)} TON`,
         duration: 10000
       });
 

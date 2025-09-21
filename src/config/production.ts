@@ -11,6 +11,7 @@ export const PRODUCTION_CONFIG = {
   // Chainstack Configuration (Primary) 
   CHAINSTACK_API_URL: 'https://nd-123-456-789.p2pify.com', // Replace with your actual endpoint
   CHAINSTACK_API_VERSION: 'v3',
+  CHAINSTACK_RATE_LIMIT: 25, // requests per second
   
   // TonCenter Configuration (Fallback)
   TON_API_URL: 'https://toncenter.com/api/v2',
@@ -27,12 +28,16 @@ export const PRODUCTION_CONFIG = {
     REWARD_DISTRIBUTOR: 'EQAOPjSEGosElkZ9UmxJioIxqzkgRCSlCIacVOJN0at0wKRU'
   },
 
-  // Deployment Configuration
+  // Enhanced Deployment Configuration
   DEPLOYMENT: {
     DEPLOYER_MNEMONIC: process.env.DEPLOYER_MNEMONIC,
     MIN_BALANCE_FOR_DEPLOYMENT: '5.0', // TON
     DEPLOYMENT_TIMEOUT: 300000, // 5 minutes
-    CONFIRMATION_BLOCKS: 2
+    CONFIRMATION_BLOCKS: 2,
+    USE_CHAINSTACK_MONITORING: true,
+    REAL_TIME_ANALYTICS: true,
+    DYNAMIC_FEE_ESTIMATION: true,
+    PARALLEL_VERIFICATION: true
   },
   
   // Transaction Configuration
