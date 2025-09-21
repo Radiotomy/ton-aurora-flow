@@ -24,41 +24,48 @@ serve(async (req) => {
       throw new Error('fromAddress, toAddress, and amount are required')
     }
 
-    const chainstackApiKey = Deno.env.get('AUDIOTON_CHAIN')
-    if (!chainstackApiKey) {
-      throw new Error('Chainstack API key not configured')
-    }
+    // Chainstack TON API endpoints with path-based authentication
+    const primaryEndpoint = isTestnet 
+      ? 'https://ton-mainnet.core.chainstack.com/68b4cb9196a69de29db7191014f18715/api/v3'
+      : 'https://ton-mainnet.core.chainstack.com/68b4cb9196a69de29db7191014f18715/api/v3'
+      
+    const fallbackEndpoint = 'https://nd-123-456-789.p2pify.com/3c6e0b8a9c15224a8228b9a98ca1531d'
 
-    // Chainstack TON API endpoint for fee estimation
-    const apiBase = isTestnet 
-      ? `https://nd-123-456-789.p2pify.com/${chainstackApiKey}/v3`
-      : `https://nd-123-456-789.p2pify.com/${chainstackApiKey}/v3`
-
-    // Use Chainstack's estimateFee method for accurate gas calculation
-    const response = await fetch(`${apiBase}/estimateFee`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${chainstackApiKey}`
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        method: "estimateFee",
-        params: {
+    // Use Chainstack's REST API for fee estimation
+    let response;
+    try {
+      response = await fetch(`${primaryEndpoint}/estimate-fee`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           from: fromAddress,
           to: toAddress,
           value: amount,
-          data: payload,
-          gas_limit: null // Let Chainstack estimate
-        },
-        id: 1
+          data: payload || ''
+        })
       })
-    })
+    } catch (error) {
+      // Fallback to secondary endpoint
+      response = await fetch(`${fallbackEndpoint}/estimate-fee`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: fromAddress,
+          to: toAddress,
+          value: amount,
+          data: payload || ''
+        })
+      })
+    }
 
     const data = await response.json()
 
-    if (data.error) {
-      console.error('Chainstack fee estimation error:', data.error)
+    if (!response.ok) {
+      console.error('Chainstack fee estimation error:', response.status, response.statusText)
       // Fallback to operation-specific estimates if API fails
       const fallbackFees = getFallbackFees(operationType, amount)
       return new Response(
@@ -67,8 +74,8 @@ serve(async (req) => {
       )
     }
 
-    // Parse Chainstack fee estimation response
-    const estimatedFee = data.result?.gas_used || data.result?.fee || '50000000' // 0.05 TON fallback
+    // Parse Chainstack REST API fee estimation response
+    const estimatedFee = data.estimated_fee || data.fee || '50000000' // 0.05 TON fallback
     const totalFee = BigInt(estimatedFee)
     
     // Add buffer for network fluctuations (20% extra)

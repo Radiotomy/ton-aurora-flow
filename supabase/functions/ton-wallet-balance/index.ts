@@ -17,48 +17,45 @@ serve(async (req) => {
       throw new Error('Address is required')
     }
 
-    // Use Chainstack API key from secrets
-    const chainstackApiKey = Deno.env.get('AUDIOTON_CHAIN')
-    if (!chainstackApiKey) {
-      throw new Error('Chainstack API key not configured')
-    }
+    // Chainstack TON API endpoints with path-based authentication
+    const primaryEndpoint = isTestnet 
+      ? 'https://ton-mainnet.core.chainstack.com/68b4cb9196a69de29db7191014f18715/api/v3'
+      : 'https://ton-mainnet.core.chainstack.com/68b4cb9196a69de29db7191014f18715/api/v3'
+      
+    const fallbackEndpoint = 'https://nd-123-456-789.p2pify.com/3c6e0b8a9c15224a8228b9a98ca1531d'
 
-    // Chainstack TON API endpoints - using v3 for enhanced features
-    const apiBase = isTestnet 
-      ? `https://nd-123-456-789.p2pify.com/${chainstackApiKey}/v3` // Replace with your testnet endpoint
-      : `https://nd-123-456-789.p2pify.com/${chainstackApiKey}/v3` // Replace with your mainnet endpoint
-
-    // Use Chainstack's enhanced getAddressInformation endpoint
-    const url = `${apiBase}/getAddressInformation?address=${address}`
-    
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${chainstackApiKey}`
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        method: "getAddressInformation",
-        params: {
-          address: address
-        },
-        id: 1
+    // Use Chainstack's REST API for address information
+    let response;
+    try {
+      response = await fetch(`${primaryEndpoint}/address/${address}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       })
-    })
+    } catch (error) {
+      // Fallback to secondary endpoint
+      response = await fetch(`${fallbackEndpoint}/address/${address}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+    }
     
     const data = await response.json()
 
-    // Handle Chainstack JSON-RPC response format
-    if (data.error) {
-      throw new Error(`Chainstack API error: ${data.error.message || 'Unknown error'}`)
+    // Handle Chainstack REST API response format
+    if (!response.ok) {
+      throw new Error(`Chainstack API error: ${response.status} ${response.statusText}`)
     }
 
-    if (!data.result) {
+    if (!data) {
       throw new Error('Invalid response from Chainstack API')
     }
 
-    const balanceNanotons = BigInt(data.result.balance || '0')
+    // Parse Chainstack address response format
+    const balanceNanotons = BigInt(data.balance || '0')
     const balanceTon = Number(balanceNanotons) / 1e9
 
     const result = {
@@ -66,7 +63,8 @@ serve(async (req) => {
       formatted: balanceTon.toFixed(4),
       nanotons: balanceNanotons.toString(),
       lastUpdated: new Date().toISOString(),
-      accountState: data.result.state || 'unknown',
+      accountState: data.status || data.state || 'unknown',
+      addressType: data.address_type || 'unknown',
       chainstackPowered: true,
       network: isTestnet ? 'testnet' : 'mainnet'
     }

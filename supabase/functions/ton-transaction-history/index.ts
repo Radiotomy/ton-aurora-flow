@@ -17,43 +17,45 @@ serve(async (req) => {
       throw new Error('Address is required')
     }
 
-    const chainstackApiKey = Deno.env.get('AUDIOTON_CHAIN')
-    if (!chainstackApiKey) {
-      throw new Error('Chainstack API key not configured')
-    }
+    // Chainstack TON API endpoints with path-based authentication
+    const primaryEndpoint = isTestnet 
+      ? 'https://ton-mainnet.core.chainstack.com/68b4cb9196a69de29db7191014f18715/api/v3'
+      : 'https://ton-mainnet.core.chainstack.com/68b4cb9196a69de29db7191014f18715/api/v3'
+      
+    const fallbackEndpoint = 'https://nd-123-456-789.p2pify.com/3c6e0b8a9c15224a8228b9a98ca1531d'
 
-    // Chainstack TON API endpoint for transaction history
-    const apiBase = isTestnet 
-      ? `https://nd-123-456-789.p2pify.com/${chainstackApiKey}/v3`
-      : `https://nd-123-456-789.p2pify.com/${chainstackApiKey}/v3`
-
-    const response = await fetch(`${apiBase}/getTransactions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${chainstackApiKey}`
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        method: "getTransactions",
-        params: {
-          address: address,
-          limit: Math.min(limit, 100), // Cap at 100
-          offset: offset,
-          archival: true
-        },
-        id: 1
-      })
+    // Use Chainstack's REST API for transaction history
+    const params = new URLSearchParams({
+      limit: Math.min(limit, 100).toString(),
+      offset: offset.toString()
     })
+
+    let response;
+    try {
+      response = await fetch(`${primaryEndpoint}/address/${address}/transactions?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+    } catch (error) {
+      // Fallback to secondary endpoint
+      response = await fetch(`${fallbackEndpoint}/address/${address}/transactions?${params}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+    }
 
     const data = await response.json()
 
-    if (data.error) {
-      throw new Error(`Chainstack API error: ${data.error.message}`)
+    if (!response.ok) {
+      throw new Error(`Chainstack API error: ${response.status} ${response.statusText}`)
     }
 
-    // Process and format transaction data
-    const transactions = (data.result || []).map((tx: any) => ({
+    // Process and format transaction data from Chainstack REST response
+    const transactions = (data.transactions || data || []).map((tx: any) => ({
       hash: tx.transaction_id?.hash || '',
       lt: tx.transaction_id?.lt || '',
       account: tx.account || '',

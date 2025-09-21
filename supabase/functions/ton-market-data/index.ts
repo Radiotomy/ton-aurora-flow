@@ -13,45 +13,47 @@ serve(async (req) => {
   try {
     const { isTestnet = false } = await req.json().catch(() => ({ isTestnet: false }))
 
-    const chainstackApiKey = Deno.env.get('AUDIOTON_CHAIN')
-    if (!chainstackApiKey) {
-      throw new Error('Chainstack API key not configured')
+    // Chainstack TON API endpoints with path-based authentication
+    const primaryEndpoint = isTestnet 
+      ? 'https://ton-mainnet.core.chainstack.com/68b4cb9196a69de29db7191014f18715/api/v3'
+      : 'https://ton-mainnet.core.chainstack.com/68b4cb9196a69de29db7191014f18715/api/v3'
+      
+    const fallbackEndpoint = 'https://nd-123-456-789.p2pify.com/3c6e0b8a9c15224a8228b9a98ca1531d'
+
+    // Get network statistics and latest block info using Chainstack REST API
+    let statsResponse, blockResponse;
+    try {
+      [statsResponse, blockResponse] = await Promise.all([
+        fetch(`${primaryEndpoint}/network/stats`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch(`${primaryEndpoint}/masterchain/info`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+      ])
+    } catch (error) {
+      // Fallback to secondary endpoint
+      [statsResponse, blockResponse] = await Promise.all([
+        fetch(`${fallbackEndpoint}/network/stats`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch(`${fallbackEndpoint}/masterchain/info`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+      ])
     }
-
-    // Chainstack TON API endpoint
-    const apiBase = isTestnet 
-      ? `https://nd-123-456-789.p2pify.com/${chainstackApiKey}/v3`
-      : `https://nd-123-456-789.p2pify.com/${chainstackApiKey}/v3`
-
-    // Get network statistics and latest block info
-    const [statsResponse, blockResponse] = await Promise.all([
-      fetch(`${apiBase}/getNetworkStats`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${chainstackApiKey}`
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          method: "getNetworkStats", 
-          params: {},
-          id: 1
-        })
-      }),
-      fetch(`${apiBase}/getMasterchainInfo`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${chainstackApiKey}`
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          method: "getMasterchainInfo",
-          params: {},
-          id: 2
-        })
-      })
-    ])
 
     const [statsData, blockData] = await Promise.all([
       statsResponse.json(),
@@ -72,11 +74,11 @@ serve(async (req) => {
       network: {
         name: isTestnet ? 'TON Testnet' : 'TON Mainnet',
         isTestnet,
-        blockHeight: blockData.result?.last?.seqno || 0,
-        blockTime: blockData.result?.last?.gen_utime || Math.floor(Date.now() / 1000),
-        validators: statsData.result?.validators_count || 0,
-        totalSupply: statsData.result?.total_supply || '0',
-        circulatingSupply: statsData.result?.circulating_supply || '0'
+        blockHeight: blockData?.seqno || blockData?.last?.seqno || 0,
+        blockTime: blockData?.gen_utime || blockData?.last?.gen_utime || Math.floor(Date.now() / 1000),
+        validators: statsData?.validators_count || 0,
+        totalSupply: statsData?.total_supply || '0',
+        circulatingSupply: statsData?.circulating_supply || '0'
       },
       market: {
         price: tonPrice,
@@ -84,10 +86,10 @@ serve(async (req) => {
         lastUpdated: new Date().toISOString()
       },
       blockchain: {
-        avgBlockTime: statsData.result?.avg_block_time || 5,
-        tps: statsData.result?.transactions_per_second || 0,
-        activeAddresses: statsData.result?.active_addresses_24h || 0,
-        totalTransactions: statsData.result?.total_transactions || 0
+        avgBlockTime: statsData?.avg_block_time || 5,
+        tps: statsData?.transactions_per_second || 0,
+        activeAddresses: statsData?.active_addresses_24h || 0,
+        totalTransactions: statsData?.total_transactions || 0
       },
       timestamp: new Date().toISOString(),
       chainstackPowered: true
