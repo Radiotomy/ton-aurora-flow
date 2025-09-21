@@ -19,12 +19,15 @@ export function getPaymentContractCode(): Cell {
     _compiling = true;
     compileRealContract('payment').then(result => {
       _cachedBytecode = result.bytecode;
+      _compiling = false;
       console.log(`✅ Payment contract compiled with real FunC: ${(result.size / 1024).toFixed(2)} KB`);
       console.log(`   Source hash: ${result.sourceHash}`);
       console.log(`   Gas usage: ${result.gasUsage}`);
     }).catch(error => {
       console.error('Real FunC compilation failed for Payment:', error);
       _compiling = false;
+      // Use fallback on error
+      _cachedBytecode = _generateFallbackBytecode();
     });
   }
   
@@ -38,3 +41,8 @@ function _generateFallbackBytecode(): Cell {
 }
 
 export const isPlaceholder: boolean = false;
+
+// Export function to check if real compilation is complete
+export function isRealCompilationReady(): boolean {
+  return _cachedBytecode !== null && !_compiling;
+}

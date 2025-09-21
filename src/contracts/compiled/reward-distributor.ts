@@ -19,12 +19,14 @@ export function getRewardDistributorContractCode(): Cell {
     _compiling = true;
     compileRealContract('reward-distributor').then(result => {
       _cachedBytecode = result.bytecode;
+      _compiling = false;
       console.log(`✅ Reward Distributor contract compiled with real FunC: ${(result.size / 1024).toFixed(2)} KB`);
       console.log(`   Source hash: ${result.sourceHash}`);
       console.log(`   Gas usage: ${result.gasUsage}`);
     }).catch(error => {
       console.error('Real FunC compilation failed for Reward Distributor:', error);
       _compiling = false;
+      _cachedBytecode = _generateFallbackBytecode();
     });
   }
   
@@ -38,3 +40,7 @@ function _generateFallbackBytecode(): Cell {
 }
 
 export const isPlaceholder: boolean = false;
+
+export function isRealCompilationReady(): boolean {
+  return _cachedBytecode !== null && !_compiling;
+}

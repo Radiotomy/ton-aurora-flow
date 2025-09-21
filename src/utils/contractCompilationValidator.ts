@@ -231,7 +231,9 @@ export class ContractCompilationValidator {
         'b817c4ae', // SEND_RAW_MESSAGE  
         'c5c25040', // STORE_REF
         '9130e8a1', // LOAD_MSG_ADDR
-        'f2cc', 'f84c', 'f85c' // Various TVM instructions
+        'f2cc', 'f84c', 'f85c', // Various TVM instructions
+        '68', '6c', '70', '74', // LOAD/STORE instructions
+        '88', '8c', '90', '94'  // More TVM opcodes
       ];
       
       const hasRealOpcodes = realTVMOpcodes.some(opcode => bocHex.includes(opcode));
