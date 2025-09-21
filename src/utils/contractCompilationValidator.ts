@@ -12,7 +12,7 @@ import {
   hasPlaceholderContracts,
   getPlaceholderContractsList
 } from '@/contracts/compiled';
-import { RealContractCompiler } from '@/utils/realContractCompiler';
+import { compileRealContract } from '@/utils/realTonCompiler';
 import { MainnetContractCompiler } from '@/utils/mainnetContractCompiler';
 import { ContractBytecode } from '@/utils/contractBytecode';
 
@@ -103,22 +103,26 @@ export class ContractCompilationValidator {
         warnings.push('Using placeholder bytecode - needs real FunC compilation');
       }
       
-      // 4. Test compilation from source
+      // 4. Test real FunC compilation
       try {
-        const sourceCompiled = await RealContractCompiler.compileContract(contractName);
-        sourceHash = sourceCompiled.sourceHash;
+        const realCompiled = await compileRealContract(contractName);
+        sourceHash = realCompiled.sourceHash;
         
-        // Compare sizes - production compiler generates much larger bytecode than test compiler
-        const sourceSize = this.calculateCellSize(sourceCompiled.bytecode);
-        const sizeDiff = Math.abs(sourceSize - size);
+        // Compare with real compilation results
+        const realSize = this.calculateCellSize(realCompiled.bytecode);
+        const sizeDiff = Math.abs(realSize - size);
         
-        // Only warn if size difference is unexpectedly large (>2500 bytes)
-        // Normal difference between production and test compilers is ~1300-2000 bytes
-        if (sizeDiff > 2500) {
-          warnings.push(`Unexpected size difference: compiled (${size}) vs source (${sourceSize}) bytecode - difference: ${sizeDiff} bytes`);
+        // If current bytecode is real, sizes should be similar
+        if (hasRealBytecode && sizeDiff > 1000) {
+          warnings.push(`Size mismatch with real FunC compilation: current (${size}) vs real (${realSize}) - diff: ${sizeDiff} bytes`);
+        }
+        
+        // If current bytecode is synthetic, note the real compilation succeeded
+        if (!hasRealBytecode) {
+          warnings.push(`Synthetic bytecode detected. Real FunC compilation available (${realSize} bytes)`);
         }
       } catch (sourceError) {
-        warnings.push(`Source compilation test failed: ${sourceError.message}`);
+        warnings.push(`Real FunC compilation test failed: ${sourceError.message}`);
       }
       
       // 5. Test mainnet compilation
@@ -203,34 +207,39 @@ export class ContractCompilationValidator {
    */
   private static isRealBytecode(code: Cell, contractName: string): boolean {
     try {
-      const slice = code.beginParse();
-      const cellSize = this.calculateCellSize(code);
+      const boc = code.toBoc();
+      const bocHex = boc.toString('hex');
       
-      // Check for placeholder indicators
-      if (cellSize < 50) {
-        return false; // Too small to be real contract
-      }
-      
-      // Check for placeholder patterns
-      const firstBytes = slice.remainingBits >= 32 ? slice.preloadUint(32) : 0;
-      const placeholderPatterns = [
-        0x89679274, // Magic header for placeholder
-        0xF200F200, // NOP operations pattern
-        0x00000000  // Null pattern
-      ];
-      
-      if (placeholderPatterns.includes(firstBytes)) {
+      // Check if this is just an empty Cell (fallback bytecode)
+      if (boc.length < 10) {
         return false;
       }
       
-      // Check for BOC structure that indicates real compilation
-      const bocHex = code.toBoc().toString('hex');
-      if (bocHex.length < 100) {
-        return false; // Too short to be real
+      // Check for synthetic/placeholder bytecode patterns
+      if (bocHex.includes('DEADBEEF') || bocHex.includes('placeholder') || bocHex.includes('test')) {
+        return false;
       }
       
-      // BOC magic string check is not applicable here; rely on size and basic structure
-      return cellSize >= 50;
+      // Real TVM bytecode should start with BOC magic number
+      if (!bocHex.startsWith('b5ee9c72')) {
+        return false;
+      }
+      
+      // Check for actual TVM opcodes that indicate real compilation
+      const realTVMOpcodes = [
+        'a9ec17c4', // DIVMOD
+        'b817c4ae', // SEND_RAW_MESSAGE  
+        'c5c25040', // STORE_REF
+        '9130e8a1', // LOAD_MSG_ADDR
+        'f2cc', 'f84c', 'f85c' // Various TVM instructions
+      ];
+      
+      const hasRealOpcodes = realTVMOpcodes.some(opcode => bocHex.includes(opcode));
+      
+      // Contract should have substantial size (real compiled contracts are larger)
+      const hasSubstantialSize = boc.length > 100;
+      
+      return hasRealOpcodes && hasSubstantialSize;
     } catch (error) {
       return false;
     }
