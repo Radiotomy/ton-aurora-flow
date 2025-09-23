@@ -1231,6 +1231,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_safe_profile_data: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          avatar_url: string
+          bio: string
+          created_at: string
+          display_name: string
+          id: string
+          reputation_score: number
+        }[]
+      }
       get_safe_profile_fields: {
         Args: Record<PropertyKey, never>
         Returns: string

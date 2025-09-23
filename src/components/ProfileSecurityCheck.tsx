@@ -1,17 +1,18 @@
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
-// Security component to warn users about the profile data exposure fix
+// Security component to confirm the profile data exposure fix has been applied
 export const ProfileSecurityCheck = () => {
   useEffect(() => {
-    // Check if user has been notified about the security fix
-    const hasSeenSecurityNotice = localStorage.getItem('profile-security-notice');
+    // Check if user has been notified about the critical security fix
+    const hasSeenCriticalFix = localStorage.getItem('profile-security-critical-fix');
     
-    if (!hasSeenSecurityNotice) {
-      toast.success('Security Update Applied: Your profile data is now properly protected! 🔐', {
-        duration: 5000,
+    if (!hasSeenCriticalFix) {
+      toast.success('🔒 CRITICAL Security Fix Applied: Profile data exposure vulnerability patched!', {
+        duration: 6000,
+        description: 'Sensitive data like wallet addresses are now properly protected from public access.',
       });
-      localStorage.setItem('profile-security-notice', 'true');
+      localStorage.setItem('profile-security-critical-fix', 'true');
     }
   }, []);
 
