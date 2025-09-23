@@ -418,6 +418,8 @@ export class SocialService {
   // AI Recommendations
   static async generateAIRecommendations(profileId: string, count: number = 5, genres: string[] = [], moods: string[] = []): Promise<any[]> {
     try {
+      console.log(`Generating AI recommendations for profile: ${profileId}, count: ${count}`);
+      
       const { data, error } = await supabase.functions.invoke('ai-recommendations', {
         body: {
           profileId,
@@ -429,13 +431,19 @@ export class SocialService {
 
       if (error) {
         console.error('Error generating AI recommendations:', error);
-        return [];
+        throw new Error(`Failed to generate recommendations: ${error.message}`);
       }
 
+      if (!data || !data.success) {
+        console.error('AI recommendations API returned error:', data?.error || 'Unknown error');
+        throw new Error(data?.error || 'Failed to generate recommendations');
+      }
+
+      console.log(`Successfully generated ${data.recommendations?.length || 0} AI recommendations`);
       return data?.recommendations || [];
     } catch (error) {
       console.error('Error in generateAIRecommendations:', error);
-      return [];
+      throw error; // Re-throw to let the UI handle the error
     }
   }
 

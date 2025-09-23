@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { SocialService, TrackComment, UserFavorite } from '@/services/socialService';
 import { useAuth } from './useAuth';
+import { toast } from 'sonner';
 
 export const useSocial = () => {
   const { profile } = useAuth();
@@ -156,7 +157,12 @@ export const useSocial = () => {
       try {
         const data = await SocialService.generateAIRecommendations(profile.id, count, genres, moods);
         setRecommendations(data);
+        toast.success(`Generated ${data.length} AI recommendations!`);
         return data;
+      } catch (error: any) {
+        console.error('Failed to generate recommendations:', error);
+        toast.error(error.message || 'Failed to generate AI recommendations');
+        return [];
       } finally {
         setLoading(false);
       }

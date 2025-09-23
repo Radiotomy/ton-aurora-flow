@@ -112,22 +112,32 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
     console.log('AI recommendations generated:', aiRecommendations);
 
     // Fetch trending tracks from Audius API to match with AI suggestions
-    const audiusResponse = await supabase.functions.invoke('audius-api', {
-      body: { 
-        endpoint: 'trending-tracks',
-        params: { 
-          limit: 50,
-          genre: genres.length > 0 ? genres[0] : undefined 
-        }
-      }
+    const audiusUrl = `${supabaseUrl}/functions/v1/audius-api/trending-tracks?limit=50${genres.length > 0 ? `&genre=${encodeURIComponent(genres[0])}` : ''}`;
+    
+    console.log(`Calling Audius API: ${audiusUrl}`);
+    
+    const audiusResponse = await fetch(audiusUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'Content-Type': 'application/json',
+      },
     });
 
-    if (audiusResponse.error) {
-      console.error('Audius API error:', audiusResponse.error);
+    if (!audiusResponse.ok) {
+      const errorText = await audiusResponse.text();
+      console.error('Audius API error:', audiusResponse.status, errorText);
+      throw new Error(`Failed to fetch tracks from Audius: ${audiusResponse.status}`);
+    }
+
+    const audiusData = await audiusResponse.json();
+
+    if (!audiusData.success) {
+      console.error('Audius API returned error:', audiusData.error);
       throw new Error('Failed to fetch tracks from Audius');
     }
 
-    const tracks = audiusResponse.data?.tracks || [];
+    const tracks = audiusData.tracks || [];
     console.log(`Fetched ${tracks.length} tracks from Audius`);
 
     // Match AI recommendations with actual tracks
