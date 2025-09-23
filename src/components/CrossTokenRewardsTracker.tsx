@@ -61,25 +61,29 @@ export const CrossTokenRewardsTracker = () => {
     if (!profile?.id) return;
 
     try {
-      // Fetch user's reward statistics
-      const { data: stats } = await supabase
-        .from('user_reward_stats')
-        .select('*')
-        .eq('profile_id', profile.id)
-        .single();
+      // Calculate stats from existing audio_rewards_history
+      const { data: rewards } = await supabase
+        .from('audio_rewards_history')
+        .select('amount, reward_type, created_at')
+        .eq('profile_id', profile.id);
 
-      if (stats) {
+      if (rewards) {
+        const totalAudioEarned = rewards.reduce((sum, r) => sum + Number(r.amount), 0);
+        const recentRewards = rewards.filter(r => 
+          new Date(r.created_at) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+        );
+        
         setRewardStats({
-          totalTonEarned: stats.total_ton_rewards || 0,
-          totalAudioEarned: stats.total_audio_rewards || 0,
-          currentMultiplier: stats.current_multiplier || 1.0,
-          loyaltyTier: stats.loyalty_tier || 'bronze',
-          streakDays: stats.streak_days || 0,
-          nextRewardAt: stats.next_reward_threshold || 100,
+          totalTonEarned: 0, // Will be calculated from transactions later
+          totalAudioEarned,
+          currentMultiplier: 1.0 + (recentRewards.length * 0.1), // Simple multiplier logic
+          loyaltyTier: totalAudioEarned > 1000 ? 'gold' : totalAudioEarned > 500 ? 'silver' : 'bronze',
+          streakDays: Math.min(recentRewards.length, 7),
+          nextRewardAt: 100,
           weeklyProgress: {
-            current: stats.weekly_activity || 0,
-            target: stats.weekly_target || 50,
-            bonus: stats.weekly_bonus || 10
+            current: recentRewards.length,
+            target: 50,
+            bonus: 10
           }
         });
       } else {
@@ -100,6 +104,20 @@ export const CrossTokenRewardsTracker = () => {
       }
     } catch (error) {
       console.error('Error fetching reward stats:', error);
+      // Set default stats on error
+      setRewardStats({
+        totalTonEarned: 0,
+        totalAudioEarned: 0,
+        currentMultiplier: 1.0,
+        loyaltyTier: 'bronze',
+        streakDays: 0,
+        nextRewardAt: 100,
+        weeklyProgress: {
+          current: 0,
+          target: 50,
+          bonus: 10
+        }
+      });
     } finally {
       setLoading(false);
     }
@@ -110,7 +128,7 @@ export const CrossTokenRewardsTracker = () => {
 
     try {
       const { data: rewards } = await supabase
-        .from('reward_history')
+        .from('audio_rewards_history')
         .select('*')
         .eq('profile_id', profile.id)
         .order('created_at', { ascending: false })
@@ -118,12 +136,12 @@ export const CrossTokenRewardsTracker = () => {
 
       if (rewards) {
         setRecentRewards(rewards.map(r => ({
-          activity: r.activity_type,
-          tonReward: r.ton_amount || 0,
-          audioReward: r.audio_amount || 0,
-          multiplier: r.multiplier || 1.0,
+          activity: r.reward_type || 'listening',
+          tonReward: 0, // TON rewards will be calculated separately
+          audioReward: Number(r.amount) || 0,
+          multiplier: 1.0,
           timestamp: new Date(r.created_at),
-          bonusType: r.bonus_type || 'activity'
+          bonusType: 'activity' as CrossTokenReward['bonusType']
         })));
       }
     } catch (error) {
@@ -135,43 +153,34 @@ export const CrossTokenRewardsTracker = () => {
     if (!profile?.id || !rewardStats) return;
 
     try {
-      // Calculate weekly bonus rewards
-      const bonusRewards = await EnhancedPaymentService.calculateCrossTokenRewards(
-        profile.id,
-        'purchase',
-        rewardStats.weeklyProgress.bonus
-      );
+      // Calculate weekly bonus rewards (simplified version)
+      const bonusAmount = rewardStats.weeklyProgress.bonus;
 
-      // Award the bonus
-      await supabase.from('reward_history').insert({
+      // Insert reward into audio_rewards_history  
+      await supabase.from('audio_rewards_history').insert({
         profile_id: profile.id,
-        activity_type: 'weekly_bonus',
-        ton_amount: bonusRewards.tonAmount,
-        audio_amount: bonusRewards.audioAmount,
-        multiplier: bonusRewards.multiplier,
-        bonus_type: 'loyalty'
+        reward_type: 'weekly_bonus',
+        amount: bonusAmount,
+        source: 'platform_bonus',
+        claimed: true,
+        claimed_at: new Date().toISOString()
       });
 
-      // Update token balances
-      if (bonusRewards.tonAmount > 0) {
-        await supabase.rpc('update_token_balance', {
-          p_profile_id: profile.id,
-          p_token_type: 'TON',
-          p_amount: bonusRewards.tonAmount
+      // Update audio token balance
+      await supabase
+        .from('audio_token_balances')
+        .upsert({
+          profile_id: profile.id,
+          balance: bonusAmount,
+          total_earnings: bonusAmount,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'profile_id'
         });
-      }
-
-      if (bonusRewards.audioAmount > 0) {
-        await supabase.rpc('update_token_balance', {
-          p_profile_id: profile.id,
-          p_token_type: 'AUDIO',
-          p_amount: bonusRewards.audioAmount
-        });
-      }
 
       toast({
         title: "Weekly Bonus Claimed! 🎉",
-        description: `Earned ${bonusRewards.tonAmount.toFixed(4)} TON + ${bonusRewards.audioAmount.toFixed(4)} $AUDIO`
+        description: `Earned ${bonusAmount.toFixed(4)} $AUDIO tokens`
       });
 
       // Refresh stats

@@ -12,7 +12,7 @@ import {
   Settings,
   Eye,
   EyeOff
-} from 'lucinde-react';
+} from 'lucide-react';
 import { UnifiedWalletDisplay } from './UnifiedWalletDisplay';
 import { RealTimeRateWidget } from './RealTimeRateWidget';
 import { CrossTokenRewardsTracker } from './CrossTokenRewardsTracker';
@@ -120,7 +120,7 @@ export const EnhancedTokenDashboard = ({
       </Card>
 
       {/* Main Dashboard Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <Wallet className="h-4 w-4" />

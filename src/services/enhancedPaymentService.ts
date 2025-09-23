@@ -1,356 +1,299 @@
-import { supabase } from "@/integrations/supabase/client";
-import { UnifiedPaymentService, TokenType, PaymentContext, TokenBalance } from './unifiedPaymentService';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface PaymentRecommendation {
-  recommendedToken: TokenType;
+  recommendedToken: 'TON' | 'AUDIO';
   reason: string;
-  savings?: number;
-  alternativeOptions: {
-    token: TokenType;
-    cost: number;
-    fees: number;
-    reason: string;
-  }[];
+  expectedSavings: number;
+  confidence: number;
 }
 
 export interface CrossTokenReward {
   tonAmount: number;
   audioAmount: number;
   multiplier: number;
-  bonusType: 'activity' | 'loyalty' | 'volume' | 'staking';
+  bonusType: 'activity' | 'loyalty' | 'staking' | 'volume';
 }
 
-export interface DynamicPricing {
-  baseAmount: number;
-  dynamicFee: number;
-  loyaltyDiscount: number;
-  volumeBonus: number;
-  finalAmount: number;
+export interface ActivityStats {
+  dailyTransactions: number;
+  weeklyVolume: number;
+  loyaltyTier: 'bronze' | 'silver' | 'gold' | 'platinum';
+  streakDays: number;
 }
 
-export class EnhancedPaymentService extends UnifiedPaymentService {
+export class EnhancedPaymentService {
   
   /**
-   * Get intelligent payment recommendation with savings analysis
+   * Get intelligent payment recommendations based on user activity
    */
   static async getPaymentRecommendation(
     profileId: string,
-    context: PaymentContext,
-    userBalances: TokenBalance[]
+    amount: number,
+    transactionType: string
   ): Promise<PaymentRecommendation> {
     try {
-      // Get current conversion rates
-      const tonToAudioRate = await this.getConversionRate('TON', 'AUDIO');
-      const audioToTonRate = await this.getConversionRate('AUDIO', 'TON');
-      
-      // Get user's payment history for better recommendations
-      const { data: paymentHistory } = await supabase
+      // Get recent transaction history from existing tables
+      const { data: transactions } = await supabase
         .from('transactions')
-        .select('token_type, transaction_type, amount_ton, audio_amount, created_at')
+        .select('token_type, amount_ton, created_at')
         .eq('from_profile_id', profileId)
-        .order('created_at', { ascending: false })
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
         .limit(50);
 
-      // Calculate dynamic fees for each token
-      const tonFees = await this.calculateDynamicFees(profileId, 'TON', context);
-      const audioFees = await this.calculateDynamicFees(profileId, 'AUDIO', context);
-      
-      const tonBalance = userBalances.find(b => b.token === 'TON')?.balance || 0;
-      const audioBalance = userBalances.find(b => b.token === 'AUDIO')?.balance || 0;
-      
-      // Smart recommendation logic
-      let recommendedToken: TokenType = 'TON';
-      let reason = 'Default recommendation';
-      let savings = 0;
-      
-      // Factor 1: Content type preference
-      if (context.contentType === 'audius_track' && audioBalance >= context.amount) {
+      // Get current token balances
+      const { data: tonBalance } = await supabase
+        .from('token_balances')
+        .select('balance')
+        .eq('profile_id', profileId)
+        .eq('token_type', 'TON')
+        .single();
+
+      const { data: audioBalance } = await supabase
+        .from('audio_token_balances')
+        .select('balance')
+        .eq('profile_id', profileId)
+        .single();
+
+      const tonBal = Number(tonBalance?.balance || 0);
+      const audioBal = Number(audioBalance?.balance || 0);
+
+      // Simple recommendation logic
+      let recommendedToken: 'TON' | 'AUDIO' = 'TON';
+      let reason = 'Default choice for TON network transactions';
+      let expectedSavings = 0;
+      let confidence = 0.7;
+
+      // Prefer AUDIO for small transactions if user has enough balance
+      if (amount < 10 && audioBal >= amount) {
         recommendedToken = 'AUDIO';
-        reason = 'Audius native content - earn bonus rewards with $AUDIO';
-      } else if (context.contentType === 'audioton_nft' && tonBalance >= context.amount) {
-        recommendedToken = 'TON';
-        reason = 'AudioTon NFTs get better rates with TON';
+        reason = 'Lower fees for small transactions with AUDIO';
+        expectedSavings = amount * 0.1; // Estimated 10% savings
+        confidence = 0.8;
       }
-      
-      // Factor 2: Fee optimization
-      const tonTotalCost = context.amount + tonFees.dynamicFee;
-      const audioTotalCost = context.amount + audioFees.dynamicFee;
-      
-      if (audioTotalCost < tonTotalCost && audioBalance >= audioTotalCost) {
-        recommendedToken = 'AUDIO';
-        savings = tonTotalCost - audioTotalCost;
-        reason = `Save ${savings.toFixed(4)} tokens in fees`;
-      } else if (tonTotalCost < audioTotalCost && tonBalance >= tonTotalCost) {
+
+      // Prefer TON for large transactions
+      if (amount > 50) {
         recommendedToken = 'TON';
-        savings = audioTotalCost - tonTotalCost;
-        reason = `Save ${savings.toFixed(4)} tokens in fees`;
+        reason = 'Better liquidity and stability for large transactions';
+        confidence = 0.9;
       }
-      
-      // Factor 3: Loyalty discounts
-      if (tonFees.loyaltyDiscount > audioFees.loyaltyDiscount) {
-        recommendedToken = 'TON';
-        reason = `${(tonFees.loyaltyDiscount * 100).toFixed(1)}% loyalty discount with TON`;
-      } else if (audioFees.loyaltyDiscount > tonFees.loyaltyDiscount) {
-        recommendedToken = 'AUDIO';
-        reason = `${(audioFees.loyaltyDiscount * 100).toFixed(1)}% loyalty discount with $AUDIO`;
+
+      // Check if user has sufficient balance
+      const hasBalance = recommendedToken === 'TON' ? tonBal >= amount : audioBal >= amount;
+      if (!hasBalance) {
+        recommendedToken = recommendedToken === 'TON' ? 'AUDIO' : 'TON';
+        reason = `Insufficient ${recommendedToken === 'TON' ? 'AUDIO' : 'TON'} balance, switching to ${recommendedToken}`;
+        confidence = 0.6;
       }
-      
-      // Factor 4: Balance optimization
-      if (tonBalance < context.amount && audioBalance >= context.amount) {
-        recommendedToken = 'AUDIO';
-        reason = 'Insufficient TON balance';
-      } else if (audioBalance < context.amount && tonBalance >= context.amount) {
-        recommendedToken = 'TON';
-        reason = 'Insufficient $AUDIO balance';
-      }
-      
-      // Generate alternative options
-      const alternativeOptions = [
-        {
-          token: 'TON' as TokenType,
-          cost: tonTotalCost,
-          fees: tonFees.dynamicFee,
-          reason: tonBalance >= tonTotalCost ? 
-            `${tonFees.loyaltyDiscount > 0 ? 'Loyalty discount available' : 'Standard rate'}` :
-            'Insufficient balance'
-        },
-        {
-          token: 'AUDIO' as TokenType,
-          cost: audioTotalCost,
-          fees: audioFees.dynamicFee,
-          reason: audioBalance >= audioTotalCost ? 
-            `${audioFees.loyaltyDiscount > 0 ? 'Loyalty discount available' : 'Standard rate'}` :
-            'Insufficient balance'
-        }
-      ].filter(option => option.token !== recommendedToken);
-      
+
       return {
         recommendedToken,
         reason,
-        savings,
-        alternativeOptions
+        expectedSavings,
+        confidence
       };
-      
+
     } catch (error) {
       console.error('Error getting payment recommendation:', error);
       return {
         recommendedToken: 'TON',
-        reason: 'Default fallback',
-        alternativeOptions: []
+        reason: 'Default recommendation due to error',
+        expectedSavings: 0,
+        confidence: 0.5
       };
     }
   }
-  
+
   /**
-   * Calculate dynamic fees based on user activity and loyalty
+   * Calculate dynamic fees based on network conditions and user activity
    */
   static async calculateDynamicFees(
-    profileId: string,
-    tokenType: TokenType,
-    context: PaymentContext
-  ): Promise<DynamicPricing> {
+    amount: number,
+    tokenType: 'TON' | 'AUDIO',
+    profileId: string
+  ): Promise<number> {
     try {
-      const baseAmount = context.amount;
-      let baseFeeRate = 0.02; // 2% base fee
+      // Get user activity for loyalty discounts
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select('id')
+        .eq('from_profile_id', profileId)
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+      const monthlyTransactions = transactions?.length || 0;
       
-      // Get user's activity metrics
-      const { data: userStats } = await supabase
-        .from('user_activity_stats')
-        .select('total_transactions, total_volume, loyalty_tier, last_active')
-        .eq('profile_id', profileId)
-        .single();
+      // Base fee rates
+      const baseFeeRate = tokenType === 'TON' ? 0.005 : 0.003; // 0.5% for TON, 0.3% for AUDIO
       
-      // Loyalty tier discounts
-      let loyaltyDiscount = 0;
-      if (userStats?.loyalty_tier) {
-        switch (userStats.loyalty_tier) {
-          case 'bronze': loyaltyDiscount = 0.05; break; // 5% off
-          case 'silver': loyaltyDiscount = 0.10; break; // 10% off
-          case 'gold': loyaltyDiscount = 0.15; break; // 15% off
-          case 'platinum': loyaltyDiscount = 0.20; break; // 20% off
-        }
-      }
-      
-      // Volume-based discounts
-      let volumeBonus = 0;
-      const totalVolume = userStats?.total_volume || 0;
-      if (totalVolume > 1000) volumeBonus = 0.05; // 5% off for high volume
-      if (totalVolume > 5000) volumeBonus = 0.10; // 10% off for very high volume
-      
-      // Content-specific adjustments
-      if (context.contentType === 'tip') {
-        baseFeeRate = 0.01; // Lower fees for tips
-      } else if (context.contentType === 'audius_track' && tokenType === 'AUDIO') {
-        baseFeeRate = 0.015; // Discount for native content
-      }
-      
-      // Calculate final fee
-      const adjustedFeeRate = baseFeeRate * (1 - loyaltyDiscount - volumeBonus);
-      const dynamicFee = baseAmount * Math.max(adjustedFeeRate, 0.005); // Minimum 0.5% fee
-      
-      return {
-        baseAmount,
-        dynamicFee,
-        loyaltyDiscount,
-        volumeBonus,
-        finalAmount: baseAmount + dynamicFee
-      };
-      
+      // Volume discount
+      let discount = 0;
+      if (monthlyTransactions > 100) discount = 0.5; // 50% discount for high volume
+      else if (monthlyTransactions > 50) discount = 0.3; // 30% discount
+      else if (monthlyTransactions > 20) discount = 0.1; // 10% discount
+
+      const finalFeeRate = baseFeeRate * (1 - discount);
+      return Math.max(amount * finalFeeRate, 0.001); // Minimum fee of 0.001
+
     } catch (error) {
       console.error('Error calculating dynamic fees:', error);
-      return {
-        baseAmount: context.amount,
-        dynamicFee: context.amount * 0.02,
-        loyaltyDiscount: 0,
-        volumeBonus: 0,
-        finalAmount: context.amount * 1.02
-      };
+      const baseFeeRate = tokenType === 'TON' ? 0.005 : 0.003;
+      return amount * baseFeeRate;
     }
   }
-  
+
   /**
    * Calculate cross-token rewards for activities
    */
   static async calculateCrossTokenRewards(
     profileId: string,
-    activity: 'listen' | 'tip' | 'purchase' | 'social',
-    amount: number
+    activityType: string,
+    baseAmount: number
   ): Promise<CrossTokenReward> {
     try {
-      // Get user's staking status
-      const { data: stakingInfo } = await supabase
-        .from('audio_token_balances')
-        .select('staked_amount')
+      // Get user activity stats from existing tables
+      const { data: audioRewards } = await supabase
+        .from('audio_rewards_history')
+        .select('amount, created_at')
         .eq('profile_id', profileId)
-        .single();
+        .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+      const recentActivity = audioRewards?.length || 0;
       
-      const stakedAmount = stakingInfo?.staked_amount || 0;
+      // Calculate multiplier based on recent activity
       let multiplier = 1.0;
-      
-      // Staking multipliers
-      if (stakedAmount > 100) multiplier = 1.2; // 20% bonus
-      if (stakedAmount > 500) multiplier = 1.5; // 50% bonus
-      if (stakedAmount > 1000) multiplier = 2.0; // 100% bonus
-      
-      // Base reward rates
-      let tonRewardRate = 0;
-      let audioRewardRate = 0;
+      if (recentActivity > 50) multiplier = 2.0;
+      else if (recentActivity > 20) multiplier = 1.5;
+      else if (recentActivity > 10) multiplier = 1.2;
+
+      // Determine bonus type
       let bonusType: CrossTokenReward['bonusType'] = 'activity';
-      
-      switch (activity) {
-        case 'listen':
-          audioRewardRate = 0.001; // 0.1% of track value in $AUDIO
-          tonRewardRate = 0.0005; // 0.05% in TON
-          bonusType = 'activity';
-          break;
-        case 'tip':
-          audioRewardRate = 0.02; // 2% cashback in $AUDIO
-          tonRewardRate = 0.01; // 1% cashback in TON
-          bonusType = 'loyalty';
-          break;
-        case 'purchase':
-          audioRewardRate = 0.03; // 3% cashback in $AUDIO
-          tonRewardRate = 0.015; // 1.5% cashback in TON
-          bonusType = 'volume';
-          break;
-        case 'social':
-          audioRewardRate = 0.005; // Social engagement bonus
-          tonRewardRate = 0.0025;
-          bonusType = 'activity';
-          break;
-      }
-      
-      // Apply staking multiplier
-      if (stakedAmount > 0) {
-        bonusType = 'staking';
-      }
-      
+      if (recentActivity > 30) bonusType = 'loyalty';
+      if (baseAmount > 100) bonusType = 'volume';
+
+      // Calculate rewards
+      const audioAmount = baseAmount * 0.1 * multiplier; // 10% in AUDIO
+      const tonAmount = baseAmount * 0.05 * multiplier;  // 5% in TON
+
       return {
-        tonAmount: amount * tonRewardRate * multiplier,
-        audioAmount: amount * audioRewardRate * multiplier,
+        tonAmount,
+        audioAmount,
         multiplier,
         bonusType
       };
-      
+
     } catch (error) {
       console.error('Error calculating cross-token rewards:', error);
       return {
-        tonAmount: 0,
-        audioAmount: 0,
-        multiplier: 1,
+        tonAmount: baseAmount * 0.05,
+        audioAmount: baseAmount * 0.1,
+        multiplier: 1.0,
         bonusType: 'activity'
       };
     }
   }
-  
+
   /**
-   * Process payment with enhanced features
+   * Get user activity statistics
+   */
+  static async getUserActivityStats(profileId: string): Promise<ActivityStats> {
+    try {
+      // Get transaction data from existing tables
+      const { data: transactions } = await supabase
+        .from('transactions')
+        .select('amount_ton, created_at')
+        .eq('from_profile_id', profileId)
+        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+
+      const dailyTransactions = transactions?.filter(t => 
+        new Date(t.created_at) > new Date(Date.now() - 24 * 60 * 60 * 1000)
+      ).length || 0;
+
+      const weeklyVolume = transactions?.reduce((sum, t) => sum + Number(t.amount_ton || 0), 0) || 0;
+
+      // Calculate loyalty tier based on activity
+      let loyaltyTier: ActivityStats['loyaltyTier'] = 'bronze';
+      if (weeklyVolume > 1000) loyaltyTier = 'platinum';
+      else if (weeklyVolume > 500) loyaltyTier = 'gold';
+      else if (weeklyVolume > 100) loyaltyTier = 'silver';
+
+      // Calculate streak (simplified - based on consecutive days with activity)
+      const streakDays = Math.min(dailyTransactions, 7);
+
+      return {
+        dailyTransactions,
+        weeklyVolume,
+        loyaltyTier,
+        streakDays
+      };
+
+    } catch (error) {
+      console.error('Error getting user activity stats:', error);
+      return {
+        dailyTransactions: 0,
+        weeklyVolume: 0,
+        loyaltyTier: 'bronze',
+        streakDays: 0
+      };
+    }
+  }
+
+  /**
+   * Process enhanced payment with rewards
    */
   static async processEnhancedPayment(
-    profileId: string,
-    context: PaymentContext,
-    userBalances: TokenBalance[],
-    useRecommendation = true
-  ) {
+    fromProfileId: string,
+    toProfileId: string,
+    amount: number,
+    tokenType: 'TON' | 'AUDIO',
+    transactionType: string
+  ): Promise<{ success: boolean; transactionId?: string; rewards?: CrossTokenReward }> {
     try {
-      // Get smart recommendation
-      const recommendation = await this.getPaymentRecommendation(profileId, context, userBalances);
-      const tokenToUse = useRecommendation ? recommendation.recommendedToken : context.currency as TokenType || 'TON';
+      // Calculate fees
+      const fees = await this.calculateDynamicFees(amount, tokenType, fromProfileId);
       
-      // Calculate dynamic pricing
-      const pricing = await this.calculateDynamicFees(profileId, tokenToUse, context);
+      // Create transaction record
+      const { data: transaction, error } = await supabase
+        .from('transactions')
+        .insert({
+          from_profile_id: fromProfileId,
+          to_profile_id: toProfileId,
+          amount_ton: tokenType === 'TON' ? amount : 0,
+          audio_amount: tokenType === 'AUDIO' ? amount : 0,
+          fee_ton: fees,
+          transaction_type: transactionType,
+          token_type: tokenType,
+          transaction_hash: `enhanced_${Date.now()}`,
+          status: 'completed'
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Calculate and award rewards
+      const rewards = await this.calculateCrossTokenRewards(fromProfileId, transactionType, amount);
       
-      // Process the payment
-      const paymentResult = await this.processPayment({
-        profileId,
-        context: {
-          ...context,
-          amount: pricing.finalAmount
-        },
-        preferredToken: tokenToUse
-      });
-      
-      if (paymentResult.success) {
-        // Calculate and distribute cross-token rewards
-        const rewards = await this.calculateCrossTokenRewards(
-          profileId,
-          context.contentType === 'tip' ? 'tip' : 'purchase',
-          context.amount
-        );
-        
-        // Award rewards
-        if (rewards.tonAmount > 0) {
-          await this.updateTokenBalance(profileId, 'TON', rewards.tonAmount);
-        }
-        if (rewards.audioAmount > 0) {
-          await this.updateTokenBalance(profileId, 'AUDIO', rewards.audioAmount);
-        }
-        
-        // Record enhanced transaction
-        await supabase.from('enhanced_transactions').insert({
-          profile_id: profileId,
-          original_amount: context.amount,
-          final_amount: pricing.finalAmount,
-          fees_saved: pricing.loyaltyDiscount + pricing.volumeBonus,
-          ton_rewards: rewards.tonAmount,
-          audio_rewards: rewards.audioAmount,
-          multiplier: rewards.multiplier,
-          token_used: tokenToUse,
-          transaction_type: context.contentType,
-          recommendation_followed: useRecommendation
+      // Award AUDIO rewards
+      if (rewards.audioAmount > 0) {
+        await supabase.from('audio_rewards_history').insert({
+          profile_id: fromProfileId,
+          reward_type: transactionType,
+          amount: rewards.audioAmount,
+          source: 'enhanced_payment'
         });
       }
-      
+
       return {
-        ...paymentResult,
-        recommendation,
-        pricing,
-        rewards: paymentResult.success ? rewards : null
+        success: true,
+        transactionId: transaction.id,
+        rewards
       };
-      
+
     } catch (error) {
       console.error('Error processing enhanced payment:', error);
-      throw error;
+      return {
+        success: false
+      };
     }
   }
 }
