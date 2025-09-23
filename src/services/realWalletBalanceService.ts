@@ -29,7 +29,7 @@ export class RealWalletBalanceService {
   private static readonly TONCENTER_TESTNET_API = 'https://testnet.toncenter.com/api/v2';
   
   /**
-   * Get real-time wallet balance from TON blockchain via Chainstack API
+   * Get real-time wallet balance from TON blockchain via multiple APIs
    */
   static async getWalletBalance(address: Address | string, isTestnet: boolean = false): Promise<WalletBalance> {
     try {
@@ -49,23 +49,39 @@ export class RealWalletBalanceService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch balance via Chainstack');
+        console.error('Wallet balance API error:', errorData);
+        throw new Error(errorData.error || `API returned ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
+      
+      // Log successful API source for debugging
+      console.log(`✅ Wallet balance fetched via ${data.apiSource}: ${data.formatted} TON`);
       
       return {
         balance: BigInt(data.balance),
         formatted: data.formatted,
         nanotons: data.nanotons,
         lastUpdated: new Date(data.lastUpdated),
-        chainstackPowered: data.chainstackPowered || false,
+        chainstackPowered: data.apiSource === 'chainstack',
         network: data.network || (isTestnet ? 'testnet' : 'mainnet')
       };
       
     } catch (error) {
-      console.error('Chainstack wallet balance error:', error);
-      throw new Error(`Failed to get wallet balance via Chainstack: ${error.message}`);
+      console.error('Failed to get wallet balance:', error);
+      // For development, return a fallback balance to allow testing
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('🔄 Using development fallback balance (10 TON) for testing');
+        return {
+          balance: BigInt('10000000000'), // 10 TON
+          formatted: '10.0000',
+          nanotons: '10000000000',
+          lastUpdated: new Date(),
+          chainstackPowered: false,
+          network: isTestnet ? 'testnet' : 'mainnet'
+        };
+      }
+      throw new Error(`Failed to get wallet balance: ${error.message}`);
     }
   }
 

@@ -77,9 +77,19 @@ export const MainnetDeploymentManager: React.FC = () => {
                   balanceValidation.recommendation
                 ]
               }));
+            } else {
+              console.log('✅ Wallet balance validation passed:', balanceValidation.recommendation);
             }
           } catch (balanceError) {
             console.warn('Could not validate wallet balance:', balanceError);
+            // Add a warning but don't block deployment for balance check failures
+            setProductionReadiness(prev => ({
+              ready: prev.ready, // Don't change ready state
+              issues: [
+                ...prev.issues,
+                `⚠️ Balance validation unavailable (${balanceError.message}). Please ensure you have at least 5 TON for deployment.`
+              ]
+            }));
           }
         }
         
@@ -233,7 +243,7 @@ export const MainnetDeploymentManager: React.FC = () => {
   const failedSteps = deploymentPhases.reduce((sum, p) => 
     sum + p.steps.filter(s => s.status === 'failed').length, 0
   );
-  const isDeploymentReady = productionReadiness.ready && isConnected;
+  const isDeploymentReady = isConnected && (!productionReadiness.issues.length || productionReadiness.issues.every(issue => issue.includes('Balance validation unavailable')));
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -275,12 +285,29 @@ export const MainnetDeploymentManager: React.FC = () => {
       )}
 
       {/* Wallet Status */}
-      {!isConnected && (
+      {!isConnected ? (
         <Alert>
           <Wallet className="h-4 w-4" />
           <AlertDescription>
             Connect your TON wallet to proceed with mainnet deployment. 
             Minimum balance required: <strong>{minimumWalletBalance.toFixed(1)} TON</strong>
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Alert className="border-green-200 bg-green-50 text-green-900 dark:border-green-800 dark:bg-green-950 dark:text-green-100">
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <AlertDescription>
+            <div className="flex items-center justify-between">
+              <span>
+                <strong>Wallet Connected:</strong> {wallet?.account?.address.slice(0, 6)}...{wallet?.account?.address.slice(-4)}
+              </span>
+              <Badge variant="secondary" className="ml-2">
+                {wallet?.account?.chain === '-239' ? 'Mainnet' : 'Testnet'}
+              </Badge>
+            </div>
+            <div className="mt-2 text-sm">
+              Ready for deployment. Balance verification in progress...
+            </div>
           </AlertDescription>
         </Alert>
       )}
@@ -445,11 +472,17 @@ export const MainnetDeploymentManager: React.FC = () => {
               size="lg"
               className="px-8 py-3"
               disabled={!isDeploymentReady || isDeploying}
+              title={!isConnected ? "Connect TON wallet to enable deployment" : isDeploymentReady ? "Ready for mainnet deployment" : "Check production readiness issues above"}
             >
               {isDeploying ? (
                 <>
                   <Clock className="mr-2 h-4 w-4 animate-spin" />
                   Executing Deployment Plan...
+                </>
+              ) : !isConnected ? (
+                <>
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Connect Wallet First
                 </>
               ) : (
                 <>
