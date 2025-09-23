@@ -165,17 +165,26 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
       };
     });
 
-    // Store recommendations in database
+    // Clear old recommendations for this user first
+    const { error: deleteError } = await supabase
+      .from('user_recommendations')
+      .delete()
+      .eq('profile_id', profileId);
+
+    if (deleteError) {
+      console.error('Error deleting old recommendations:', deleteError);
+    }
+
+    // Store new recommendations in database
     const { data: storedRecommendations, error: storeError } = await supabase
       .from('user_recommendations')
-      .upsert(
+      .insert(
         matchedRecommendations.map(rec => ({
           ...rec,
           profile_id: profileId,
           created_at: new Date().toISOString(),
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
-        })),
-        { onConflict: 'profile_id,track_id' }
+        }))
       )
       .select();
 
