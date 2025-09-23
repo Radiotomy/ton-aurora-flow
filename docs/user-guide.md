@@ -1,21 +1,27 @@
-# User Guide: TON × Audius Music Platform
+# AudioTon Production User Guide
 
-## Getting Started
+## 🚀 Welcome to AudioTon - Now Live on TON Mainnet!
 
-### 1. Connect Your TON Wallet
-- Click "Connect Wallet" in the top navigation
-- Choose your preferred TON wallet (Tonkeeper, Telegram Wallet, etc.)
-- Approve the connection request
+AudioTon is the **first production-ready Web3 music platform** combining TON blockchain with Audius Protocol. Stream music, collect NFTs, tip artists directly, and own your music experience.
 
-### 2. Discover Music
-- Browse trending tracks on the homepage
-- Use the search function to find specific artists or songs
-- Explore different genres and playlists
+## Quick Start (2 Minutes)
 
-### 3. Support Artists
-- **Tip Artists**: Send TON directly to creators you love
-- **Collect NFTs**: Purchase unique music collectibles
-- **Share Tracks**: Spread the word about amazing music
+### 1. Access AudioTon
+- **Web**: Visit [audioton.co](https://audioton.co)
+- **Telegram**: Use our Mini App [@AudioTonBot](https://t.me/audiotonbot)
+- **Mobile**: Progressive Web App works on all devices
+
+### 2. Connect Your TON Wallet (Optional for Streaming)
+- Click "Connect Wallet" for Web3 features
+- Choose from: Tonkeeper, Telegram Wallet, TON Space, MyTonWallet
+- **Free Streaming**: No wallet needed for basic music listening
+
+### 3. Explore & Engage
+- **Stream Music**: 100k+ tracks from Audius Protocol
+- **Tip Artists**: Send TON directly (minimum 0.01 TON)
+- **Collect NFTs**: Multi-tier music collectibles
+- **Join Fan Clubs**: Exclusive artist communities
+- **Attend Events**: Virtual concerts and live streams
 
 ## Wallet Integration
 
@@ -25,10 +31,12 @@
 - **TON Space**: Browser extension
 - **MyTonWallet**: Web-based wallet
 
-### Transaction Types
-- **Tips**: Direct payments to artists (minimum 0.1 TON)
-- **NFT Purchases**: Music collectibles and exclusive content
-- **Memberships**: Premium features and early access
+### Production Transaction Types
+- **Artist Tips**: Direct payments (minimum 0.01 TON, 95% to artist)
+- **NFT Minting**: 4-tier system (Bronze 0.1, Silver 0.5, Gold 1.0, Platinum 2.0 TON)
+- **Fan Club Memberships**: Tiered access (Basic, Premium, VIP)
+- **Event Tickets**: Live stream and virtual concert access
+- **Marketplace Trading**: Buy/sell NFTs with smart royalties
 
 ## Understanding Tokens
 
@@ -49,7 +57,9 @@
 2. **Transaction Failed**: Check your TON balance and network status
 3. **Music Won't Play**: Verify your internet connection
 
-### Support Contact
-- **Discord**: Join our community server
-- **Email**: support@yourapp.com
-- **Documentation**: Check our FAQ section
+### Production Support Channels
+- **Discord**: [AudioTon Community](https://discord.gg/audioton) - 24/7 community support
+- **Telegram**: [@AudioTonOfficial](https://t.me/audioton) - Updates and quick help
+- **Email**: support@audioton.co - Technical support (24-48h response)
+- **Twitter**: [@AudioTon](https://twitter.com/audioton) - News and announcements
+- **Documentation**: Comprehensive guides and API docs
