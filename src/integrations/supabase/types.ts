@@ -1227,6 +1227,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      cleanup_expired_stream_sessions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_current_user_profile_id: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1275,6 +1279,10 @@ export type Database = {
       }
       validate_data_access: {
         Args: { requested_table: string; user_context?: string }
+        Returns: boolean
+      }
+      validate_stream_session_token: {
+        Args: { event_id: string; profile_id: string; session_token: string }
         Returns: boolean
       }
     }
