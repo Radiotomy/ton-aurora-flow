@@ -5,68 +5,22 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Rocket, Shield, Globe, Zap, CheckCircle, AlertTriangle, Clock, ExternalLink, Wallet } from 'lucide-react';
+import { Rocket, Shield, Globe, Zap, CheckCircle, AlertTriangle, Clock, ExternalLink, Wallet, Target, Settings, PlayCircle, Flag } from 'lucide-react';
 import { useWeb3 } from '@/hooks/useWeb3';
 import { useTonConnectUI, useTonWallet } from '@tonconnect/ui-react';
 import { toast } from 'sonner';
-import { SmartContractDeploymentService, MAINNET_DEPLOYMENT_CONFIG, DeploymentAnalytics } from '@/services/smartContractDeployment';
+import { deploymentOrchestrator, DeploymentPhase, DeploymentStep, DeploymentReport } from '@/services/deploymentOrchestrator';
 import { useChainStackCache } from '@/hooks/useChainStackCache';
 import { usePerformanceMonitor } from '@/hooks/usePerformanceMonitor';
 import { hasPlaceholderContracts, getPlaceholderContractsList } from '@/contracts/compiled';
 
-interface DeploymentStep {
-  id: string;
-  title: string;
-  description: string;
-  status: 'pending' | 'in-progress' | 'completed' | 'failed';
-  contractAddress?: string;
-  txHash?: string;
-  estimatedCost: string;
-  priority: 'critical' | 'high' | 'medium';
-}
-
-const INITIAL_STEPS: DeploymentStep[] = [
-  {
-    id: 'payment-processor',
-    title: 'Payment Processor Contract',
-    description: 'Core payment handling for tips, NFT purchases, and fee distribution',
-    status: 'pending',
-    estimatedCost: '0.5 TON',
-    priority: 'critical'
-  },
-  {
-    id: 'nft-collection',
-    title: 'NFT Collection Contract',
-    description: 'Master contract for music NFT collection and minting',
-    status: 'pending',
-    estimatedCost: '0.5 TON',
-    priority: 'critical'
-  },
-  {
-    id: 'fan-club',
-    title: 'Fan Club Contract',
-    description: 'Manages exclusive fan club memberships and benefits',
-    status: 'pending',
-    estimatedCost: '0.4 TON',
-    priority: 'high'
-  },
-  {
-    id: 'reward-distributor',
-    title: 'Reward Distributor Contract',
-    description: 'Handles platform rewards and token distribution',
-    status: 'pending',
-    estimatedCost: '0.4 TON',
-    priority: 'high'
-  }
-];
-
 export const MainnetDeploymentManager: React.FC = () => {
-  const [deploymentSteps, setDeploymentSteps] = useState<DeploymentStep[]>(INITIAL_STEPS);
+  const [deploymentPhases, setDeploymentPhases] = useState<DeploymentPhase[]>(deploymentOrchestrator.getPhases());
   const [isDeploying, setIsDeploying] = useState(false);
   const [deploymentProgress, setDeploymentProgress] = useState(0);
   const [deploymentStatus, setDeploymentStatus] = useState<'idle' | 'deploying' | 'completed' | 'failed'>('idle');
   const [productionReadiness, setProductionReadiness] = useState<{ ready: boolean; issues: string[] }>({ ready: true, issues: [] });
-  const [deploymentAnalytics, setDeploymentAnalytics] = useState<DeploymentAnalytics[]>([]);
+  const [deploymentReport, setDeploymentReport] = useState<DeploymentReport | null>(null);
   
   // Enhanced monitoring hooks
   const chainstackCache = useChainStackCache();
@@ -77,8 +31,10 @@ export const MainnetDeploymentManager: React.FC = () => {
   const isConnected = !!wallet;
   const walletAddress = wallet?.account?.address;
   
-  // Calculate costs
-  const totalEstimatedCost = deploymentSteps.reduce((sum, step) => sum + parseFloat(step.estimatedCost), 0);
+  // Calculate costs from all deployment steps across all phases
+  const allSteps = deploymentPhases.flatMap(phase => phase.steps);
+  const contractSteps = allSteps.filter(step => step.id.startsWith('deploy-'));
+  const totalEstimatedCost = contractSteps.length * 0.45; // Approximate 0.45 TON per contract
   const minimumWalletBalance = totalEstimatedCost + 0.5; // Extra for fees
 
   // Check production readiness with enhanced validation
@@ -139,10 +95,26 @@ export const MainnetDeploymentManager: React.FC = () => {
     checkReadiness();
   }, [isConnected, wallet]);
 
-  const updateStepStatus = useCallback((stepId: string, updates: Partial<DeploymentStep>) => {
-    setDeploymentSteps(prev => prev.map(step => 
-      step.id === stepId ? { ...step, ...updates } : step
+  const updatePhase = useCallback((updatedPhase: DeploymentPhase) => {
+    setDeploymentPhases(prev => prev.map(phase => 
+      phase.id === updatedPhase.id ? updatedPhase : phase
     ));
+    
+    // Calculate overall progress
+    const totalSteps = deploymentPhases.reduce((sum, p) => sum + p.steps.length, 0);
+    const completedSteps = deploymentPhases.reduce((sum, p) => 
+      sum + p.steps.filter(s => s.status === 'completed').length, 0
+    );
+    setDeploymentProgress((completedSteps / totalSteps) * 100);
+  }, [deploymentPhases]);
+
+  const updateStep = useCallback((updatedStep: DeploymentStep) => {
+    setDeploymentPhases(prev => prev.map(phase => ({
+      ...phase,
+      steps: phase.steps.map(step => 
+        step.id === updatedStep.id ? updatedStep : step
+      )
+    })));
   }, []);
 
   // Enhanced wallet balance validation with real-time monitoring
@@ -185,81 +157,9 @@ export const MainnetDeploymentManager: React.FC = () => {
     }
   };
 
-  const deployContract = async (step: DeploymentStep, stepIndex: number): Promise<void> => {
-    updateStepStatus(step.id, { status: 'in-progress' });
-    
-    try {
-      let deploymentResult;
-      
-      switch (step.id) {
-        case 'payment-processor':
-          deploymentResult = await SmartContractDeploymentService.deployPaymentContract(
-            MAINNET_DEPLOYMENT_CONFIG,
-            tonConnectUI
-          );
-          break;
-          
-        case 'nft-collection':
-          deploymentResult = await SmartContractDeploymentService.deployNFTCollectionContract(
-            MAINNET_DEPLOYMENT_CONFIG,
-            tonConnectUI
-          );
-          break;
-          
-        case 'fan-club':
-          deploymentResult = await SmartContractDeploymentService.deployFanClubContract(
-            MAINNET_DEPLOYMENT_CONFIG,
-            tonConnectUI
-          );
-          break;
-          
-        case 'reward-distributor':
-          deploymentResult = await SmartContractDeploymentService.deployRewardDistributorContract(
-            MAINNET_DEPLOYMENT_CONFIG,
-            tonConnectUI
-          );
-          break;
-          
-        default:
-          throw new Error(`Unknown contract type: ${step.id}`);
-      }
-
-      updateStepStatus(step.id, {
-        status: 'completed',
-        contractAddress: deploymentResult.address,
-        txHash: deploymentResult.txHash
-      });
-      
-      // Store analytics if available
-      if (deploymentResult.analytics) {
-        setDeploymentAnalytics(prev => [...prev, deploymentResult.analytics]);
-      }
-      
-      setDeploymentProgress(((stepIndex + 1) / deploymentSteps.length) * 100);
-      
-      toast.success(`${step.title} deployed successfully!`, {
-        description: `Address: ${deploymentResult.address.substring(0, 20)}... | ${deploymentResult.analytics ? `${(deploymentResult.analytics.deploymentTime / 1000).toFixed(1)}s` : ''}`
-      });
-      
-    } catch (error) {
-      updateStepStatus(step.id, { status: 'failed' });
-      toast.error(`Failed to deploy ${step.title}`, {
-        description: error instanceof Error ? error.message : 'Deployment failed'
-      });
-      throw error;
-    }
-  };
-
   const startMainnetDeployment = async () => {
     if (!isConnected || !wallet) {
       toast.error('Please connect your TON wallet first');
-      return;
-    }
-
-    // Validate wallet balance
-    const hasBalance = await validateWalletBalance();
-    if (!hasBalance) {
-      toast.error(`Insufficient wallet balance. Minimum ${minimumWalletBalance} TON required.`);
       return;
     }
 
@@ -268,50 +168,44 @@ export const MainnetDeploymentManager: React.FC = () => {
     setDeploymentProgress(0);
     
     try {
-      toast.info('Starting mainnet deployment...', {
-        description: 'Deploying all AudioTon smart contracts to TON mainnet'
+      toast.info('🚀 Starting 4-Phase Mainnet Deployment...', {
+        description: 'Executing comprehensive deployment plan'
       });
 
-      // Deploy contracts sequentially to avoid nonce conflicts
-      for (let i = 0; i < deploymentSteps.length; i++) {
-        const step = deploymentSteps[i];
-        await deployContract(step, i);
-        
-        // Small delay between deployments
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
+      // Execute the complete 4-phase deployment plan
+      const report = await deploymentOrchestrator.executeDeploymentPlan(
+        tonConnectUI,
+        wallet.account.address,
+        updatePhase,
+        updateStep
+      );
 
+      setDeploymentReport(report);
       setDeploymentStatus('completed');
       
-      // Generate deployment summary with analytics
-      const contractAddresses = {
-        paymentProcessor: deploymentSteps.find(s => s.id === 'payment-processor')?.contractAddress || '',
-        nftCollection: deploymentSteps.find(s => s.id === 'nft-collection')?.contractAddress || '',
-        fanClub: deploymentSteps.find(s => s.id === 'fan-club')?.contractAddress || '',
-        rewardDistributor: deploymentSteps.find(s => s.id === 'reward-distributor')?.contractAddress || ''
-      };
-      
-      const summary = SmartContractDeploymentService.generateDeploymentSummary(
-        contractAddresses,
-        deploymentAnalytics
-      );
-      
-      const totalTime = deploymentAnalytics.reduce((sum, a) => sum + a.deploymentTime, 0);
-      const totalCost = deploymentAnalytics.reduce((sum, a) => sum + Number(a.actualCost), 0);
-      
-      toast.success('🎉 Mainnet deployment completed!', {
-        description: `All ${deploymentSteps.length} contracts deployed in ${(totalTime / 1000).toFixed(1)}s for ${(totalCost / 1e9).toFixed(3)} TON`,
-        duration: 10000
+      toast.success('🎉 Mainnet Deployment Completed Successfully!', {
+        description: `All phases completed. ${Object.keys(report.contractAddresses).length} contracts deployed in ${(report.totalDuration / 1000).toFixed(1)}s`,
+        duration: 15000
       });
 
     } catch (error) {
       setDeploymentStatus('failed');
-      toast.error('Deployment failed', {
-        description: 'Check console for details and try again'
+      toast.error('❌ Deployment Failed', {
+        description: 'Check console for details and review deployment status'
       });
-      console.error('Deployment error:', error);
+      console.error('Deployment orchestration error:', error);
     } finally {
       setIsDeploying(false);
+    }
+  };
+
+  const getPhaseIcon = (phase: DeploymentPhase) => {
+    switch (phase.id) {
+      case 'phase1-verification': return <Shield className="h-5 w-5" />;
+      case 'phase2-deployment': return <Rocket className="h-5 w-5" />;
+      case 'phase3-validation': return <Target className="h-5 w-5" />;
+      case 'phase4-golive': return <Flag className="h-5 w-5" />;
+      default: return <Settings className="h-5 w-5" />;
     }
   };
 
@@ -332,8 +226,13 @@ export const MainnetDeploymentManager: React.FC = () => {
     }
   };
 
-  const completedSteps = deploymentSteps.filter(step => step.status === 'completed').length;
-  const failedSteps = deploymentSteps.filter(step => step.status === 'failed').length;
+  const allStepsCount = deploymentPhases.reduce((sum, p) => sum + p.steps.length, 0);
+  const completedSteps = deploymentPhases.reduce((sum, p) => 
+    sum + p.steps.filter(s => s.status === 'completed').length, 0
+  );
+  const failedSteps = deploymentPhases.reduce((sum, p) => 
+    sum + p.steps.filter(s => s.status === 'failed').length, 0
+  );
   const isDeploymentReady = productionReadiness.ready && isConnected;
 
   return (
@@ -342,10 +241,10 @@ export const MainnetDeploymentManager: React.FC = () => {
       <div className="text-center space-y-4">
         <div className="flex items-center justify-center space-x-2">
           <Rocket className="h-8 w-8 text-primary" />
-          <h1 className="text-3xl font-bold">Mainnet Contract Deployment</h1>
+          <h1 className="text-3xl font-bold">4-Phase Mainnet Deployment</h1>
         </div>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Deploy AudioTon's production smart contracts to TON mainnet
+          Comprehensive production deployment plan with pre-verification, contract deployment, validation, and go-live preparation
         </p>
         
         {/* Network Info */}
@@ -397,25 +296,30 @@ export const MainnetDeploymentManager: React.FC = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <div className="text-2xl font-bold text-primary">{deploymentSteps.length}</div>
-              <div className="text-sm text-muted-foreground">Contracts</div>
+              <div className="text-2xl font-bold text-primary">{deploymentPhases.length}</div>
+              <div className="text-sm text-muted-foreground">Phases</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-primary">{allStepsCount}</div>
+              <div className="text-sm text-muted-foreground">Total Steps</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-primary">{totalEstimatedCost.toFixed(1)}</div>
-              <div className="text-sm text-muted-foreground">Total TON</div>
+              <div className="text-sm text-muted-foreground">Est. TON Cost</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-primary">Mainnet</div>
               <div className="text-sm text-muted-foreground">Network</div>
             </div>
-            <div>
-              <div className="text-2xl font-bold text-primary">5%</div>
-              <div className="text-sm text-muted-foreground">Fee %</div>
-            </div>
           </div>
           
           <div className="text-center text-sm text-muted-foreground pt-2 border-t">
-            Treasury Address: <code className="text-xs">EQD...abc123</code> (Demo)
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+              <span>Phase 1: Pre-Verification</span>
+              <span>Phase 2: Contract Deployment</span>
+              <span>Phase 3: Validation</span>
+              <span>Phase 4: Go-Live Prep</span>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -426,7 +330,7 @@ export const MainnetDeploymentManager: React.FC = () => {
           <CardHeader>
             <CardTitle>Deployment Progress</CardTitle>
             <CardDescription>
-              {completedSteps}/{deploymentSteps.length} contracts deployed
+              {completedSteps}/{allStepsCount} steps completed across {deploymentPhases.length} phases
               {failedSteps > 0 && ` (${failedSteps} failed)`}
             </CardDescription>
           </CardHeader>
@@ -440,149 +344,175 @@ export const MainnetDeploymentManager: React.FC = () => {
         </Card>
       )}
 
-      {/* Deployment Steps */}
-      <div className="space-y-4">
-        {deploymentSteps.map((step, index) => (
-          <Card key={step.id} className={step.status === 'in-progress' ? 'ring-2 ring-primary' : ''}>
-            <CardContent className="pt-6">
-              <div className="flex items-start justify-between">
-                <div className="flex items-start space-x-4 flex-1">
-                  {getStepIcon(step.status)}
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <h3 className="font-semibold">{step.title}</h3>
-                      <Badge variant={getPriorityBadgeVariant(step.priority)}>
-                        {step.priority}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{step.description}</p>
-                    
-                    {step.contractAddress && (
-                      <div className="mt-3 space-y-2">
-                        <div className="flex items-center space-x-2 text-sm">
-                          <span className="text-muted-foreground min-w-[60px]">Address:</span>
-                          <code className="bg-muted px-2 py-1 rounded text-xs font-mono">
-                            {step.contractAddress}
-                          </code>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                            <ExternalLink className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        {step.txHash && (
-                          <div className="flex items-center space-x-2 text-sm">
-                            <span className="text-muted-foreground min-w-[60px]">TX Hash:</span>
-                            <code className="bg-muted px-2 py-1 rounded text-xs font-mono">
-                              {step.txHash.substring(0, 20)}...
-                            </code>
-                          </div>
-                        )}
+      {/* Deployment Phases */}
+      <div className="space-y-6">
+        {deploymentPhases.map((phase) => (
+          <Card key={phase.id} className={phase.status === 'in-progress' ? 'ring-2 ring-primary' : ''}>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-3">
+                {getPhaseIcon(phase)}
+                <span>{phase.name}</span>
+                <Badge variant={
+                  phase.status === 'completed' ? 'default' :
+                  phase.status === 'in-progress' ? 'secondary' :
+                  phase.status === 'failed' ? 'destructive' : 'outline'
+                }>
+                  {phase.status}
+                </Badge>
+              </CardTitle>
+              <CardDescription>{phase.description}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {phase.steps.map((step) => (
+                <div key={step.id} className="flex items-center justify-between p-3 rounded-lg border">
+                  <div className="flex items-start space-x-3 flex-1">
+                    {getStepIcon(step.status)}
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <h4 className="font-medium">{step.title}</h4>
+                        <Badge variant={getPriorityBadgeVariant(step.priority)}>
+                          {step.priority}
+                        </Badge>
                       </div>
-                    )}
+                      <p className="text-sm text-muted-foreground">{step.description}</p>
+                      {step.actualDuration && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Completed in {(step.actualDuration / 1000).toFixed(1)}s
+                        </p>
+                      )}
+                      {step.error && (
+                        <p className="text-xs text-red-500 mt-1">Error: {step.error}</p>
+                      )}
+                    </div>
                   </div>
+                  {step.result?.address && (
+                    <div className="text-right">
+                      <div className="text-xs text-muted-foreground">Contract Address:</div>
+                      <code className="text-xs">{step.result.address.substring(0, 20)}...</code>
+                    </div>
+                  )}
                 </div>
-                
-                <div className="text-right ml-4">
-                  <div className="text-sm font-medium">{step.estimatedCost}</div>
-                  <div className="text-xs text-muted-foreground">Est. cost</div>
-                </div>
-              </div>
+              ))}
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Warning */}
-      <Alert>
-        <AlertTriangle className="h-4 w-4" />
-        <AlertDescription>
-          <strong>⚠️ Mainnet Deployment Warning:</strong> This will deploy contracts to TON mainnet using real tokens. 
-          Estimated total cost: <strong>{totalEstimatedCost.toFixed(1)} TON</strong>. 
-          Ensure contracts are audited and tested.
-        </AlertDescription>
-      </Alert>
+      {/* Deployment Report */}
+      {deploymentReport && deploymentStatus === 'completed' && (
+        <Card className="border-green-500 bg-green-50 dark:bg-green-950">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-green-700 dark:text-green-300">
+              <CheckCircle className="h-5 w-5" />
+              <span>Deployment Completed Successfully!</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="text-sm">
+              <strong>Summary:</strong> {deploymentReport.summary}
+            </div>
+            
+            <div>
+              <strong className="text-sm">Deployed Contracts:</strong>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+                {Object.entries(deploymentReport.contractAddresses).map(([name, address]) => (
+                  <div key={name} className="text-xs">
+                    <span className="font-medium capitalize">{name.replace(/([A-Z])/g, ' $1').trim()}:</span>
+                    <br />
+                    <code className="text-xs">{address}</code>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <strong className="text-sm">Next Steps:</strong>
+              <ul className="list-disc list-inside text-sm mt-1 space-y-1">
+                {deploymentReport.nextSteps.map((step, index) => (
+                  <li key={index}>{step}</li>
+                ))}
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Deploy Button with Confirmation Dialog */}
-      <div className="flex justify-center">
+      {/* Deploy Button */}
+      <div className="text-center">
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button
-              disabled={!isDeploymentReady || isDeploying}
+            <Button 
               size="lg"
-              className="w-full md:w-auto"
+              className="px-8 py-3"
+              disabled={!isDeploymentReady || isDeploying}
             >
               {isDeploying ? (
                 <>
                   <Clock className="mr-2 h-4 w-4 animate-spin" />
-                  Deploying to Mainnet...
-                </>
-              ) : !productionReadiness.ready ? (
-                <>
-                  <Shield className="mr-2 h-4 w-4" />
-                  Fix Production Issues
-                </>
-              ) : !isConnected ? (
-                <>
-                  <Wallet className="mr-2 h-4 w-4" />
-                  Connect Wallet First
+                  Executing Deployment Plan...
                 </>
               ) : (
                 <>
                   <Rocket className="mr-2 h-4 w-4" />
-                  Deploy to TON Mainnet
+                  Execute 4-Phase Deployment Plan
                 </>
               )}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Mainnet Deployment</AlertDialogTitle>
+              <AlertDialogTitle>Execute Mainnet Deployment?</AlertDialogTitle>
               <AlertDialogDescription>
-                You are about to deploy {deploymentSteps.length} smart contracts to TON mainnet.
-                <br /><br />
-                <strong>Total estimated cost: {totalEstimatedCost.toFixed(1)} TON</strong>
+                This will execute the comprehensive 4-phase deployment plan:
                 <br />
-                <strong>Connected wallet: </strong>
-                <code className="text-xs">{walletAddress?.substring(0, 20)}...</code>
-                <br /><br />
-                This action cannot be undone. Are you sure you want to proceed?
+                <br />
+                <strong>Phase 1:</strong> Pre-Deployment Verification
+                <br />
+                <strong>Phase 2:</strong> Smart Contract Deployment
+                <br />
+                <strong>Phase 3:</strong> Post-Deployment Validation  
+                <br />
+                <strong>Phase 4:</strong> Go-Live Preparation
+                <br />
+                <br />
+                Estimated cost: <strong>{totalEstimatedCost.toFixed(1)} TON</strong>
+                <br />
+                <br />
+                This action will deploy to TON mainnet and cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={startMainnetDeployment}>
-                Deploy Contracts
+                Execute Deployment Plan
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       </div>
 
-      {/* Completion Message */}
+      {/* Success Message */}
       {deploymentStatus === 'completed' && (
-        <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-green-700 dark:text-green-300">
-              <CheckCircle className="h-5 w-5" />
-              <span>🎉 Deployment Complete!</span>
-            </CardTitle>
-            <CardDescription className="text-green-600 dark:text-green-400">
-              All AudioTon smart contracts successfully deployed to TON mainnet
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p className="text-sm">
-                <strong>Next steps:</strong>
-              </p>
-              <ul className="text-sm space-y-1 ml-4">
-                <li>• Update production configuration with contract addresses</li>
-                <li>• Verify contract functionality on mainnet</li>
-                <li>• Begin user onboarding and marketing</li>
-                <li>• Monitor contract performance and user activity</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
+        <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-800 dark:text-green-200">
+            <strong>🎉 AudioTon Platform Successfully Deployed to TON Mainnet!</strong>
+            <br />
+            <br />
+            Your platform is now live and ready for production use. All smart contracts have been deployed, validated, and configured.
+            <br />
+            <br />
+            <strong>What's Next:</strong>
+            <br />
+            • Begin onboarding artists and creators
+            <br />
+            • Launch your marketing and user acquisition campaigns
+            <br />
+            • Monitor platform performance and user engagement
+            <br />
+            • Scale your community and ecosystem partnerships
+          </AlertDescription>
+        </Alert>
       )}
     </div>
   );
