@@ -7,24 +7,24 @@ const isValidAddress = (address: string): boolean => {
 // MAINNET SMART CONTRACT ADDRESSES - DEPLOYED SEPTEMBER 19, 2025
 // These are the real deployed contract addresses on TON mainnet from successful deployment
 export const CONTRACTS = {
-  // AudioTon NFT Collection - deployed on TON mainnet
+  // AudioTon NFT Collection - REAL MAINNET DEPLOYED ADDRESS
   NFT_COLLECTION: process.env.NODE_ENV === 'production' 
-    ? 'EQCFHSooX5Yc4OFivHybZGtRHti319ypbxhKpvQz_q1d1gLT' // DEPLOYED - Sep 19, 2025
+    ? 'UQA0R3MPBOMHSG4k-5InampRDttwV4kuzWhWdT6boZ6gP296' // DEPLOYED - Sep 23, 2025
     : 'kQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3diqYENkWsIL0XggGG', // Testnet address
   
-  // Fan Club membership contract
+  // Fan Club membership contract - REAL MAINNET DEPLOYED ADDRESS
   FAN_CLUB: process.env.NODE_ENV === 'production'
-    ? 'EQDKCkiHTgT8H9NqMq5002oub3XrDJPIifBJ0gJGWx_N78ub' // DEPLOYED - Sep 19, 2025
+    ? 'UQCk0T0xj5Qc7_1p0Y3WlbfzmftP5INKPFufqdBrGHw_NZNL' // DEPLOYED - Sep 23, 2025
     : 'kQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAM9c', // Testnet address
     
-  // Payment processor for tips, purchases, and fees
+  // Payment processor for tips, purchases, and fees - REAL MAINNET DEPLOYED ADDRESS
   PAYMENT_PROCESSOR: process.env.NODE_ENV === 'production'
-    ? 'EQBEhEAjFgWja2HD23lN3Z-_AWk6hBb2vWfqqvDudMweXP4t' // DEPLOYED - Sep 19, 2025
+    ? 'UQCGSqgjtaAXjnOv7RQeyuBK11Y9dMtBejj84kuFHKsymPbr' // DEPLOYED - Sep 23, 2025
     : 'kQAO3fiaxUvVqCBaZdnfKCgC0wOp-NJXBOZGaAamOEJ8NJU4', // Testnet address
     
-  // Reward distribution for artists and fans
+  // Reward distribution for artists and fans - REAL MAINNET DEPLOYED ADDRESS
   REWARD_DISTRIBUTOR: process.env.NODE_ENV === 'production'
-    ? 'EQAOPjSEGosElkZ9UmxJioIxqzkgRCSlCIacVOJN0at0wKRU' // DEPLOYED - Sep 19, 2025
+    ? 'UQDuG4GguNV1KtfCkJzq4V0hM4SU2HJVZupJ4T9qs72iVajv' // DEPLOYED - Sep 23, 2025
     : 'kQC5vfkGas_SBp85WVqm_xo4lKelOhv3rPAO6ILdgD2lNvY_' // Testnet address
 };
 

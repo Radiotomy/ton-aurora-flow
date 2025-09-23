@@ -27,7 +27,7 @@ export interface NFTMintResult {
 }
 
 export class NFTService {
-  private static readonly COLLECTION_ADDRESS = "EQC5vdmi3mm_xcwzQzKhBlms8zku2AYb0bS_HJMWsm4fcgQj"; // Placeholder mainnet address
+  private static readonly COLLECTION_ADDRESS = "UQA0R3MPBOMHSG4k-5InampRDttwV4kuzWhWdT6boZ6gP296"; // REAL DEPLOYED MAINNET ADDRESS
 
   static async mintTrackNFT(
     sendTransaction: (transaction: any, options?: any) => Promise<any>,
