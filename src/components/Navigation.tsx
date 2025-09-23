@@ -43,7 +43,7 @@ const Navigation = () => {
     { icon: Music, label: 'Playlists', href: '/playlists' },
     { icon: Radio, label: 'Live Events', href: '/live-events' },
     { icon: Users, label: 'Fan Clubs', href: '/fan-clubs' },
-    { icon: Rocket, label: 'Deploy', href: '/mainnet-deploy' },
+    // { icon: Rocket, label: 'Deploy', href: '/mainnet-deploy' }, // Hidden after successful mainnet deployment
   ];
 
   // Only show Creator Studio for artists
