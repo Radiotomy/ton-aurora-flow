@@ -46,7 +46,7 @@ export class ContractBytecode {
     builder.storeUint(0x94, 8);
     // Pad to ensure substantial size
     for (let i = 0; i < 16; i++) {
-      builder.storeUint(0xabcdef01 ^ i, 32);
+      builder.storeUint((0xabcdef01 ^ i) >>> 0, 32);
     }
     builder.storeStringTail('payment_processor_v1.0_audioton');
     return builder.endCell();
@@ -77,7 +77,7 @@ export class ContractBytecode {
     builder.storeUint(0x90, 8);
     builder.storeUint(0x94, 8);
     for (let i = 0; i < 16; i++) {
-      builder.storeUint(0x12345678 ^ (i * 17), 32);
+      builder.storeUint((0x12345678 ^ (i * 17)) >>> 0, 32);
     }
     builder.storeStringTail('nft_collection_v1.0_audioton');
     return builder.endCell();
@@ -120,7 +120,7 @@ export class ContractBytecode {
     builder.storeUint(0x90, 8);
     builder.storeUint(0x94, 8);
     for (let i = 0; i < 16; i++) {
-      builder.storeUint(0x9e3779b9 ^ (i * 23), 32);
+      builder.storeUint((0x9e3779b9 ^ (i * 23)) >>> 0, 32);
     }
     builder.storeStringTail('fan_club_v1.0_audioton');
     return builder.endCell();
@@ -151,7 +151,7 @@ export class ContractBytecode {
     builder.storeUint(0x90, 8);
     builder.storeUint(0x94, 8);
     for (let i = 0; i < 16; i++) {
-      builder.storeUint(0xfeedface ^ (i * 31), 32);
+      builder.storeUint((0xfeedface ^ (i * 31)) >>> 0, 32);
     }
     builder.storeStringTail('reward_distributor_v1.0_audioton');
     return builder.endCell();
