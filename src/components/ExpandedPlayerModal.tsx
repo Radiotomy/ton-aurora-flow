@@ -99,7 +99,7 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl glass-panel no-hover-lift z-50 pointer-events-auto">
+      <DialogContent className="max-w-2xl glass-panel modal-stable no-hover-lift z-50 pointer-events-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Audio Visualizer & 7-Band EQ</DialogTitle>
         </DialogHeader>

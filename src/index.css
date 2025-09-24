@@ -168,14 +168,36 @@
     transform: translateY(-2px);
   }
   
-  /* Disable hover lift for modal/dropdown containers to prevent pointer jitter */
+  /* Disable all hover transforms to prevent popup evasion */
+  .no-hover-lift,
+  .no-hover-lift *,
+  .modal-stable,
+  .modal-stable *,
+  [data-radix-dialog-content],
+  [data-radix-dialog-content] *,
+  [data-radix-popover-content],
+  [data-radix-popover-content] * {
+    transform: none !important;
+    will-change: auto !important;
+  }
+  
   .no-hover-lift:hover,
-  .no-hover-lift .glass-panel:hover,
-  .no-hover-lift .glass-button:hover,
-  .no-hover-lift .hover-scale:hover,
-  .no-hover-lift .aurora-hover:hover {
+  .no-hover-lift *:hover,
+  .modal-stable:hover,
+  .modal-stable *:hover,
+  [data-radix-dialog-content]:hover,
+  [data-radix-dialog-content] *:hover,
+  [data-radix-popover-content]:hover,
+  [data-radix-popover-content] *:hover {
     transform: none !important;
     box-shadow: var(--glass-shadow) !important;
+  }
+  
+  /* Ensure stable positioning for all modal containers */
+  .modal-stable {
+    position: fixed !important;
+    pointer-events: auto !important;
+    z-index: 9999 !important;
   }
   
   .glass-button {
