@@ -28,19 +28,26 @@ class AnalyticsService {
   private initialize() {
     if (typeof window === 'undefined') return;
 
-    // Initialize Google Analytics if gtag is available
-    if ((window as any).gtag) {
-      this.isInitialized = true;
-      // Analytics initialized with Google Analytics
-    }
+    try {
+      // Initialize Google Analytics if gtag is available
+      if ((window as any).gtag) {
+        this.isInitialized = true;
+        // Analytics initialized with Google Analytics
+      }
 
-    // Initialize Telegram Analytics if in TWA
-    if ((window as any).Telegram?.WebApp) {
-      // Analytics initialized for Telegram Web App
-    }
+      // Initialize Telegram Analytics if in TWA
+      if ((window as any).Telegram?.WebApp) {
+        // Analytics initialized for Telegram Web App
+      }
 
-    // Track initial page view
-    this.trackPageView(window.location.pathname);
+      // Track initial page view only if analytics is properly initialized
+      if (this.isInitialized) {
+        this.trackPageView(window.location.pathname);
+      }
+    } catch (error) {
+      console.warn('Analytics initialization failed:', error);
+      // Continue without analytics to prevent app crash
+    }
   }
 
   setUserId(userId: string) {
@@ -60,31 +67,41 @@ class AnalyticsService {
   }
 
   trackEvent(eventName: string, parameters: Record<string, any> = {}) {
-    const event: AnalyticsEvent = {
-      name: eventName,
-      parameters: {
-        ...parameters,
-        session_id: this.sessionId,
+    // Skip analytics if not properly initialized to prevent errors
+    if (!this.isInitialized) {
+      return;
+    }
+
+    try {
+      const event: AnalyticsEvent = {
+        name: eventName,
+        parameters: {
+          ...parameters,
+          session_id: this.sessionId,
+          timestamp: Date.now(),
+          user_agent: navigator.userAgent,
+          referrer: document.referrer,
+        },
+        user_id: this.userId || undefined,
         timestamp: Date.now(),
-        user_agent: navigator.userAgent,
-        referrer: document.referrer,
-      },
-      user_id: this.userId || undefined,
-      timestamp: Date.now(),
-    };
+      };
 
-    // Google Analytics
-    if ((window as any).gtag) {
-      (window as any).gtag('event', eventName, event.parameters);
+      // Google Analytics
+      if ((window as any).gtag) {
+        (window as any).gtag('event', eventName, event.parameters);
+      }
+
+      // Console logging for development
+      if (process.env.NODE_ENV === 'development') {
+        // Development mode analytics event tracking
+      }
+
+      // Send to custom analytics endpoint (if available)
+      this.sendToCustomEndpoint(event);
+    } catch (error) {
+      console.warn('Failed to track event:', error);
+      // Continue without tracking to prevent app crash
     }
-
-    // Console logging for development
-    if (process.env.NODE_ENV === 'development') {
-      // Development mode analytics event tracking
-    }
-
-    // Send to custom analytics endpoint (if available)
-    this.sendToCustomEndpoint(event);
   }
 
   trackPageView(path: string, title?: string) {

@@ -44,7 +44,12 @@ function AppContent() {
     // Set theme based on Telegram Web App
     if (isInTWA) {
       document.documentElement.setAttribute('data-theme', colorScheme);
-      analytics.trackTelegramEvent('app_initialized');
+      // Safely track telegram event
+      try {
+        analytics.trackTelegramEvent('app_initialized');
+      } catch (error) {
+        console.warn('Failed to track telegram event:', error);
+      }
     }
   }, [isInTWA, colorScheme]);
 

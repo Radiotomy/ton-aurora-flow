@@ -85,10 +85,13 @@ export const useTelegramWebApp = () => {
   useEffect(() => {
     if (typeof window !== 'undefined' && window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp;
-      setWebApp(tg);
-      setIsInTWA(true);
-      setUser(tg.initDataUnsafe.user || null);
-      setColorScheme(tg.colorScheme);
+      
+      batchUpdates(() => {
+        setWebApp(tg);
+        setIsInTWA(true);
+        setUser(tg.initDataUnsafe.user || null);
+        setColorScheme(tg.colorScheme);
+      });
 
       // Initialize the app
       tg.ready();
@@ -99,17 +102,16 @@ export const useTelegramWebApp = () => {
         document.body.style.backgroundColor = tg.themeParams.bg_color;
       }
 
-      // Set up theme change listener
-      const handleThemeChange = () => {
-        setColorScheme(tg.colorScheme);
-      };
-
-      // Use optimized theme checking
+      // Set up theme change listener with current color scheme reference
+      let currentColorScheme = tg.colorScheme;
       let intervalId: NodeJS.Timeout | null = null;
       
       const checkTheme = () => {
-        if (tg.colorScheme !== colorScheme) {
-          batchUpdates(() => handleThemeChange());
+        if (tg.colorScheme !== currentColorScheme) {
+          currentColorScheme = tg.colorScheme;
+          batchUpdates(() => {
+            setColorScheme(currentColorScheme);
+          });
         }
       };
 
@@ -120,7 +122,7 @@ export const useTelegramWebApp = () => {
         if (intervalId) clearInterval(intervalId);
       };
     }
-  }, [colorScheme]);
+  }, []); // Remove colorScheme dependency to prevent infinite loop
 
   const showBackButton = useCallback((callback?: () => void) => {
     if (webApp?.BackButton) {
