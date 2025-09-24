@@ -168,36 +168,41 @@
     transform: translateY(-2px);
   }
   
-  /* Disable all hover transforms to prevent popup evasion */
-  .no-hover-lift,
-  .no-hover-lift *,
+  /* Prevent hover transforms on modal content to avoid evasion behavior */
   .modal-stable,
   .modal-stable *,
-  [data-radix-dialog-content],
-  [data-radix-dialog-content] *,
-  [data-radix-popover-content],
-  [data-radix-popover-content] * {
-    transform: none !important;
-    will-change: auto !important;
+  .no-hover-lift,
+  .no-hover-lift * {
+    pointer-events: auto !important;
   }
   
-  .no-hover-lift:hover,
-  .no-hover-lift *:hover,
+  /* Disable hover transforms that cause evasion, but preserve positioning transforms */
   .modal-stable:hover,
   .modal-stable *:hover,
-  [data-radix-dialog-content]:hover,
-  [data-radix-dialog-content] *:hover,
-  [data-radix-popover-content]:hover,
-  [data-radix-popover-content] *:hover {
+  .no-hover-lift:hover,
+  .no-hover-lift *:hover,
+  [data-radix-dialog-content]:hover *,
+  [data-radix-popover-content]:hover * {
     transform: none !important;
-    box-shadow: var(--glass-shadow) !important;
   }
   
-  /* Ensure stable positioning for all modal containers */
-  .modal-stable {
+  /* Preserve centering for dialogs while preventing hover evasion */
+  [data-radix-dialog-content] {
     position: fixed !important;
-    pointer-events: auto !important;
-    z-index: 9999 !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 50 !important;
+  }
+  
+  [data-radix-dialog-content]:hover {
+    transform: translate(-50%, -50%) !important;
+  }
+  
+  /* Preserve positioning for popovers */
+  [data-radix-popover-content] {
+    position: fixed !important;
+    z-index: 50 !important;
   }
   
   .glass-button {
