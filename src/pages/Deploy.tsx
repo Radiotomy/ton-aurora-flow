@@ -8,7 +8,7 @@ import { Rocket, Shield, Zap, Globe, ExternalLink } from 'lucide-react';
 
 export default function Deploy() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/20 pt-16">
       <div className="container mx-auto py-8">
         {/* Header Section */}
         <div className="text-center mb-8 space-y-4">
