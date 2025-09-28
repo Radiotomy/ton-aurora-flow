@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Draggable from 'react-draggable';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
-import { RotateCcw, Move } from 'lucide-react';
+import { RotateCcw, Move, X } from 'lucide-react';
 
 interface ExpandedPlayerModalProps {
   isOpen: boolean;
@@ -96,199 +95,212 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
     };
   }, [isOpen, isPlaying, getFrequencyData]);
 
-  if (!currentTrack) return null;
+  if (!isOpen || !currentTrack) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl glass-panel modal-stable no-hover-lift z-50 pointer-events-auto p-0 border-0">
-        <Draggable handle=".drag-handle" bounds="parent" defaultPosition={{x: 0, y: 0}}>
-          <div className="bg-background/95 backdrop-blur-lg rounded-lg border border-border shadow-2xl">
-            <DialogHeader className="p-6 pb-4">
+    <div className="fixed inset-0 z-50 pointer-events-none">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto"
+        onClick={onClose}
+      />
+      
+      {/* Draggable Modal */}
+      <Draggable handle=".drag-handle" bounds="parent" defaultPosition={{x: 50, y: 50}}>
+        <div className="absolute bg-background/95 backdrop-blur-lg rounded-lg border border-border shadow-2xl max-w-2xl pointer-events-auto">
+          {/* Header with drag handle and close */}
+          <div className="p-6 pb-4 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Move className="h-4 w-4 drag-handle cursor-move opacity-60 hover:opacity-100 transition-opacity" />
+                <h2 className="text-xl font-bold">Audio Visualizer & 7-Band EQ</h2>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-6 p-6">
+            {/* Track Info */}
+            <div className="text-center">
+              <h3 className="font-semibold text-lg">{currentTrack.title}</h3>
+              <p className="text-muted-foreground">{currentTrack.artist}</p>
+            </div>
+
+            {/* Canvas Visualizer */}
+            <div className="relative">
+              <canvas
+                ref={canvasRef}
+                width={600}
+                height={200}
+                className="w-full h-32 bg-background/50 rounded-lg border border-border"
+              />
+              {!isPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <p className="text-muted-foreground">Play a track to see visualization</p>
+                </div>
+              )}
+            </div>
+
+            {/* EQ Controls */}
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <DialogTitle className="text-xl font-bold flex items-center gap-2">
-                  <Move className="h-4 w-4 drag-handle cursor-move opacity-60" />
-                  Audio Visualizer & 7-Band EQ
-                </DialogTitle>
-              </div>
-            </DialogHeader>
-
-            <div className="space-y-6 p-6 pt-0">
-              {/* Track Info */}
-              <div className="text-center">
-                <h3 className="font-semibold text-lg">{currentTrack.title}</h3>
-                <p className="text-muted-foreground">{currentTrack.artist}</p>
+                <h4 className="font-semibold">Equalizer</h4>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetEQ}
+                  className="gap-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset
+                </Button>
               </div>
 
-              {/* Canvas Visualizer */}
-              <div className="relative">
-                <canvas
-                  ref={canvasRef}
-                  width={600}
-                  height={200}
-                  className="w-full h-32 bg-background/50 rounded-lg border border-border"
-                />
-                {!isPlaying && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <p className="text-muted-foreground">Play a track to see visualization</p>
+              <div className="grid grid-cols-7 gap-3">
+                {/* Sub-Bass 60Hz */}
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-center block">60Hz</label>
+                  <div className="px-1 flex justify-center">
+                    <Slider
+                      value={[eqGains.subBass]}
+                      onValueChange={(value) => updateEQ('subBass', value[0])}
+                      min={-12}
+                      max={12}
+                      step={0.5}
+                      orientation="vertical"
+                      className="h-32"
+                    />
                   </div>
-                )}
-              </div>
-
-
-              {/* EQ Controls */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold">Equalizer</h4>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={resetEQ}
-                    className="gap-2"
-                  >
-                    <RotateCcw className="h-4 w-4" />
-                    Reset
-                  </Button>
+                  <p className="text-[10px] text-center text-muted-foreground">
+                    {eqGains.subBass > 0 ? '+' : ''}{eqGains.subBass.toFixed(1)}
+                  </p>
                 </div>
 
-                <div className="grid grid-cols-7 gap-3 no-hover-lift">
-                  {/* Sub-Bass 60Hz */}
-                  <div className="space-y-2 no-hover-lift">
-                    <label className="text-xs font-medium text-center block">60Hz</label>
-                    <div className="px-1 no-hover-lift">
-                      <Slider
-                        value={[eqGains.subBass]}
-                        onValueChange={(value) => updateEQ('subBass', value[0])}
-                        min={-12}
-                        max={12}
-                        step={0.5}
-                        orientation="vertical"
-                        className="h-32 mx-auto no-hover-lift pointer-events-auto"
-                      />
-                    </div>
-                    <p className="text-[10px] text-center text-muted-foreground">
-                      {eqGains.subBass > 0 ? '+' : ''}{eqGains.subBass.toFixed(1)}
-                    </p>
+                {/* Bass 170Hz */}
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-center block">170Hz</label>
+                  <div className="px-1 flex justify-center">
+                    <Slider
+                      value={[eqGains.bass]}
+                      onValueChange={(value) => updateEQ('bass', value[0])}
+                      min={-12}
+                      max={12}
+                      step={0.5}
+                      orientation="vertical"
+                      className="h-32"
+                    />
                   </div>
+                  <p className="text-[10px] text-center text-muted-foreground">
+                    {eqGains.bass > 0 ? '+' : ''}{eqGains.bass.toFixed(1)}
+                  </p>
+                </div>
 
-                  {/* Bass 170Hz */}
-                  <div className="space-y-2 no-hover-lift">
-                    <label className="text-xs font-medium text-center block">170Hz</label>
-                    <div className="px-1 no-hover-lift">
-                      <Slider
-                        value={[eqGains.bass]}
-                        onValueChange={(value) => updateEQ('bass', value[0])}
-                        min={-12}
-                        max={12}
-                        step={0.5}
-                        orientation="vertical"
-                        className="h-32 mx-auto no-hover-lift pointer-events-auto"
-                      />
-                    </div>
-                    <p className="text-[10px] text-center text-muted-foreground">
-                      {eqGains.bass > 0 ? '+' : ''}{eqGains.bass.toFixed(1)}
-                    </p>
+                {/* Low-Mid 350Hz */}
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-center block">350Hz</label>
+                  <div className="px-1 flex justify-center">
+                    <Slider
+                      value={[eqGains.lowMid]}
+                      onValueChange={(value) => updateEQ('lowMid', value[0])}
+                      min={-12}
+                      max={12}
+                      step={0.5}
+                      orientation="vertical"
+                      className="h-32"
+                    />
                   </div>
+                  <p className="text-[10px] text-center text-muted-foreground">
+                    {eqGains.lowMid > 0 ? '+' : ''}{eqGains.lowMid.toFixed(1)}
+                  </p>
+                </div>
 
-                  {/* Low-Mid 350Hz */}
-                  <div className="space-y-2 no-hover-lift">
-                    <label className="text-xs font-medium text-center block">350Hz</label>
-                    <div className="px-1 no-hover-lift">
-                      <Slider
-                        value={[eqGains.lowMid]}
-                        onValueChange={(value) => updateEQ('lowMid', value[0])}
-                        min={-12}
-                        max={12}
-                        step={0.5}
-                        orientation="vertical"
-                        className="h-32 mx-auto no-hover-lift pointer-events-auto"
-                      />
-                    </div>
-                    <p className="text-[10px] text-center text-muted-foreground">
-                      {eqGains.lowMid > 0 ? '+' : ''}{eqGains.lowMid.toFixed(1)}
-                    </p>
+                {/* Mid 1kHz */}
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-center block">1kHz</label>
+                  <div className="px-1 flex justify-center">
+                    <Slider
+                      value={[eqGains.mid]}
+                      onValueChange={(value) => updateEQ('mid', value[0])}
+                      min={-12}
+                      max={12}
+                      step={0.5}
+                      orientation="vertical"
+                      className="h-32"
+                    />
                   </div>
+                  <p className="text-[10px] text-center text-muted-foreground">
+                    {eqGains.mid > 0 ? '+' : ''}{eqGains.mid.toFixed(1)}
+                  </p>
+                </div>
 
-                  {/* Mid 1kHz */}
-                  <div className="space-y-2 no-hover-lift">
-                    <label className="text-xs font-medium text-center block">1kHz</label>
-                    <div className="px-1 no-hover-lift">
-                      <Slider
-                        value={[eqGains.mid]}
-                        onValueChange={(value) => updateEQ('mid', value[0])}
-                        min={-12}
-                        max={12}
-                        step={0.5}
-                        orientation="vertical"
-                        className="h-32 mx-auto no-hover-lift pointer-events-auto"
-                      />
-                    </div>
-                    <p className="text-[10px] text-center text-muted-foreground">
-                      {eqGains.mid > 0 ? '+' : ''}{eqGains.mid.toFixed(1)}
-                    </p>
+                {/* Upper-Mid 3.5kHz */}
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-center block">3.5kHz</label>
+                  <div className="px-1 flex justify-center">
+                    <Slider
+                      value={[eqGains.upperMid]}
+                      onValueChange={(value) => updateEQ('upperMid', value[0])}
+                      min={-12}
+                      max={12}
+                      step={0.5}
+                      orientation="vertical"
+                      className="h-32"
+                    />
                   </div>
+                  <p className="text-[10px] text-center text-muted-foreground">
+                    {eqGains.upperMid > 0 ? '+' : ''}{eqGains.upperMid.toFixed(1)}
+                  </p>
+                </div>
 
-                  {/* Upper-Mid 3.5kHz */}
-                  <div className="space-y-2 no-hover-lift">
-                    <label className="text-xs font-medium text-center block">3.5kHz</label>
-                    <div className="px-1 no-hover-lift">
-                      <Slider
-                        value={[eqGains.upperMid]}
-                        onValueChange={(value) => updateEQ('upperMid', value[0])}
-                        min={-12}
-                        max={12}
-                        step={0.5}
-                        orientation="vertical"
-                        className="h-32 mx-auto no-hover-lift pointer-events-auto"
-                      />
-                    </div>
-                    <p className="text-[10px] text-center text-muted-foreground">
-                      {eqGains.upperMid > 0 ? '+' : ''}{eqGains.upperMid.toFixed(1)}
-                    </p>
+                {/* Presence 5kHz */}
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-center block">5kHz</label>
+                  <div className="px-1 flex justify-center">
+                    <Slider
+                      value={[eqGains.presence]}
+                      onValueChange={(value) => updateEQ('presence', value[0])}
+                      min={-12}
+                      max={12}
+                      step={0.5}
+                      orientation="vertical"
+                      className="h-32"
+                    />
                   </div>
+                  <p className="text-[10px] text-center text-muted-foreground">
+                    {eqGains.presence > 0 ? '+' : ''}{eqGains.presence.toFixed(1)}
+                  </p>
+                </div>
 
-                  {/* Presence 5kHz */}
-                  <div className="space-y-2 no-hover-lift">
-                    <label className="text-xs font-medium text-center block">5kHz</label>
-                    <div className="px-1 no-hover-lift">
-                      <Slider
-                        value={[eqGains.presence]}
-                        onValueChange={(value) => updateEQ('presence', value[0])}
-                        min={-12}
-                        max={12}
-                        step={0.5}
-                        orientation="vertical"
-                        className="h-32 mx-auto no-hover-lift pointer-events-auto"
-                      />
-                    </div>
-                    <p className="text-[10px] text-center text-muted-foreground">
-                      {eqGains.presence > 0 ? '+' : ''}{eqGains.presence.toFixed(1)}
-                    </p>
+                {/* Brilliance 10kHz */}
+                <div className="space-y-2">
+                  <label className="text-xs font-medium text-center block">10kHz</label>
+                  <div className="px-1 flex justify-center">
+                    <Slider
+                      value={[eqGains.brilliance]}
+                      onValueChange={(value) => updateEQ('brilliance', value[0])}
+                      min={-12}
+                      max={12}
+                      step={0.5}
+                      orientation="vertical"
+                      className="h-32"
+                    />
                   </div>
-
-                  {/* Brilliance 10kHz */}
-                  <div className="space-y-2 no-hover-lift">
-                    <label className="text-xs font-medium text-center block">10kHz</label>
-                    <div className="px-1 no-hover-lift">
-                      <Slider
-                        value={[eqGains.brilliance]}
-                        onValueChange={(value) => updateEQ('brilliance', value[0])}
-                        min={-12}
-                        max={12}
-                        step={0.5}
-                        orientation="vertical"
-                        className="h-32 mx-auto no-hover-lift pointer-events-auto"
-                      />
-                    </div>
-                    <p className="text-[10px] text-center text-muted-foreground">
-                      {eqGains.brilliance > 0 ? '+' : ''}{eqGains.brilliance.toFixed(1)}
-                    </p>
-                  </div>
+                  <p className="text-[10px] text-center text-muted-foreground">
+                    {eqGains.brilliance > 0 ? '+' : ''}{eqGains.brilliance.toFixed(1)}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
-        </Draggable>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </Draggable>
+    </div>
   );
 };
