@@ -98,7 +98,7 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
   if (!isOpen || !currentTrack) return null;
 
   return (
-    <div className="fixed inset-0 z-50 pointer-events-none">
+    <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/50 backdrop-blur-sm pointer-events-auto"
@@ -106,8 +106,8 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
       />
       
       {/* Draggable Modal */}
-      <Draggable handle=".drag-handle" bounds="parent" defaultPosition={{x: 50, y: 50}}>
-        <div className="absolute bg-background/95 backdrop-blur-lg rounded-lg border border-border shadow-2xl max-w-2xl pointer-events-auto">
+      <Draggable handle=".drag-handle" bounds="parent">
+        <div className="bg-background/95 backdrop-blur-lg rounded-lg border border-border shadow-2xl w-full max-w-2xl mx-4 my-4 max-h-[90vh] overflow-y-auto pointer-events-auto">
           {/* Header with drag handle and close */}
           <div className="p-6 pb-4 border-b border-border">
             <div className="flex items-center justify-between">
