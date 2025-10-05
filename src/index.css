@@ -168,7 +168,35 @@
     transform: translateY(-2px);
   }
   
-  /* Ensure all modal content is interactive */
+  /* Force all modal and dialog elements to remain stable and interactive */
+  .modal-stable,
+  .modal-stable *,
+  .no-hover-lift,
+  .no-hover-lift *,
+  [data-radix-dialog-overlay],
+  [data-radix-dialog-content],
+  [data-radix-dialog-content] *,
+  [data-radix-popover-content],
+  [data-radix-popover-content] *,
+  [data-radix-alert-dialog-overlay],
+  [data-radix-alert-dialog-content],
+  [data-radix-alert-dialog-content] *,
+  [data-radix-sheet-content],
+  [data-radix-sheet-content] * {
+    pointer-events: auto !important;
+  }
+  
+  /* Lock modal positioning - prevent any movement */
+  [data-radix-dialog-content],
+  [data-radix-alert-dialog-content] {
+    position: fixed !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    will-change: auto !important;
+  }
+  
+  /* Completely disable all transforms, animations, and transitions on hover for modal content */
   .modal-stable,
   .modal-stable *,
   .no-hover-lift,
@@ -178,31 +206,33 @@
   [data-radix-popover-content],
   [data-radix-popover-content] *,
   [data-radix-alert-dialog-content],
-  [data-radix-alert-dialog-content] * {
-    pointer-events: auto !important;
+  [data-radix-alert-dialog-content] *,
+  [data-radix-sheet-content],
+  [data-radix-sheet-content] * {
+    transition: none !important;
   }
   
-  /* Preserve centering for dialogs */
-  [data-radix-dialog-content],
-  [data-radix-alert-dialog-content] {
-    position: fixed !important;
-    left: 50% !important;
-    top: 50% !important;
-    transform: translate(-50%, -50%) !important;
-  }
-  
-  /* Disable hover lift/scale on interactive elements inside modals only */
-  .modal-stable button:hover,
-  .modal-stable input:hover,
-  .modal-stable textarea:hover,
-  .modal-stable select:hover,
+  /* Kill all hover effects that cause movement */
+  .modal-stable:hover,
+  .modal-stable *:hover,
   .no-hover-lift:hover,
-  [data-radix-dialog-content] button:hover,
-  [data-radix-dialog-content] input:hover,
-  [data-radix-dialog-content] textarea:hover,
-  [data-radix-popover-content] button:hover,
-  [data-radix-alert-dialog-content] button:hover {
+  .no-hover-lift *:hover,
+  [data-radix-dialog-content]:hover,
+  [data-radix-dialog-content] *:hover,
+  [data-radix-popover-content]:hover,
+  [data-radix-popover-content] *:hover,
+  [data-radix-alert-dialog-content]:hover,
+  [data-radix-alert-dialog-content] *:hover,
+  [data-radix-sheet-content]:hover,
+  [data-radix-sheet-content] *:hover {
     transform: none !important;
+    animation: none !important;
+  }
+  
+  /* Preserve only the modal centering transform */
+  [data-radix-dialog-content]:hover,
+  [data-radix-alert-dialog-content]:hover {
+    transform: translate(-50%, -50%) !important;
   }
   
   .glass-button {
@@ -337,11 +367,11 @@ input[type="range"] {
   text-align: center;
 }
 
-/* Optimize modal animations */
+/* Optimize modal animations - but disable transform changes to prevent evasion */
 [data-radix-dialog-overlay] {
   will-change: opacity;
 }
 
 [data-radix-dialog-content] {
-  will-change: transform, opacity;
+  will-change: opacity;
 }
