@@ -7,6 +7,7 @@ import { TonSitesRouter } from "@/components/TonSitesRouter";
 import { AudioPlayer } from "@/components/AudioPlayer";
 import { ErrorBoundaryWithTWA } from "@/components/ErrorBoundaryWithTWA";
 import { SecurityProvider } from "@/components/SecurityProvider";
+import { MonitoringProvider } from "@/components/MonitoringProvider";
 import { ProfileSecurityCheck } from "@/components/ProfileSecurityCheck";
 import { useTelegramWebApp } from "@/hooks/useTelegramWebApp";
 import { analytics } from "@/utils/analytics";
@@ -62,40 +63,42 @@ function AppContent() {
           v7_relativeSplatPath: true
         }}
       >
-        <TonSitesRouter>
-          <Navigation />
-          <ErrorBoundaryWithTWA>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/discover" element={<Discover />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/auth/audius/callback" element={<AudiusCallback />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/playlists" element={<Playlists />} />
-              <Route path="/artist/:artistId" element={<ArtistDetail />} />
-              <Route path="/track/:trackId" element={<TrackDetail />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/tracks" element={<Index />} />
-              <Route path="/fan-clubs" element={<FanClubs />} />
-              <Route path="/creator-studio" element={<CreatorStudio />} />
-              <Route path="/live-events" element={<LiveEvents />} />
-              <Route path="/marketplace" element={<Marketplace />} />
-              <Route path="/deploy" element={<Deploy />} />
-              <Route path="/mainnet-deploy" element={<MainnetDeploy />} />
-              <Route path="/help" element={<Help />} />
-              <Route path="/help/fans" element={<HelpFans />} />
-              <Route path="/help/artists" element={<HelpArtists />} />
-              <Route path="/contracts/validate" element={<ContractValidation />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </ErrorBoundaryWithTWA>
-          <ErrorBoundaryWithTWA>
-            <AudioPlayer />
-          </ErrorBoundaryWithTWA>
-          <Footer />
-        </TonSitesRouter>
+        <MonitoringProvider>
+          <TonSitesRouter>
+            <Navigation />
+            <ErrorBoundaryWithTWA>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/discover" element={<Discover />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/audius/callback" element={<AudiusCallback />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/playlists" element={<Playlists />} />
+                <Route path="/artist/:artistId" element={<ArtistDetail />} />
+                <Route path="/track/:trackId" element={<TrackDetail />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/tracks" element={<Index />} />
+                <Route path="/fan-clubs" element={<FanClubs />} />
+                <Route path="/creator-studio" element={<CreatorStudio />} />
+                <Route path="/live-events" element={<LiveEvents />} />
+                <Route path="/marketplace" element={<Marketplace />} />
+                <Route path="/deploy" element={<Deploy />} />
+                <Route path="/mainnet-deploy" element={<MainnetDeploy />} />
+                <Route path="/help" element={<Help />} />
+                <Route path="/help/fans" element={<HelpFans />} />
+                <Route path="/help/artists" element={<HelpArtists />} />
+                <Route path="/contracts/validate" element={<ContractValidation />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ErrorBoundaryWithTWA>
+            <ErrorBoundaryWithTWA>
+              <AudioPlayer />
+            </ErrorBoundaryWithTWA>
+            <Footer />
+          </TonSitesRouter>
+        </MonitoringProvider>
       </BrowserRouter>
     </div>
   );
