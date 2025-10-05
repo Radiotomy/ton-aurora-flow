@@ -1,18 +1,20 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface PurchaseRequest {
-  nftId: string;
-  price: number;
-  currency: string;
-  artistId: string;
-  walletAddress?: string;
-}
+// Input validation schema
+const purchaseRequestSchema = z.object({
+  nftId: z.string().uuid({ message: "Invalid NFT ID format" }),
+  price: z.number().positive().max(10000, { message: "Price exceeds maximum allowed" }),
+  currency: z.enum(['TON', 'AUDIO'], { message: "Currency must be TON or AUDIO" }),
+  artistId: z.string().min(1, { message: "Artist ID is required" }),
+  walletAddress: z.string().optional(),
+});
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -53,17 +55,25 @@ serve(async (req) => {
       }
     }
 
-    const { nftId, price, currency, artistId, walletAddress }: PurchaseRequest = await req.json();
-
-    if (!nftId || !price || !currency) {
+    // Parse and validate input
+    const rawBody = await req.json();
+    const validationResult = purchaseRequestSchema.safeParse(rawBody);
+    
+    if (!validationResult.success) {
+      console.error('Input validation failed:', validationResult.error);
       return new Response(
-        JSON.stringify({ error: "Missing required fields: nftId, price, currency" }),
+        JSON.stringify({ 
+          error: "Invalid input data",
+          details: validationResult.error.errors.map(e => ({ field: e.path.join('.'), message: e.message }))
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400 
         }
       );
     }
+
+    const { nftId, price, currency, artistId, walletAddress } = validationResult.data;
 
     // Check if user is authenticated or has wallet
     if (!user && !walletAddress) {
@@ -74,6 +84,29 @@ serve(async (req) => {
           status: 401 
         }
       );
+    }
+
+    // Rate limiting check (10 requests per 5 minutes for NFT purchases)
+    if (profile) {
+      const { data: rateLimitCheck, error: rateLimitError } = await supabaseService
+        .rpc('secure_rate_limit_check', {
+          operation_type: 'nft_purchase',
+          max_operations: 10,
+          time_window: '00:05:00'
+        });
+
+      if (rateLimitError) {
+        console.error('Rate limit check error:', rateLimitError);
+      } else if (!rateLimitCheck) {
+        console.warn(`Rate limit exceeded for profile ${profile.id}`);
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+          { 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 429 
+          }
+        );
+      }
     }
 
     console.log(`Processing NFT purchase: ${nftId} for ${price} ${currency}`);

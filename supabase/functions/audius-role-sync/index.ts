@@ -1,10 +1,23 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema for Audius user data
+const audiusUserSchema = z.object({
+  id: z.string().min(1, { message: "User ID is required" }),
+  name: z.string().optional(),
+  handle: z.string().min(1, { message: "Handle is required" }),
+  track_count: z.number().int().min(0).optional(),
+  follower_count: z.number().int().min(0).optional(),
+  verified: z.boolean().optional(),
+  is_verified: z.boolean().optional(),
+  is_deactivated: z.boolean().optional(),
+});
 
 interface AudiusUserProfile {
   id: string;
@@ -59,11 +72,35 @@ serve(async (req) => {
       throw new Error('Invalid user token');
     }
 
-    const { audiusUserData } = await req.json();
+    // Parse and validate input
+    const rawBody = await req.json();
+    const { audiusUserData: rawAudiusData } = rawBody;
 
-    if (!audiusUserData) {
-      throw new Error('No Audius user data provided');
+    if (!rawAudiusData) {
+      return new Response(
+        JSON.stringify({ error: 'No Audius user data provided' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      );
     }
+
+    // Validate Audius user data
+    const validationResult = audiusUserSchema.safeParse(rawAudiusData);
+    
+    if (!validationResult.success) {
+      console.error('Audius data validation failed:', validationResult.error);
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid Audius user data",
+          details: validationResult.error.errors.map(e => ({ field: e.path.join('.'), message: e.message }))
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+
+    const audiusUserData = validationResult.data;
 
     console.log('Syncing roles for user:', user.id, 'with Audius data:', audiusUserData);
 
@@ -76,6 +113,27 @@ serve(async (req) => {
 
     if (profileError || !profile) {
       throw new Error('User profile not found');
+    }
+
+    // Rate limiting check (5 requests per 5 minutes for role sync)
+    const { data: rateLimitCheck, error: rateLimitError } = await supabase
+      .rpc('secure_rate_limit_check', {
+        operation_type: 'role_sync',
+        max_operations: 5,
+        time_window: '00:05:00'
+      });
+
+    if (rateLimitError) {
+      console.error('Rate limit check error:', rateLimitError);
+    } else if (!rateLimitCheck) {
+      console.warn(`Rate limit exceeded for user ${user.id}`);
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 429 
+        }
+      );
     }
 
     const rolesToAssign: { role: string; metadata: any }[] = [];
