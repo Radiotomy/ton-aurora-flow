@@ -168,41 +168,41 @@
     transform: translateY(-2px);
   }
   
-  /* Prevent hover transforms on modal content to avoid evasion behavior */
+  /* Ensure all modal content is interactive */
   .modal-stable,
   .modal-stable *,
   .no-hover-lift,
-  .no-hover-lift * {
+  .no-hover-lift *,
+  [data-radix-dialog-content],
+  [data-radix-dialog-content] *,
+  [data-radix-popover-content],
+  [data-radix-popover-content] *,
+  [data-radix-alert-dialog-content],
+  [data-radix-alert-dialog-content] * {
     pointer-events: auto !important;
   }
   
-  /* Disable hover transforms that cause evasion, but preserve positioning transforms */
-  .modal-stable:hover,
-  .modal-stable *:hover,
-  .no-hover-lift:hover,
-  .no-hover-lift *:hover,
-  [data-radix-dialog-content]:hover *,
-  [data-radix-popover-content]:hover * {
-    transform: none !important;
-  }
-  
-  /* Preserve centering for dialogs while preventing hover evasion */
-  [data-radix-dialog-content] {
+  /* Preserve centering for dialogs */
+  [data-radix-dialog-content],
+  [data-radix-alert-dialog-content] {
     position: fixed !important;
     left: 50% !important;
     top: 50% !important;
     transform: translate(-50%, -50%) !important;
-    z-index: 50 !important;
   }
   
-  [data-radix-dialog-content]:hover {
-    transform: translate(-50%, -50%) !important;
-  }
-  
-  /* Preserve positioning for popovers */
-  [data-radix-popover-content] {
-    position: fixed !important;
-    z-index: 50 !important;
+  /* Disable hover lift/scale on interactive elements inside modals only */
+  .modal-stable button:hover,
+  .modal-stable input:hover,
+  .modal-stable textarea:hover,
+  .modal-stable select:hover,
+  .no-hover-lift:hover,
+  [data-radix-dialog-content] button:hover,
+  [data-radix-dialog-content] input:hover,
+  [data-radix-dialog-content] textarea:hover,
+  [data-radix-popover-content] button:hover,
+  [data-radix-alert-dialog-content] button:hover {
+    transform: none !important;
   }
   
   .glass-button {
