@@ -8,7 +8,7 @@ AudioTon is the **first production-ready Web3 music platform** combining TON blo
 
 ### 1. Access AudioTon
 - **Web**: Visit [audioton.co](https://audioton.co)
-- **Telegram**: Use our Mini App [@AudioTonBot](https://t.me/audiotonbot)
+- **Telegram**: Use our Mini App [@audioton_bot](https://t.me/audioton_bot)
 - **Mobile**: Progressive Web App works on all devices
 
 ### 2. Connect Your TON Wallet (Optional for Streaming)
