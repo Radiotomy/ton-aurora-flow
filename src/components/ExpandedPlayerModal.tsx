@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Draggable from 'react-draggable';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -97,7 +98,7 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
 
   if (!isOpen || !currentTrack) return null;
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-[100] flex items-center justify-center pointer-events-none">
       {/* Backdrop */}
       <div 
@@ -303,4 +304,6 @@ export const ExpandedPlayerModal: React.FC<ExpandedPlayerModalProps> = ({
       </Draggable>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
