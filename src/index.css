@@ -196,44 +196,17 @@
     will-change: auto !important;
   }
   
-  /* Completely disable all transforms, animations, and transitions on hover for modal content */
-  .modal-stable,
-  .modal-stable *,
-  .no-hover-lift,
-  .no-hover-lift *,
-  [data-radix-dialog-content],
-  [data-radix-dialog-content] *,
-  [data-radix-popover-content],
-  [data-radix-popover-content] *,
-  [data-radix-alert-dialog-content],
-  [data-radix-alert-dialog-content] *,
-  [data-radix-sheet-content],
-  [data-radix-sheet-content] * {
-    transition: none !important;
-  }
-  
-  /* Kill all hover effects that cause movement */
-  .modal-stable:hover,
-  .modal-stable *:hover,
-  .no-hover-lift:hover,
-  .no-hover-lift *:hover,
-  [data-radix-dialog-content]:hover,
-  [data-radix-dialog-content] *:hover,
-  [data-radix-popover-content]:hover,
-  [data-radix-popover-content] *:hover,
-  [data-radix-alert-dialog-content]:hover,
-  [data-radix-alert-dialog-content] *:hover,
-  [data-radix-sheet-content]:hover,
-  [data-radix-sheet-content] *:hover {
+  /* Prevent hover-lift effects inside modals only (allow drag transforms) */
+  .modal-stable .glass-panel:hover,
+  .modal-stable .aurora-hover:hover,
+  .modal-stable .hover-scale:hover,
+  .modal-stable .glass-button:hover {
     transform: none !important;
-    animation: none !important;
   }
-  
-  /* Preserve only the modal centering transform */
-  [data-radix-dialog-content]:hover,
-  [data-radix-alert-dialog-content]:hover {
-    transform: translate(-50%, -50%) !important;
-  }
+
+  /* Do not override transforms on the dialog content itself to keep dragging functional */
+  /* Note: Draggable uses CSS transforms on the content element */
+
   
   .glass-button {
     @apply glass-panel px-6 py-3 cursor-pointer select-none;
