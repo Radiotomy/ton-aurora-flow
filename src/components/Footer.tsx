@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Music, Heart, Mail, MessageCircle, Github, Twitter } from 'lucide-react';
+import audiusBadge from '@/assets/audius-badge.png';
 
 const Footer = () => {
   const footerLinks = {
@@ -174,10 +175,20 @@ const Footer = () => {
               </a>
             </div>
 
-            {/* Additional Info */}
-            <div className="text-sm text-muted-foreground">
-              Powered by TON & Audius
-            </div>
+            {/* Audius Badge */}
+            <a 
+              href="https://audius.co" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="transition-transform hover:scale-105"
+              aria-label="Streaming from Audius"
+            >
+              <img 
+                src={audiusBadge} 
+                alt="Streaming from Audius" 
+                className="h-8 md:h-10 w-auto"
+              />
+            </a>
           </div>
         </div>
       </div>
