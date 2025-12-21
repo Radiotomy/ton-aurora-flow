@@ -35,3 +35,9 @@ verify_jwt = false
 
 [functions.health-check]
 verify_jwt = false
+
+[functions.treasury-allocator]
+verify_jwt = false
+
+[functions.distribute-rewards]
+verify_jwt = false

@@ -627,6 +627,39 @@ export type Database = {
           },
         ]
       }
+      platform_treasury: {
+        Row: {
+          allocated_to_rewards: number
+          balance: number
+          created_at: string | null
+          id: string
+          last_funded_at: string | null
+          reserved_amount: number
+          token_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          allocated_to_rewards?: number
+          balance?: number
+          created_at?: string | null
+          id?: string
+          last_funded_at?: string | null
+          reserved_amount?: number
+          token_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          allocated_to_rewards?: number
+          balance?: number
+          created_at?: string | null
+          id?: string
+          last_funded_at?: string | null
+          reserved_amount?: number
+          token_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       playlist_tracks: {
         Row: {
           added_at: string
@@ -776,6 +809,42 @@ export type Database = {
           ton_dns_name?: string | null
           updated_at?: string
           wallet_address?: string | null
+        }
+        Relationships: []
+      }
+      reward_caps: {
+        Row: {
+          created_at: string | null
+          current_daily_used: number
+          id: string
+          is_active: boolean | null
+          last_reset_at: string | null
+          max_daily_platform: number
+          max_per_user: number
+          reward_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          current_daily_used?: number
+          id?: string
+          is_active?: boolean | null
+          last_reset_at?: string | null
+          max_daily_platform?: number
+          max_per_user?: number
+          reward_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          current_daily_used?: number
+          id?: string
+          is_active?: boolean | null
+          last_reset_at?: string | null
+          max_daily_platform?: number
+          max_per_user?: number
+          reward_type?: string
+          updated_at?: string | null
         }
         Relationships: []
       }
@@ -1059,6 +1128,48 @@ export type Database = {
           },
         ]
       }
+      treasury_movements: {
+        Row: {
+          amount: number
+          created_at: string | null
+          from_source: string | null
+          id: string
+          movement_type: string
+          notes: string | null
+          performed_by: string | null
+          reference_id: string | null
+          to_destination: string | null
+          token_type: string
+          transaction_hash: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          from_source?: string | null
+          id?: string
+          movement_type: string
+          notes?: string | null
+          performed_by?: string | null
+          reference_id?: string | null
+          to_destination?: string | null
+          token_type: string
+          transaction_hash?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          from_source?: string | null
+          id?: string
+          movement_type?: string
+          notes?: string | null
+          performed_by?: string | null
+          reference_id?: string | null
+          to_destination?: string | null
+          token_type?: string
+          transaction_hash?: string | null
+        }
+        Relationships: []
+      }
       user_assets: {
         Row: {
           asset_type: string
@@ -1178,6 +1289,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_reward_claims: {
+        Row: {
+          amount_claimed: number
+          claims_today: number
+          created_at: string | null
+          id: string
+          last_claim_at: string | null
+          profile_id: string
+          reward_type: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount_claimed?: number
+          claims_today?: number
+          created_at?: string | null
+          id?: string
+          last_claim_at?: string | null
+          profile_id: string
+          reward_type: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount_claimed?: number
+          claims_today?: number
+          created_at?: string | null
+          id?: string
+          last_claim_at?: string | null
+          profile_id?: string
+          reward_type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           assigned_at: string
@@ -1210,6 +1354,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      allocate_fees_to_rewards: {
+        Args: {
+          p_allocation_percentage?: number
+          p_fee_amount: number
+          p_token_type: string
+        }
+        Returns: Json
+      }
+      atomic_reward_transfer: {
+        Args: {
+          p_amount: number
+          p_profile_id: string
+          p_reward_type: string
+          p_source?: string
+        }
+        Returns: Json
+      }
       can_access_financial_data: {
         Args: { target_user_id: string }
         Returns: boolean
@@ -1226,6 +1387,10 @@ export type Database = {
           user_profile_id: string
         }
         Returns: boolean
+      }
+      check_reward_budget: {
+        Args: { p_amount: number; p_profile_id: string; p_reward_type: string }
+        Returns: Json
       }
       cleanup_expired_stream_sessions: { Args: never; Returns: undefined }
       get_current_user_profile_id: { Args: never; Returns: string }
@@ -1267,6 +1432,7 @@ export type Database = {
         Args: { operation_type: string; user_id: string }
         Returns: boolean
       }
+      reset_daily_reward_caps: { Args: never; Returns: undefined }
       secure_rate_limit_check: {
         Args: {
           max_operations?: number
