@@ -38,23 +38,25 @@ export const RoleProtection: React.FC<RoleProtectionProps> = ({
     if (fallback) return <>{fallback}</>;
     
     return (
-      <Card className="p-8 text-center glass-panel">
-        <Shield className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-xl font-semibold mb-2">Access Restricted</h3>
-        <p className="text-muted-foreground mb-6">
-          You need {requiredRole.replace('_', ' ')} role to access this feature.
-        </p>
-        {showUpgradePrompt && (
-          <Button onClick={() => setShowUpgradeModal(true)}>
-            <Crown className="w-4 h-4 mr-2" />
-            Upgrade Account
-          </Button>
-        )}
+      <>
+        <Card className="p-8 text-center glass-panel">
+          <Shield className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-xl font-semibold mb-2">Access Restricted</h3>
+          <p className="text-muted-foreground mb-6">
+            You need {requiredRole.replace('_', ' ')} role to access this feature.
+          </p>
+          {showUpgradePrompt && (
+            <Button onClick={() => setShowUpgradeModal(true)}>
+              <Crown className="w-4 h-4 mr-2" />
+              Upgrade Account
+            </Button>
+          )}
+        </Card>
         <ArtistUpgradeModal 
           open={showUpgradeModal} 
           onOpenChange={setShowUpgradeModal} 
         />
-      </Card>
+      </>
     );
   }
 
@@ -63,23 +65,25 @@ export const RoleProtection: React.FC<RoleProtectionProps> = ({
     if (fallback) return <>{fallback}</>;
     
     return (
-      <Card className="p-8 text-center glass-panel">
-        <Music className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-        <h3 className="text-xl font-semibold mb-2">Artist Access Required</h3>
-        <p className="text-muted-foreground mb-6">
-          This feature is only available to verified artists and creators.
-        </p>
-        {showUpgradePrompt && (
-          <Button onClick={() => setShowUpgradeModal(true)}>
-            <Crown className="w-4 h-4 mr-2" />
-            Become an Artist
-          </Button>
-        )}
+      <>
+        <Card className="p-8 text-center glass-panel">
+          <Music className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-xl font-semibold mb-2">Artist Access Required</h3>
+          <p className="text-muted-foreground mb-6">
+            This feature is only available to verified artists and creators.
+          </p>
+          {showUpgradePrompt && (
+            <Button onClick={() => setShowUpgradeModal(true)}>
+              <Crown className="w-4 h-4 mr-2" />
+              Become an Artist
+            </Button>
+          )}
+        </Card>
         <ArtistUpgradeModal 
           open={showUpgradeModal} 
           onOpenChange={setShowUpgradeModal} 
         />
-      </Card>
+      </>
     );
   }
 
