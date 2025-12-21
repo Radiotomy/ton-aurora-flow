@@ -22,6 +22,7 @@ export interface TreasuryMovement {
 
 export interface RewardCap {
   reward_type: string;
+  token_type: string;
   max_per_user: number;
   max_daily_platform: number;
   current_daily_used: number;
@@ -36,15 +37,19 @@ export interface BudgetCheckResult {
   daily_used?: number;
   user_limit?: number;
   daily_limit?: number;
+  token_type?: string;
 }
 
 export interface DistributionResult {
   success: boolean;
   amount?: number;
   reward_type?: string;
+  token_type?: string;
   error?: string;
   treasury_balance?: number;
 }
+
+export type TokenType = 'AUDIO' | 'TON';
 
 const SUPABASE_URL = 'https://cpjjaglmqvcwpzrdoyul.supabase.co';
 
@@ -55,13 +60,15 @@ export class TreasuryService {
   static async checkBudget(
     profileId: string,
     amount: number,
-    rewardType: string
+    rewardType: string,
+    tokenType: TokenType = 'AUDIO'
   ): Promise<BudgetCheckResult> {
     try {
       const { data, error } = await supabase.rpc('check_reward_budget', {
         p_profile_id: profileId,
         p_amount: amount,
-        p_reward_type: rewardType
+        p_reward_type: rewardType,
+        p_token_type: tokenType
       });
 
       if (error) {
@@ -77,17 +84,74 @@ export class TreasuryService {
   }
 
   /**
+   * Get user's preferred token for rewards
+   */
+  static async getUserTokenPreference(profileId: string): Promise<TokenType> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return 'AUDIO';
+
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/distribute-rewards?action=get-preference`,
+        {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          }
+        }
+      );
+
+      const result = await response.json();
+      return result.preferred_token || 'AUDIO';
+    } catch (error) {
+      console.error('[TreasuryService] Failed to get token preference:', error);
+      return 'AUDIO';
+    }
+  }
+
+  /**
+   * Set user's preferred token for rewards
+   */
+  static async setUserTokenPreference(tokenType: TokenType): Promise<boolean> {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return false;
+
+      const response = await fetch(
+        `${SUPABASE_URL}/functions/v1/distribute-rewards?action=set-preference`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ preferred_token: tokenType })
+        }
+      );
+
+      const result = await response.json();
+      return result.success === true;
+    } catch (error) {
+      console.error('[TreasuryService] Failed to set token preference:', error);
+      return false;
+    }
+  }
+
+  /**
    * Distribute a reward to a user (calls edge function for security)
    */
   static async distributeReward(
     profileId: string,
     amount: number,
     rewardType: 'welcome_bonus' | 'referral' | 'first_tip' | 'first_mint' | 'activity' | 'achievement',
-    activityProof?: { type: string; reference_id?: string }
+    activityProof?: { type: string; reference_id?: string },
+    tokenType?: TokenType
   ): Promise<DistributionResult> {
     try {
+      // Get user's preferred token if not specified
+      const effectiveTokenType = tokenType || await this.getUserTokenPreference(profileId);
+
       // First check budget locally
-      const budgetCheck = await this.checkBudget(profileId, amount, rewardType);
+      const budgetCheck = await this.checkBudget(profileId, amount, rewardType, effectiveTokenType);
       
       if (!budgetCheck.can_distribute) {
         return { 
@@ -108,6 +172,7 @@ export class TreasuryService {
             profile_id: profileId,
             amount,
             reward_type: rewardType,
+            token_type: effectiveTokenType,
             activity_proof: activityProof
           })
         }
@@ -123,6 +188,7 @@ export class TreasuryService {
         success: true,
         amount: result.amount,
         reward_type: result.reward_type,
+        token_type: result.token_type,
         treasury_balance: result.treasury_balance
       };
     } catch (error) {
@@ -166,11 +232,17 @@ export class TreasuryService {
   /**
    * Get reward caps (public info)
    */
-  static async getRewardCaps(): Promise<RewardCap[]> {
+  static async getRewardCaps(tokenType?: TokenType): Promise<RewardCap[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('reward_caps')
-        .select('reward_type, max_per_user, max_daily_platform, current_daily_used, is_active');
+        .select('reward_type, token_type, max_per_user, max_daily_platform, current_daily_used, is_active');
+
+      if (tokenType) {
+        query = query.eq('token_type', tokenType);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('[TreasuryService] Failed to fetch reward caps:', error);
@@ -187,17 +259,24 @@ export class TreasuryService {
   /**
    * Get user's reward claims
    */
-  static async getUserClaims(profileId: string): Promise<{
+  static async getUserClaims(profileId: string, tokenType?: TokenType): Promise<{
     reward_type: string;
+    token_type: string;
     amount_claimed: number;
     claims_today: number;
     last_claim_at: string | null;
   }[]> {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('user_reward_claims')
-        .select('reward_type, amount_claimed, claims_today, last_claim_at')
+        .select('reward_type, token_type, amount_claimed, claims_today, last_claim_at')
         .eq('profile_id', profileId);
+
+      if (tokenType) {
+        query = query.eq('token_type', tokenType);
+      }
+
+      const { data, error } = await query;
 
       if (error) {
         console.error('[TreasuryService] Failed to fetch user claims:', error);
