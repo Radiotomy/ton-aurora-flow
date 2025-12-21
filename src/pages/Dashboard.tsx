@@ -16,15 +16,33 @@ import { AudioTokenWidget } from '@/components/AudioTokenWidget';
 import { UnifiedWalletDisplay } from '@/components/UnifiedWalletDisplay';
 import { CrossChainBridgeWidget } from '@/components/CrossChainBridgeWidget';
 import { TonDomainStatus } from '@/components/TonDomainStatus';
-import { Music, Users, Heart, Trophy, Wallet, Settings, Coins, Star, Award, Clock, TrendingUp } from 'lucide-react';
+import TreasuryDashboard from '@/components/admin/TreasuryDashboard';
+import { Music, Users, Heart, Trophy, Wallet, Settings, Coins, Star, Award, Clock, TrendingUp, Shield } from 'lucide-react';
 import { Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Dashboard = () => {
   const { user, isAuthenticated } = useAuth();
   const { profile, assets, fanClubMemberships, isConnected, tonBalance } = useWalletStore();
   const realStats = useRealUserStats();
   const [isProfileEditOpen, setIsProfileEditOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check admin status
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        const { data } = await supabase.rpc('has_role', {
+          _user_id: authUser.id,
+          _role: 'admin'
+        });
+        setIsAdmin(!!data);
+      }
+    };
+    checkAdmin();
+  }, [user]);
 
   // Allow access with either Supabase auth OR wallet connection
   if (!isAuthenticated && !isConnected) {
@@ -133,6 +151,12 @@ const Dashboard = () => {
             <TabsTrigger value="web3">Web3 & Tokens</TabsTrigger>
             <TabsTrigger value="collection">My Collection</TabsTrigger>
             <TabsTrigger value="fanclubs">Fan Clubs</TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="admin" className="flex items-center gap-1">
+                <Shield className="h-3 w-3" />
+                Admin
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -437,6 +461,13 @@ const Dashboard = () => {
               </Card>
             </div>
           </TabsContent>
+
+          {/* Admin Tab - Only visible to admins */}
+          {isAdmin && (
+            <TabsContent value="admin">
+              <TreasuryDashboard />
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* Profile Edit Modal */}
