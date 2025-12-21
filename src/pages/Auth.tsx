@@ -12,7 +12,7 @@ import { AudiusLoginButton } from '@/components/AudiusLoginButton';
 import { ArtistRegistrationModal } from '@/components/ArtistRegistrationModal';
 
 const Auth = () => {
-  const { signIn, signUp, resetPassword, loading, isAuthenticated } = useAuth();
+  const { signIn, signUp, resetPassword, loading: authLoading, isAuthenticated } = useAuth();
   const { isAuthenticated: isAudiusAuthenticated } = useAudiusAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -22,15 +22,30 @@ const Auth = () => {
   const [resetEmail, setResetEmail] = useState('');
   const [activeTab, setActiveTab] = useState('signin');
   const [showArtistModal, setShowArtistModal] = useState(false);
+  const [formLoading, setFormLoading] = useState(false);
 
-  // Redirect if already authenticated
-  if (isAuthenticated) {
+  // Only redirect after auth state is fully loaded and user is authenticated
+  if (!authLoading && isAuthenticated) {
     return <Navigate to="/" replace />;
+  }
+
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-subtle">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Checking authentication...</p>
+        </div>
+      </div>
+    );
   }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormLoading(true);
     const { error } = await signIn(email, password);
+    setFormLoading(false);
     if (!error) {
       navigate('/');
     }
@@ -42,9 +57,11 @@ const Auth = () => {
       return;
     }
     
+    setFormLoading(true);
     const { error } = await signUp(email, password, {
       display_name: displayName || email.split('@')[0]
     });
+    setFormLoading(false);
     
     if (!error) {
       setActiveTab('signin');
@@ -53,7 +70,9 @@ const Auth = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormLoading(true);
     await resetPassword(resetEmail);
+    setFormLoading(false);
   };
 
   return (
@@ -106,9 +125,9 @@ const Auth = () => {
                     type="submit"
                     className="w-full"
                     variant="aurora"
-                    disabled={loading}
+                    disabled={formLoading}
                   >
-                    {loading ? (
+                    {formLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Signing In...
@@ -190,9 +209,9 @@ const Auth = () => {
                     type="submit"
                     className="w-full"
                     variant="aurora"
-                    disabled={loading || password !== confirmPassword}
+                    disabled={formLoading || password !== confirmPassword}
                   >
-                    {loading ? (
+                    {formLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Creating Account...
@@ -257,9 +276,9 @@ const Auth = () => {
                     type="submit"
                     className="w-full"
                     variant="aurora"
-                    disabled={loading}
+                    disabled={formLoading}
                   >
-                    {loading ? (
+                    {formLoading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
                         Sending...
