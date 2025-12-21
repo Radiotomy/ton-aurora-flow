@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { WalletButton } from '@/components/WalletButton';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -74,11 +75,21 @@ const NetworkStatusIndicator: React.FC = () => {
 };
 
 const EnhancedCTAButtons: React.FC = () => {
+  const navigate = useNavigate();
   const [currentGenre, setCurrentGenre] = useState('Electronic');
   const [isLiveEvent, setIsLiveEvent] = useState(false);
 
+  const genreRoutes: Record<string, string> = {
+    'Electronic': '/discover?genre=electronic',
+    'Hip-Hop': '/discover?genre=hip-hop',
+    'House': '/discover?genre=house',
+    'Techno': '/discover?genre=techno',
+    'Ambient': '/discover?genre=ambient',
+    'Trap': '/discover?genre=trap',
+  };
+
   useEffect(() => {
-    const genres = ['Electronic', 'Hip-Hop', 'House', 'Techno', 'Ambient', 'Trap'];
+    const genres = Object.keys(genreRoutes);
     const genreInterval = setInterval(() => {
       setCurrentGenre(genres[Math.floor(Math.random() * genres.length)]);
     }, 3000);
@@ -92,6 +103,14 @@ const EnhancedCTAButtons: React.FC = () => {
       clearInterval(eventInterval);
     };
   }, []);
+
+  const handleButtonClick = () => {
+    if (isLiveEvent) {
+      navigate('/live-events');
+    } else {
+      navigate(genreRoutes[currentGenre] || '/discover');
+    }
+  };
 
   return (
     <motion.div 
@@ -110,10 +129,7 @@ const EnhancedCTAButtons: React.FC = () => {
           size="lg" 
           variant="aurora"
           className="px-8 py-4 text-lg font-medium relative overflow-hidden group"
-          onClick={() => {
-            const element = document.getElementById('discovery') || document.querySelector('[data-section="discovery"]');
-            element?.scrollIntoView({ behavior: 'smooth' });
-          }}
+          onClick={handleButtonClick}
         >
           {/* Animated background */}
           <motion.div

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Music, Zap, Trophy, Users, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -14,9 +15,10 @@ interface Activity {
   isReal?: boolean;
 }
 
-const ActivityBubble: React.FC<{ activity: Activity; onComplete: () => void }> = ({ 
+const ActivityBubble: React.FC<{ activity: Activity; onComplete: () => void; onClick: () => void }> = ({ 
   activity, 
-  onComplete 
+  onComplete,
+  onClick
 }) => {
   const getIcon = () => {
     switch (activity.type) {
@@ -50,8 +52,12 @@ const ActivityBubble: React.FC<{ activity: Activity; onComplete: () => void }> =
       exit={{ opacity: 0, x: -300, scale: 0.8 }}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
       whileHover={{ scale: 1.05, x: -10 }}
-      className="glass-panel p-3 rounded-lg border border-glass-border/20 mb-2 cursor-pointer max-w-xs"
+      whileTap={{ scale: 0.95 }}
+      className="glass-panel p-3 rounded-lg border border-glass-border/20 mb-2 cursor-pointer max-w-xs active:opacity-80"
       style={{ borderColor: `${getColor()}40` }}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
     >
       <div className="flex items-start space-x-2">
         <motion.div 
@@ -90,8 +96,33 @@ const ActivityBubble: React.FC<{ activity: Activity; onComplete: () => void }> =
 };
 
 const LiveActivityFeed: React.FC = () => {
+  const navigate = useNavigate();
   const [activities, setActivities] = useState<Activity[]>([]);
   const [hasRealActivity, setHasRealActivity] = useState(false);
+
+  const handleActivityClick = (activity: Activity) => {
+    switch (activity.type) {
+      case 'mint':
+      case 'sale':
+        navigate('/marketplace');
+        break;
+      case 'tip':
+        navigate('/dashboard');
+        break;
+      case 'event':
+        navigate('/live-events');
+        break;
+      case 'welcome':
+        if (activity.message.includes('mint')) {
+          navigate('/marketplace');
+        } else if (activity.message.includes('Artist') || activity.message.includes('track')) {
+          navigate('/creator-studio');
+        } else {
+          navigate('/discover');
+        }
+        break;
+    }
+  };
 
   // Welcome messages for newly launched platform
   const launchMessages: Activity[] = [
@@ -228,6 +259,7 @@ const LiveActivityFeed: React.FC = () => {
               key={activity.id}
               activity={activity}
               onComplete={() => removeActivity(activity.id)}
+              onClick={() => handleActivityClick(activity)}
             />
           ))}
         </AnimatePresence>
