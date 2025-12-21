@@ -1,18 +1,30 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Allowed origins for CORS
-const ALLOWED_ORIGINS = [
-  'https://audioton.co',
-  'https://www.audioton.co',
-  'https://cpjjaglmqvcwpzrdoyul.lovableproject.com',
-  'http://localhost:5173',
-  'http://localhost:8080',
-  'http://localhost:3000',
-];
+// Check if origin is allowed
+function isAllowedOrigin(origin: string): boolean {
+  if (!origin) return true;
+  
+  const exactOrigins = [
+    'https://audioton.co',
+    'https://www.audioton.co',
+    'http://localhost:5173',
+    'http://localhost:8080',
+    'http://localhost:3000',
+  ];
+  
+  if (exactOrigins.includes(origin)) return true;
+  
+  // Allow all Lovable preview subdomains
+  if (origin.endsWith('.lovableproject.com') || origin.endsWith('.lovable.app')) {
+    return true;
+  }
+  
+  return false;
+}
 
 function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get('origin') || '';
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = isAllowedOrigin(origin) ? origin : 'https://audioton.co';
   
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
