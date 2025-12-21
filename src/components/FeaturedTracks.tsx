@@ -15,17 +15,18 @@ export const FeaturedTracks = () => {
     const fetchTracks = async () => {
       try {
         const { tracks: audiusTracks } = await AudiusService.getTrendingTracks('all', 6);
-        const formattedTracks = audiusTracks.map((track, index) => ({
+        // Convert tracks without fake NFT/price assignments - these come from real Audius data
+        const formattedTracks = audiusTracks.map((track) => ({
           ...AudiusService.convertToTrackCardProps(track),
-          canMintNFT: index % 2 === 0, // Every other track can be minted
-          isNft: index % 3 === 0, // Every third track is already NFT
-          price: index % 3 === 0 ? Math.random() * 3 + 1 : undefined,
-          fanClubOnly: index === 3, // One track is fan club only
+          // Only show NFT features when track is actually minted on-chain
+          canMintNFT: true, // All tracks can potentially be minted
+          isNft: false, // Will be true only when actually minted
+          price: undefined, // Only show price when listed
+          fanClubOnly: false, // Only true when artist configures it
         }));
         setTracks(formattedTracks);
       } catch (error) {
         console.error('Failed to fetch trending tracks:', error);
-        // Fallback to placeholder if needed
       } finally {
         setLoading(false);
       }

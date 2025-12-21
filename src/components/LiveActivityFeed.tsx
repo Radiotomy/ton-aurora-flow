@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Music, Zap, Trophy, Users } from 'lucide-react';
+import { Music, Zap, Trophy, Users, Sparkles } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Activity {
   id: string;
-  type: 'mint' | 'sale' | 'tip' | 'event';
+  type: 'mint' | 'sale' | 'tip' | 'event' | 'welcome';
   message: string;
   value?: string;
   user: string;
   timestamp: Date;
   hash: string;
+  isReal?: boolean;
 }
 
 const ActivityBubble: React.FC<{ activity: Activity; onComplete: () => void }> = ({ 
@@ -22,6 +24,7 @@ const ActivityBubble: React.FC<{ activity: Activity; onComplete: () => void }> =
       case 'sale': return <Zap className="w-4 h-4" />;
       case 'tip': return <Trophy className="w-4 h-4" />;
       case 'event': return <Users className="w-4 h-4" />;
+      case 'welcome': return <Sparkles className="w-4 h-4" />;
     }
   };
 
@@ -31,11 +34,12 @@ const ActivityBubble: React.FC<{ activity: Activity; onComplete: () => void }> =
       case 'sale': return '#06b6d4';
       case 'tip': return '#10b981';
       case 'event': return '#f59e0b';
+      case 'welcome': return '#ec4899';
     }
   };
 
   useEffect(() => {
-    const timer = setTimeout(onComplete, 8000); // Remove after 8 seconds
+    const timer = setTimeout(onComplete, 10000);
     return () => clearTimeout(timer);
   }, [onComplete]);
 
@@ -65,7 +69,7 @@ const ActivityBubble: React.FC<{ activity: Activity; onComplete: () => void }> =
           </p>
           <div className="flex items-center justify-between mt-1">
             <span className="text-xs text-primary font-semibold">
-              @{activity.user}
+              {activity.user}
             </span>
             {activity.value && (
               <span className="text-xs font-mono text-accent">
@@ -73,9 +77,12 @@ const ActivityBubble: React.FC<{ activity: Activity; onComplete: () => void }> =
               </span>
             )}
           </div>
-          <div className="text-xs text-muted-foreground/70 font-mono mt-1">
-            #{activity.hash}
-          </div>
+          {activity.isReal && (
+            <div className="text-xs text-muted-foreground/70 font-mono mt-1 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+              #{activity.hash}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>
@@ -84,54 +91,116 @@ const ActivityBubble: React.FC<{ activity: Activity; onComplete: () => void }> =
 
 const LiveActivityFeed: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [hasRealActivity, setHasRealActivity] = useState(false);
 
-  const generateActivity = (): Activity => {
-    const types: Activity['type'][] = ['mint', 'sale', 'tip', 'event'];
-    const type = types[Math.floor(Math.random() * types.length)];
-    
-    const users = ['musiclover', 'beatmaker', 'nftfan', 'cryptoartist', 'tonhodler'];
-    const user = users[Math.floor(Math.random() * users.length)];
-    
-    const messages = {
-      mint: ['Minted new track NFT', 'Created exclusive beat', 'Dropped album NFT'],
-      sale: ['Purchased rare NFT', 'Bought track collection', 'Acquired music NFT'],
-      tip: ['Tipped favorite artist', 'Supported new musician', 'Rewarded creator'],
-      event: ['Joined live concert', 'Entered exclusive event', 'RSVP\'d to show']
-    };
-    
-    const values = {
-      mint: ['2.5 TON', '5.1 TON', '1.8 TON'],
-      sale: ['12.3 TON', '8.7 TON', '15.2 TON'],
-      tip: ['0.5 TON', '1.2 TON', '0.8 TON'],
-      event: ['Free', '3.0 TON', '2.5 TON']
-    };
-    
-    return {
-      id: Math.random().toString(36).substr(2, 9),
-      type,
-      message: messages[type][Math.floor(Math.random() * messages[type].length)],
-      value: type !== 'event' || Math.random() > 0.3 ? values[type][Math.floor(Math.random() * values[type].length)] : undefined,
-      user,
+  // Welcome messages for newly launched platform
+  const launchMessages: Activity[] = [
+    {
+      id: 'launch-1',
+      type: 'welcome',
+      message: 'AudioTon is now live!',
+      user: '🎉 Launch Day',
       timestamp: new Date(),
-      hash: Math.random().toString(16).substr(2, 8).toUpperCase()
-    };
-  };
+      hash: 'LAUNCH',
+      isReal: true
+    },
+    {
+      id: 'launch-2',
+      type: 'welcome',
+      message: 'Be the first to mint an NFT',
+      user: '💎 Early Access',
+      timestamp: new Date(),
+      hash: 'EARLY',
+      isReal: true
+    },
+    {
+      id: 'launch-3',
+      type: 'welcome',
+      message: 'Artists: Upload your first track!',
+      user: '🎵 Creator Studio',
+      timestamp: new Date(),
+      hash: 'CREATE',
+      isReal: true
+    }
+  ];
 
   useEffect(() => {
-    // Generate initial activities
-    const initialActivities = Array.from({ length: 3 }, generateActivity);
-    setActivities(initialActivities);
+    // Start with launch messages
+    setActivities(launchMessages.slice(0, 2));
 
-    // Generate new activities periodically
+    // Subscribe to real transactions
+    const channel = supabase
+      .channel('live-activity')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'transactions'
+        },
+        (payload) => {
+          const tx = payload.new;
+          const newActivity: Activity = {
+            id: tx.id,
+            type: tx.transaction_type === 'tip' ? 'tip' : 'sale',
+            message: tx.transaction_type === 'tip' ? 'Sent a tip to artist' : 'New transaction',
+            value: `${tx.amount_ton} TON`,
+            user: 'User',
+            timestamp: new Date(tx.created_at),
+            hash: tx.transaction_hash?.slice(-8) || 'pending',
+            isReal: true
+          };
+          
+          setHasRealActivity(true);
+          setActivities(prev => [newActivity, ...prev].slice(0, 5));
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'track_collections'
+        },
+        (payload) => {
+          const collection = payload.new;
+          const newActivity: Activity = {
+            id: collection.id,
+            type: 'mint',
+            message: 'Collected a new track!',
+            value: collection.purchase_price ? `${collection.purchase_price} TON` : undefined,
+            user: 'Collector',
+            timestamp: new Date(collection.collected_at),
+            hash: collection.id.slice(-8),
+            isReal: true
+          };
+          
+          setHasRealActivity(true);
+          setActivities(prev => [newActivity, ...prev].slice(0, 5));
+        }
+      )
+      .subscribe();
+
+    // Rotate launch messages slowly
     const interval = setInterval(() => {
-      setActivities(prev => {
-        const newActivity = generateActivity();
-        return [newActivity, ...prev].slice(0, 5); // Keep only 5 activities
-      });
-    }, 4000 + Math.random() * 3000); // Random interval between 4-7 seconds
+      if (!hasRealActivity) {
+        setActivities(prev => {
+          const nextMessage = launchMessages.find(m => !prev.some(p => p.id === m.id));
+          if (nextMessage) {
+            return [nextMessage, ...prev].slice(0, 3);
+          }
+          // Cycle through messages
+          const randomMsg = launchMessages[Math.floor(Math.random() * launchMessages.length)];
+          return [{ ...randomMsg, id: `${randomMsg.id}-${Date.now()}` }, ...prev].slice(0, 3);
+        });
+      }
+    }, 8000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
+  }, [hasRealActivity]);
 
   const removeActivity = (id: string) => {
     setActivities(prev => prev.filter(activity => activity.id !== id));
@@ -146,8 +215,10 @@ const LiveActivityFeed: React.FC = () => {
       >
         <div className="glass-panel px-3 py-2 rounded-lg border border-glass-border/20 mb-4">
           <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <span className="text-xs text-muted-foreground font-medium">Live Activity</span>
+            <div className={`w-2 h-2 rounded-full animate-pulse ${hasRealActivity ? 'bg-green-500' : 'bg-aurora'}`} />
+            <span className="text-xs text-muted-foreground font-medium">
+              {hasRealActivity ? 'Live Activity' : 'Platform Ready'}
+            </span>
           </div>
         </div>
         

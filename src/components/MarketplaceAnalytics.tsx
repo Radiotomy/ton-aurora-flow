@@ -180,20 +180,46 @@ export const MarketplaceAnalytics: React.FC = () => {
 
   const loadTopArtists = async () => {
     try {
-      // Mock data for now until database schema is properly set up
-      const mockArtistStats = {
-        'Zedd': { volume: 125.5, sales: 15, prices: [8.5, 12.0, 15.5, 10.0, 9.5, 11.0, 7.5, 13.0, 8.0, 10.5, 12.5, 9.0, 11.5, 14.0, 10.0] },
-        'Skrillex': { volume: 98.3, sales: 12, prices: [9.0, 11.5, 8.0, 7.5, 10.0, 12.0, 8.5, 9.5, 11.0, 10.5, 8.0, 9.0] },
-        'Deadmau5': { volume: 87.2, sales: 10, prices: [10.0, 8.5, 9.0, 11.0, 7.5, 9.5, 8.0, 10.5, 12.0, 11.5] },
-        'Porter Robinson': { volume: 76.8, sales: 8, prices: [12.0, 9.5, 8.0, 10.0, 11.5, 8.5, 9.0, 8.0] },
-        'Flume': { volume: 65.4, sales: 7, prices: [11.0, 8.5, 9.0, 10.5, 7.5, 9.5, 10.0] }
-      };
+      // Query real sales data from marketplace
+      const { data: soldListings, error } = await supabase
+        .from('nft_marketplace')
+        .select('listing_price, seller_profile_id')
+        .eq('status', 'sold');
 
-      const topArtists = Object.entries(mockArtistStats)
-        .map(([name, stats]) => ({
-          id: name.toLowerCase().replace(/\s+/g, '-'),
-          name,
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=6366f1&color=fff`,
+      if (error) throw error;
+
+      // Aggregate by seller
+      const artistStats: Record<string, { volume: number; sales: number }> = {};
+      
+      soldListings?.forEach(listing => {
+        const sellerId = listing.seller_profile_id;
+        if (!artistStats[sellerId]) {
+          artistStats[sellerId] = { volume: 0, sales: 0 };
+        }
+        artistStats[sellerId].volume += parseFloat(listing.listing_price.toString());
+        artistStats[sellerId].sales += 1;
+      });
+
+      // Fetch profile names for top sellers
+      const sellerIds = Object.keys(artistStats);
+      let profilesMap: Record<string, string> = {};
+      
+      if (sellerIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', sellerIds);
+        
+        profiles?.forEach(p => {
+          profilesMap[p.id] = p.display_name || 'Anonymous Artist';
+        });
+      }
+
+      const topArtists = Object.entries(artistStats)
+        .map(([id, stats]) => ({
+          id,
+          name: profilesMap[id] || 'Anonymous Artist',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(profilesMap[id] || 'A')}&background=6366f1&color=fff`,
           volume: stats.volume,
           sales: stats.sales,
           averagePrice: stats.volume / stats.sales
@@ -205,6 +231,7 @@ export const MarketplaceAnalytics: React.FC = () => {
 
     } catch (error) {
       console.error('Error loading top artists:', error);
+      setTopArtists([]);
     }
   };
 

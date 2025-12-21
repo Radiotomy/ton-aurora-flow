@@ -53,67 +53,26 @@ export const CommunityPolls: React.FC = () => {
   const { isConnected, profile } = useWeb3();
   const { toast } = useToast();
 
-  // Mock polls for demonstration
-  const mockPolls: Poll[] = [
-    {
-      id: '1',
-      title: 'What genre should we feature next week?',
-      description: 'Help us choose the spotlight genre for next week\'s discovery section!',
-      options: [
-        { id: '1a', text: 'Electronic/EDM', votes: 245, percentage: 45 },
-        { id: '1b', text: 'Hip-Hop/Rap', votes: 189, percentage: 35 },
-        { id: '1c', text: 'Indie Rock', votes: 87, percentage: 16 },
-        { id: '1d', text: 'Jazz/Blues', votes: 22, percentage: 4 }
-      ],
-      total_votes: 543,
-      ends_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days
-      created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      created_by: 'audioton_team',
-      creator_name: 'AudioTon Team',
-      status: 'active',
-      poll_type: 'general',
-      user_voted: false
-    },
-    {
-      id: '2',
-      title: 'Luna Echo\'s Next Single Choice',
-      description: 'Vote for which track Luna Echo should release as her next single!',
-      options: [
-        { id: '2a', text: 'Midnight Dreams', votes: 156, percentage: 52 },
-        { id: '2b', text: 'Electric Nights', votes: 98, percentage: 33 },
-        { id: '2c', text: 'Cosmic Dance', votes: 46, percentage: 15 }
-      ],
-      total_votes: 300,
-      ends_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 1 day
-      created_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-      created_by: 'luna_echo',
-      creator_name: 'Luna Echo',
-      status: 'active',
-      poll_type: 'artist',
-      requires_wallet: true,
-      user_voted: false
-    },
-    {
-      id: '3',
-      title: 'New Feature Request Priority',
-      description: 'Which feature would you like us to implement first?',
-      options: [
-        { id: '3a', text: 'Collaborative Playlists', votes: 234, percentage: 39 },
-        { id: '3b', text: 'Voice Messages in Chat', votes: 187, percentage: 31 },
-        { id: '3c', text: 'NFT Trading Marketplace', votes: 123, percentage: 21 },
-        { id: '3d', text: 'Advanced Audio Effects', votes: 56, percentage: 9 }
-      ],
-      total_votes: 600,
-      ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 1 week
-      created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      created_by: 'audioton_team',
-      creator_name: 'AudioTon Team',
-      status: 'active',
-      poll_type: 'feature',
-      user_voted: true,
-      user_vote_option: '3a'
-    }
-  ];
+  // Launch poll - shown when no real polls exist yet
+  const launchPoll: Poll = {
+    id: 'launch-poll-1',
+    title: 'Welcome to AudioTon! What brings you here?',
+    description: 'Help us understand our community as we launch. Your vote shapes our platform!',
+    options: [
+      { id: 'lp-1', text: "I'm an artist looking to share music", votes: 0, percentage: 0 },
+      { id: 'lp-2', text: "I'm a fan discovering new music", votes: 0, percentage: 0 },
+      { id: 'lp-3', text: "I'm interested in music NFTs", votes: 0, percentage: 0 },
+      { id: 'lp-4', text: 'Just exploring Web3 music!', votes: 0, percentage: 0 }
+    ],
+    total_votes: 0,
+    ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+    created_at: new Date().toISOString(),
+    created_by: 'audioton_team',
+    creator_name: 'AudioTon Team',
+    status: 'active',
+    poll_type: 'general',
+    user_voted: false
+  };
 
   useEffect(() => {
     loadPolls();
@@ -151,7 +110,7 @@ export const CommunityPolls: React.FC = () => {
       if (error) {
         console.error('Database error:', error);
         // Fallback to mock data
-        setPolls(mockPolls);
+      setPolls([launchPoll]);
         return;
       }
 
@@ -179,11 +138,11 @@ export const CommunityPolls: React.FC = () => {
         };
       }) || [];
 
-      // If no real polls, show mock data for demo
-      setPolls(formattedPolls.length > 0 ? formattedPolls : mockPolls);
+      // If no real polls, show the launch poll
+      setPolls(formattedPolls.length > 0 ? formattedPolls : [launchPoll]);
     } catch (error) {
       console.error('Error loading polls:', error);
-      setPolls(mockPolls);
+      setPolls([launchPoll]);
     } finally {
       setLoading(false);
     }
