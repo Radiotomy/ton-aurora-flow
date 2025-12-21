@@ -88,18 +88,41 @@ export const useWeb3 = () => {
     setLoadingProfileRef.current = setLoadingProfile;
   }, [setConnected, setWalletAddress, setProfile, setLoadingProfile]);
 
-  // Load wallet balance
+  // Load wallet balance from blockchain
   const loadWalletBalance = useCallback(async (address: string) => {
     try {
-      // This would typically call TON API to get balance
-      // For now, we'll simulate with a mock value
-      // In production, you'd call: https://toncenter.com/api/v2/getAddressInformation
-      setBalance('12.5'); // Mock balance
+      // Call the real wallet balance service via Edge Function
+      const { data, error } = await supabase.functions.invoke('ton-wallet-balance', {
+        body: { address, isTestnet: false }
+      });
+
+      if (error) {
+        console.error('Error fetching balance from service:', error);
+        setBalance('0');
+        return;
+      }
+
+      if (data?.balance) {
+        // Balance is returned as a formatted string or number
+        const balanceValue = typeof data.balance === 'string' 
+          ? data.balance 
+          : fromNano(BigInt(data.balance));
+        setBalance(balanceValue);
+      } else {
+        setBalance('0');
+      }
     } catch (error) {
       console.error('Error loading balance:', error);
       setBalance('0');
     }
   }, []);
+
+  // Refresh balance on demand
+  const refreshBalance = useCallback(async () => {
+    if (walletAddress) {
+      await loadWalletBalance(walletAddress);
+    }
+  }, [walletAddress, loadWalletBalance]);
 
   // Enhanced TON DNS resolution with blockchain integration
   const checkTonDnsName = useCallback(async (address: string) => {

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import LiveStreamService, { type LiveEvent } from '@/services/liveStreamService';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Clock, DollarSign, Users, Plus } from 'lucide-react';
+import { Calendar, Clock, DollarSign, Users, Plus, Image, Upload, X } from 'lucide-react';
 
 interface LiveEventCreatorProps {
   onEventCreated?: (event: LiveEvent) => void;
@@ -19,6 +19,11 @@ interface LiveEventCreatorProps {
 export const LiveEventCreator: React.FC<LiveEventCreatorProps> = ({ onEventCreated }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -31,6 +36,84 @@ export const LiveEventCreator: React.FC<LiveEventCreatorProps> = ({ onEventCreat
 
   const { isAuthenticated, user } = useAuth();
   const { toast } = useToast();
+
+  const handleThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Invalid File",
+          description: "Please select an image file",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "File Too Large",
+          description: "Please select an image under 5MB",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      setThumbnailFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setThumbnailPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeThumbnail = () => {
+    setThumbnailFile(null);
+    setThumbnailPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const uploadThumbnail = async (eventId: string): Promise<string | null> => {
+    if (!thumbnailFile) return null;
+
+    setUploadingThumbnail(true);
+    try {
+      const fileExt = thumbnailFile.name.split('.').pop();
+      const fileName = `${eventId}/${Date.now()}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('event-thumbnails')
+        .upload(fileName, thumbnailFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) throw error;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('event-thumbnails')
+        .getPublicUrl(data.path);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading thumbnail:', error);
+      toast({
+        title: "Upload Failed",
+        description: "Failed to upload thumbnail. Event created without image.",
+        variant: "destructive"
+      });
+      return null;
+    } finally {
+      setUploadingThumbnail(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,12 +140,13 @@ export const LiveEventCreator: React.FC<LiveEventCreatorProps> = ({ onEventCreat
         throw new Error('User profile not found');
       }
 
-      // Create the event
+      // Create the event first (without thumbnail)
       const eventData: Partial<LiveEvent> = {
         title: formData.title,
         description: formData.description,
         artist_name: profile.display_name || 'Anonymous Artist',
         artist_id: profile.id,
+        creator_profile_id: profile.id,
         scheduled_start: new Date(formData.scheduled_start).toISOString(),
         scheduled_end: formData.scheduled_end ? new Date(formData.scheduled_end).toISOString() : undefined,
         status: 'upcoming',
@@ -73,12 +157,27 @@ export const LiveEventCreator: React.FC<LiveEventCreatorProps> = ({ onEventCreat
       };
 
       const createdEvent = await LiveStreamService.createEvent(eventData);
+
+      // Upload thumbnail if provided
+      let thumbnailUrl: string | null = null;
+      if (thumbnailFile && createdEvent.id) {
+        thumbnailUrl = await uploadThumbnail(createdEvent.id);
+        
+        // Update event with thumbnail URL
+        if (thumbnailUrl) {
+          await supabase
+            .from('live_events')
+            .update({ thumbnail_url: thumbnailUrl })
+            .eq('id', createdEvent.id);
+        }
+      }
       
       // Transform to match frontend interface
       const newEvent: LiveEvent = {
         ...createdEvent,
         artist_name: eventData.artist_name || 'Unknown Artist',
-        status: createdEvent.status as 'upcoming' | 'live' | 'ended'
+        status: createdEvent.status as 'upcoming' | 'live' | 'ended',
+        thumbnail_url: thumbnailUrl || undefined
       };
       
       toast({
@@ -96,6 +195,7 @@ export const LiveEventCreator: React.FC<LiveEventCreatorProps> = ({ onEventCreat
         max_attendees: null,
         requires_ticket: false
       });
+      removeThumbnail();
 
       setIsOpen(false);
       onEventCreated?.(newEvent);
@@ -128,7 +228,7 @@ export const LiveEventCreator: React.FC<LiveEventCreatorProps> = ({ onEventCreat
         </Button>
       </DialogTrigger>
       
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="h-5 w-5 text-aurora" />
@@ -188,6 +288,55 @@ export const LiveEventCreator: React.FC<LiveEventCreatorProps> = ({ onEventCreat
 
             {/* Event Settings */}
             <div className="space-y-4">
+              {/* Thumbnail Upload */}
+              <Card className="glass-card">
+                <CardContent className="p-4 space-y-3">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Image className="h-4 w-4" />
+                    Event Thumbnail
+                  </h4>
+                  
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThumbnailSelect}
+                    className="hidden"
+                  />
+
+                  {thumbnailPreview ? (
+                    <div className="relative rounded-lg overflow-hidden">
+                      <img 
+                        src={thumbnailPreview} 
+                        alt="Thumbnail preview" 
+                        className="w-full h-32 object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        className="absolute top-2 right-2"
+                        onClick={removeThumbnail}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-32 flex flex-col items-center justify-center gap-2 border-dashed"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-8 w-8 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">
+                        Click to upload thumbnail
+                      </span>
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
               <Card className="glass-card">
                 <CardContent className="p-4 space-y-4">
                   <h4 className="font-medium flex items-center gap-2">
@@ -281,9 +430,9 @@ export const LiveEventCreator: React.FC<LiveEventCreatorProps> = ({ onEventCreat
             
             <Button 
               type="submit" 
-              disabled={loading || !formData.title || !formData.scheduled_start}
+              disabled={loading || uploadingThumbnail || !formData.title || !formData.scheduled_start}
             >
-              {loading ? 'Creating...' : 'Create Event'}
+              {loading || uploadingThumbnail ? 'Creating...' : 'Create Event'}
             </Button>
           </div>
         </form>
