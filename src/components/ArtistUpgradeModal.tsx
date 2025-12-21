@@ -188,6 +188,9 @@ export const ArtistUpgradeModal: React.FC<ArtistUpgradeModalProps> = ({
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground border-l-2 border-primary/50 pl-3 mb-2">
+                Connecting your existing Audius account registers you as an AudioTon artist <strong>and</strong> links your Audius profile — your tracks and followers sync automatically.
+              </p>
               {!isAudiusAuthenticated ? (
                 <div>
                   <p className="text-sm text-muted-foreground mb-4">
@@ -248,6 +251,9 @@ export const ArtistUpgradeModal: React.FC<ArtistUpgradeModalProps> = ({
               <CardTitle>Platform Artist Application</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground border-l-2 border-muted pl-3 mb-2">
+                This is direct AudioTon-only registration. You'll be an AudioTon artist but <strong>will not</strong> be listed on the Audius platform. If you have an Audius account, use the option above instead.
+              </p>
               {applicationStatus?.status === 'pending' ? (
                 <div>
                   <Badge variant="outline">Application Pending</Badge>
