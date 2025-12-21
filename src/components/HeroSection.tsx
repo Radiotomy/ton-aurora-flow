@@ -123,7 +123,7 @@ const HeroSection = () => {
               transition={{ delay: 0.9, duration: 0.8 }}
             >
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span>⚡ TON Network Active • 2.1s avg confirmation</span>
+              <span>⚡ TON Network Active • Fast & Secure</span>
             </motion.div>
           </motion.div>
           
