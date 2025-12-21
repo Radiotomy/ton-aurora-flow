@@ -92,7 +92,7 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: 'You are an expert music recommendation engine with deep knowledge of music genres, moods, and user preferences. Always respond with valid JSON.' },
           { role: 'user', content: prompt }
@@ -103,7 +103,9 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
     });
 
     if (!aiResponse.ok) {
-      throw new Error(`OpenAI API error: ${aiResponse.status}`);
+      const errorText = await aiResponse.text();
+      console.error('OpenAI API error response:', errorText);
+      throw new Error(`OpenAI API error: ${aiResponse.status} - ${errorText}`);
     }
 
     const aiData = await aiResponse.json();
