@@ -1227,16 +1227,10 @@ export type Database = {
         }
         Returns: boolean
       }
-      cleanup_expired_stream_sessions: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      get_current_user_profile_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      cleanup_expired_stream_sessions: { Args: never; Returns: undefined }
+      get_current_user_profile_id: { Args: never; Returns: string }
       get_safe_profile_data: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           avatar_url: string
           bio: string
@@ -1246,10 +1240,7 @@ export type Database = {
           reputation_score: number
         }[]
       }
-      get_safe_profile_fields: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_safe_profile_fields: { Args: never; Returns: string }
       get_safe_profile_for_others: {
         Args: { target_user_id: string }
         Returns: {
@@ -1284,10 +1275,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      update_conversion_rates: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      update_conversion_rates: { Args: never; Returns: undefined }
       validate_data_access: {
         Args: { requested_table: string; user_context?: string }
         Returns: boolean
