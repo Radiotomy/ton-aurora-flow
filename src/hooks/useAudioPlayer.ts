@@ -559,7 +559,7 @@ export const useAudioPlayer = () => {
   // Get frequency data for visualizations
   const getFrequencyData = useCallback(() => {
     if (analyserRef.current && frequencyDataRef.current) {
-      analyserRef.current.getByteFrequencyData(frequencyDataRef.current);
+      analyserRef.current.getByteFrequencyData(frequencyDataRef.current as Uint8Array<ArrayBuffer>);
       return frequencyDataRef.current;
     }
     return null;
