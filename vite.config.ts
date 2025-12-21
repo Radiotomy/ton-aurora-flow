@@ -49,8 +49,26 @@ export default defineConfig(({ mode }) => ({
         categories: ['music', 'entertainment', 'social']
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // Exclude large JS chunks from precache - they'll be cached at runtime instead
+        globPatterns: ['**/*.{css,html,ico,png,svg,woff2}'],
+        // Increase file size limit to 5MB for any assets that do get precached
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        // Skip waiting and claim clients immediately
+        skipWaiting: true,
+        clientsClaim: true,
         runtimeCaching: [
+          {
+            // Cache JS files at runtime instead of precache
+            urlPattern: /\.js$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'js-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
+              }
+            }
+          },
           {
             urlPattern: /^https:\/\/api\.audius\.co\/.*/i,
             handler: 'NetworkFirst',
