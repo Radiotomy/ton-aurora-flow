@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -85,14 +85,18 @@ Please provide a JSON response with recommendations in this format:
 
 Focus on music discovery, diversity, and matching the user's demonstrated preferences. Consider both similar and complementary styles to their listening history.`;
 
-    const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY is not configured');
+    }
+
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: 'You are an expert music recommendation engine with deep knowledge of music genres, moods, and user preferences. Always respond with valid JSON.' },
           { role: 'user', content: prompt }
@@ -104,12 +108,47 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      console.error('OpenAI API error response:', errorText);
-      throw new Error(`OpenAI API error: ${aiResponse.status} - ${errorText}`);
+      console.error('Lovable AI gateway error response:', errorText);
+
+      if (aiResponse.status === 429) {
+        return new Response(JSON.stringify({
+          error: 'Rate limit exceeded. Please try again in a moment.',
+          success: false,
+        }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (aiResponse.status === 402) {
+        return new Response(JSON.stringify({
+          error: 'AI credits exhausted. Please add credits to your Lovable AI workspace.',
+          success: false,
+        }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      throw new Error(`AI gateway error: ${aiResponse.status} - ${errorText}`);
     }
 
     const aiData = await aiResponse.json();
-    const aiRecommendations = JSON.parse(aiData.choices[0].message.content);
+    const content = aiData?.choices?.[0]?.message?.content ?? '';
+
+    let aiRecommendations: any;
+    try {
+      aiRecommendations = JSON.parse(content);
+    } catch {
+      const start = content.indexOf('{');
+      const end = content.lastIndexOf('}');
+      if (start !== -1 && end !== -1 && end > start) {
+        aiRecommendations = JSON.parse(content.slice(start, end + 1));
+      } else {
+        console.error('AI response was not valid JSON:', content);
+        throw new Error('AI response was not valid JSON');
+      }
+    }
 
     console.log('AI recommendations generated:', aiRecommendations);
 
