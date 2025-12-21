@@ -11,32 +11,60 @@ import { MonitoringProvider } from "@/components/MonitoringProvider";
 import { ProfileSecurityCheck } from "@/components/ProfileSecurityCheck";
 import { useTelegramWebApp } from "@/hooks/useTelegramWebApp";
 import { analytics } from "@/utils/analytics";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Eagerly loaded pages (critical path)
 import Index from "./pages/Index";
-import Discover from "./pages/Discover";
 import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import Playlists from "./pages/Playlists";
-import ArtistDetail from "./pages/ArtistDetail";
-import TrackDetail from "./pages/TrackDetail";
-import Terms from "./pages/Terms";
-import Privacy from "./pages/Privacy";
-import NotFound from "./pages/NotFound";
-import FanClubs from "./pages/FanClubs";
-import CreatorStudio from "./pages/CreatorStudio";
-import LiveEvents from "./pages/LiveEvents";
-import Marketplace from "./pages/Marketplace";
-import AudiusCallback from "./pages/AudiusCallback";
-import MainnetDeploy from "./pages/MainnetDeploy";
-import Deploy from "./pages/Deploy";
-import Help from "./pages/Help";
-import HelpFans from "./pages/HelpFans";
-import HelpArtists from "./pages/HelpArtists";
-import { ContractValidation } from "./pages/ContractValidation";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
 
-const queryClient = new QueryClient();
+// Lazily loaded pages (non-critical)
+const Discover = lazy(() => import("./pages/Discover"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Playlists = lazy(() => import("./pages/Playlists"));
+const ArtistDetail = lazy(() => import("./pages/ArtistDetail"));
+const TrackDetail = lazy(() => import("./pages/TrackDetail"));
+const Terms = lazy(() => import("./pages/Terms"));
+const Privacy = lazy(() => import("./pages/Privacy"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const FanClubs = lazy(() => import("./pages/FanClubs"));
+const CreatorStudio = lazy(() => import("./pages/CreatorStudio"));
+const LiveEvents = lazy(() => import("./pages/LiveEvents"));
+const Marketplace = lazy(() => import("./pages/Marketplace"));
+const AudiusCallback = lazy(() => import("./pages/AudiusCallback"));
+const MainnetDeploy = lazy(() => import("./pages/MainnetDeploy"));
+const Deploy = lazy(() => import("./pages/Deploy"));
+const Help = lazy(() => import("./pages/Help"));
+const HelpFans = lazy(() => import("./pages/HelpFans"));
+const HelpArtists = lazy(() => import("./pages/HelpArtists"));
+const ContractValidation = lazy(() => import("./pages/ContractValidation").then(m => ({ default: m.ContractValidation })));
+
+// Page loading fallback
+const PageLoader = () => (
+  <div className="min-h-[60vh] flex items-center justify-center p-4">
+    <div className="w-full max-w-md space-y-4">
+      <Skeleton className="h-8 w-3/4 mx-auto" />
+      <Skeleton className="h-4 w-1/2 mx-auto" />
+      <div className="grid grid-cols-2 gap-4 pt-4">
+        <Skeleton className="aspect-square rounded-xl" />
+        <Skeleton className="aspect-square rounded-xl" />
+      </div>
+    </div>
+  </div>
+);
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function AppContent() {
   const { isInTWA, colorScheme } = useTelegramWebApp();
@@ -67,31 +95,33 @@ function AppContent() {
           <TonSitesRouter>
             <Navigation />
             <ErrorBoundaryWithTWA>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/discover" element={<Discover />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/auth/audius/callback" element={<AudiusCallback />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/playlists" element={<Playlists />} />
-                <Route path="/artist/:artistId" element={<ArtistDetail />} />
-                <Route path="/track/:trackId" element={<TrackDetail />} />
-                <Route path="/terms" element={<Terms />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="/tracks" element={<Index />} />
-                <Route path="/fan-clubs" element={<FanClubs />} />
-                <Route path="/creator-studio" element={<CreatorStudio />} />
-                <Route path="/live-events" element={<LiveEvents />} />
-                <Route path="/marketplace" element={<Marketplace />} />
-                <Route path="/deploy" element={<Deploy />} />
-                <Route path="/mainnet-deploy" element={<MainnetDeploy />} />
-                <Route path="/help" element={<Help />} />
-                <Route path="/help/fans" element={<HelpFans />} />
-                <Route path="/help/artists" element={<HelpArtists />} />
-                <Route path="/contracts/validate" element={<ContractValidation />} />
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/discover" element={<Discover />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/auth/audius/callback" element={<AudiusCallback />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/playlists" element={<Playlists />} />
+                  <Route path="/artist/:artistId" element={<ArtistDetail />} />
+                  <Route path="/track/:trackId" element={<TrackDetail />} />
+                  <Route path="/terms" element={<Terms />} />
+                  <Route path="/privacy" element={<Privacy />} />
+                  <Route path="/tracks" element={<Index />} />
+                  <Route path="/fan-clubs" element={<FanClubs />} />
+                  <Route path="/creator-studio" element={<CreatorStudio />} />
+                  <Route path="/live-events" element={<LiveEvents />} />
+                  <Route path="/marketplace" element={<Marketplace />} />
+                  <Route path="/deploy" element={<Deploy />} />
+                  <Route path="/mainnet-deploy" element={<MainnetDeploy />} />
+                  <Route path="/help" element={<Help />} />
+                  <Route path="/help/fans" element={<HelpFans />} />
+                  <Route path="/help/artists" element={<HelpArtists />} />
+                  <Route path="/contracts/validate" element={<ContractValidation />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </ErrorBoundaryWithTWA>
             <ErrorBoundaryWithTWA>
               <AudioPlayer />
