@@ -1,19 +1,32 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Allowed origins for CORS
-const ALLOWED_ORIGINS = [
-  'https://audioton.co',
-  'https://www.audioton.co',
-  'https://cpjjaglmqvcwpzrdoyul.lovableproject.com',
-  'http://localhost:5173',
-  'http://localhost:8080',
-  'http://localhost:3000',
-];
+// Check if origin is allowed
+function isAllowedOrigin(origin: string): boolean {
+  if (!origin) return true; // Allow requests without origin (server-to-server)
+  
+  // Allowed exact origins
+  const exactOrigins = [
+    'https://audioton.co',
+    'https://www.audioton.co',
+    'http://localhost:5173',
+    'http://localhost:8080',
+    'http://localhost:3000',
+  ];
+  
+  if (exactOrigins.includes(origin)) return true;
+  
+  // Allow all Lovable preview subdomains
+  if (origin.endsWith('.lovableproject.com') || origin.endsWith('.lovable.app')) {
+    return true;
+  }
+  
+  return false;
+}
 
 function getCorsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get('origin') || '';
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  const allowedOrigin = isAllowedOrigin(origin) ? origin : 'https://audioton.co';
   
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
@@ -28,50 +41,6 @@ const AUDIUS_API_KEY = Deno.env.get('AudioTon');
 
 // Audius API endpoints
 const AUDIUS_DISCOVERY_HOST = 'https://discoveryprovider.audius.co';
-
-interface AudiusTrack {
-  id: string;
-  title: string;
-  user: {
-    id: string;
-    name: string;
-    handle: string;
-    profile_picture?: {
-      '150x150'?: string;
-      '480x480'?: string;
-      '1000x1000'?: string;
-    };
-  };
-  artwork?: {
-    '150x150'?: string;
-    '480x480'?: string;
-    '1000x1000'?: string;
-  };
-  genre: string;
-  duration: number;
-  play_count: number;
-  favorite_count: number;
-  repost_count: number;
-  created_at: string;
-  permalink: string;
-}
-
-interface AudiusUser {
-  id: string;
-  name: string;
-  handle: string;
-  bio?: string;
-  location?: string;
-  profile_picture?: {
-    '150x150'?: string;
-    '480x480'?: string;
-    '1000x1000'?: string;
-  };
-  follower_count: number;
-  followee_count: number;
-  track_count: number;
-  playlist_count: number;
-}
 
 async function makeAudiusRequest(endpoint: string, params: Record<string, string> = {}) {
   const url = new URL(`${AUDIUS_DISCOVERY_HOST}${endpoint}`);
@@ -135,7 +104,6 @@ serve(async (req) => {
           const streamMatch = path.match(/^stream-url\/(.+)$/);
           if (streamMatch) {
             const trackId = streamMatch[1];
-            // Get track stream URL with app_name parameter for authentication
             const streamUrl = `${AUDIUS_DISCOVERY_HOST}/v1/tracks/${trackId}/stream?app_name=${AUDIUS_API_KEY}`;
             
             console.log(`Providing stream URL for track ${trackId}`);
@@ -247,7 +215,6 @@ serve(async (req) => {
       }
 
       default: {
-        // Handle track and user detail endpoints
         const trackMatch = path.match(/^\/track\/(.+)$/);
         const userMatch = path.match(/^\/user\/(.+)$/);
         const streamMatch = path.match(/^\/stream-url\/(.+)$/);
