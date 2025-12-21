@@ -494,6 +494,7 @@ export type Database = {
         Row: {
           artist_id: string
           created_at: string
+          creator_profile_id: string | null
           current_attendees: number | null
           description: string | null
           id: string
@@ -513,6 +514,7 @@ export type Database = {
         Insert: {
           artist_id: string
           created_at?: string
+          creator_profile_id?: string | null
           current_attendees?: number | null
           description?: string | null
           id?: string
@@ -532,6 +534,7 @@ export type Database = {
         Update: {
           artist_id?: string
           created_at?: string
+          creator_profile_id?: string | null
           current_attendees?: number | null
           description?: string | null
           id?: string
@@ -548,7 +551,15 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "live_events_creator_profile_id_fkey"
+            columns: ["creator_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       nft_marketplace: {
         Row: {

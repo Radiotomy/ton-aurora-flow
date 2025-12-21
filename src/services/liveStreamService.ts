@@ -5,6 +5,8 @@ export interface LiveEvent {
   title: string;
   artist_name: string; // Display name for frontend
   artist_id: string;   // Database field
+  creator_profile_id?: string; // Profile ID of event creator
+  creator_avatar_url?: string; // Avatar of event creator
   description?: string;
   scheduled_start: string;
   scheduled_end?: string;
@@ -35,6 +37,7 @@ export class LiveStreamService {
     const dbEventData = {
       title: eventData.title || '',
       artist_id: eventData.artist_id || '',
+      creator_profile_id: eventData.creator_profile_id,
       description: eventData.description,
       scheduled_start: eventData.scheduled_start || new Date().toISOString(),
       scheduled_end: eventData.scheduled_end,
@@ -70,6 +73,53 @@ export class LiveStreamService {
   }
 
   static async getEvents(status?: 'upcoming' | 'live' | 'ended') {
+    // Query events with creator profile join
+    let query = supabase
+      .from('live_events')
+      .select(`
+        *,
+        creator:profiles!live_events_creator_profile_id_fkey (
+          id,
+          display_name,
+          avatar_url
+        )
+      `)
+      .order('scheduled_start', { ascending: true });
+      
+    if (status) {
+      query = query.eq('status', status);
+    }
+    
+    const { data, error } = await query;
+    if (error) {
+      console.error('Error fetching events with profile join, falling back:', error);
+      // Fallback to simple query without join
+      return this.getEventsSimple(status);
+    }
+    
+    // Transform database format to frontend format with creator info
+    return (data || []).map(event => ({
+      id: event.id,
+      title: event.title,
+      artist_name: event.creator?.display_name || event.artist_id || 'Unknown Artist',
+      artist_id: event.artist_id,
+      creator_profile_id: event.creator_profile_id,
+      creator_avatar_url: event.creator?.avatar_url,
+      description: event.description,
+      scheduled_start: event.scheduled_start,
+      scheduled_end: event.scheduled_end,
+      status: event.status as 'upcoming' | 'live' | 'ended',
+      stream_url: event.stream_url,
+      thumbnail_url: event.thumbnail_url,
+      ticket_price_ton: event.ticket_price_ton,
+      max_attendees: event.max_attendees,
+      current_attendees: event.current_attendees || 0,
+      requires_ticket: event.requires_ticket
+    }));
+  }
+
+  // Fallback method without profile join
+  static async getEventsSimple(status?: 'upcoming' | 'live' | 'ended') {
     let query = supabase
       .from('live_events')
       .select('*')
@@ -82,11 +132,10 @@ export class LiveStreamService {
     const { data, error } = await query;
     if (error) throw error;
     
-    // Transform database format to frontend format  
     return (data || []).map(event => ({
       id: event.id,
       title: event.title,
-      artist_name: event.artist_id || 'Unknown Artist', // Use artist_id as display name for now
+      artist_name: event.artist_id || 'Unknown Artist',
       artist_id: event.artist_id,
       description: event.description,
       scheduled_start: event.scheduled_start,
@@ -104,18 +153,27 @@ export class LiveStreamService {
   static async getEventById(eventId: string): Promise<LiveEvent> {
     const { data, error } = await supabase
       .from('live_events')
-      .select('*')
+      .select(`
+        *,
+        creator:profiles!live_events_creator_profile_id_fkey (
+          id,
+          display_name,
+          avatar_url
+        )
+      `)
       .eq('id', eventId)
       .single();
       
     if (error) throw error;
     
-    // Transform database format to frontend format
+    // Transform database format to frontend format with creator info
     return {
       id: data.id,
       title: data.title,
-      artist_name: data.artist_id || 'Unknown Artist', // Use artist_id as display name for now
+      artist_name: data.creator?.display_name || data.artist_id || 'Unknown Artist',
       artist_id: data.artist_id,
+      creator_profile_id: data.creator_profile_id,
+      creator_avatar_url: data.creator?.avatar_url,
       description: data.description,
       scheduled_start: data.scheduled_start,
       scheduled_end: data.scheduled_end,

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { LiveStreamModal } from '@/components/LiveStreamModal';
 import { EventTicketing } from '@/components/EventTicketing';
@@ -13,7 +14,6 @@ import {
   PlayCircle, 
   Clock,
   Star,
-  MapPin,
   Ticket,
   Share2
 } from 'lucide-react';
@@ -24,6 +24,8 @@ interface LiveEvent {
   title: string;
   artist_name: string;
   artist_id: string;
+  creator_profile_id?: string;
+  creator_avatar_url?: string;
   description: string;
   scheduled_start: string;
   status: 'upcoming' | 'live' | 'ended';
@@ -32,6 +34,7 @@ interface LiveEvent {
   max_attendees?: number;
   current_attendees: number;
   created_at: string;
+  requires_ticket?: boolean;
 }
 
 interface LiveEventCardProps {
@@ -111,6 +114,14 @@ export const LiveEventCard: React.FC<LiveEventCardProps> = ({
     ? (event.current_attendees / event.max_attendees) * 100 
     : 0;
 
+  // Get artist initials for avatar fallback
+  const artistInitials = event.artist_name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .substring(0, 2);
+
   return (
     <Card className={`glass-card transition-all duration-300 hover:scale-105 ${
       featured ? 'border-aurora/50 bg-aurora/5' : ''
@@ -120,7 +131,17 @@ export const LiveEventCard: React.FC<LiveEventCardProps> = ({
           <div className="space-y-2">
             {getStatusBadge()}
             <h3 className="font-semibold text-lg leading-tight">{event.title}</h3>
-            <p className="text-sm text-aurora font-medium">{event.artist_name}</p>
+            
+            {/* Artist info with avatar */}
+            <div className="flex items-center gap-2">
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={event.creator_avatar_url} alt={event.artist_name} />
+                <AvatarFallback className="text-xs bg-aurora/20">
+                  {artistInitials}
+                </AvatarFallback>
+              </Avatar>
+              <p className="text-sm text-aurora font-medium">{event.artist_name}</p>
+            </div>
           </div>
           <Button
             variant="ghost"
@@ -136,8 +157,17 @@ export const LiveEventCard: React.FC<LiveEventCardProps> = ({
       <CardContent className="space-y-4">
         {/* Event Image/Thumbnail */}
         <div className="relative rounded-lg overflow-hidden bg-muted/50 aspect-video">
+          {event.thumbnail_url ? (
+            <img 
+              src={event.thumbnail_url} 
+              alt={event.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-aurora/20 to-primary/20" />
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-          <div className="absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center z-20">
             <PlayCircle className="h-12 w-12 text-white/80" />
           </div>
           {event.status === 'live' && (
