@@ -9,6 +9,7 @@ interface DistributeRequest {
   profile_id: string;
   amount: number;
   reward_type: 'welcome_bonus' | 'referral' | 'first_tip' | 'first_mint' | 'activity' | 'achievement';
+  token_type?: 'AUDIO' | 'TON';
   source?: string;
   activity_proof?: {
     type: string;
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
 
     if (action === 'check-budget') {
       // Check if a reward can be distributed
-      const { profile_id, amount, reward_type } = await req.json();
+      const { profile_id, amount, reward_type, token_type = 'AUDIO' } = await req.json();
 
       if (!profile_id || !amount || !reward_type) {
         return new Response(
@@ -71,7 +72,8 @@ Deno.serve(async (req) => {
       const { data, error } = await supabase.rpc('check_reward_budget', {
         p_profile_id: profile_id,
         p_amount: amount,
-        p_reward_type: reward_type
+        p_reward_type: reward_type,
+        p_token_type: token_type
       });
 
       if (error) {
@@ -89,6 +91,7 @@ Deno.serve(async (req) => {
 
     } else if (action === 'distribute') {
       const body: DistributeRequest = await req.json();
+      const tokenType = body.token_type || 'AUDIO';
 
       // Validate request
       if (!body.profile_id || !body.amount || !body.reward_type) {
@@ -105,6 +108,14 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Validate token type
+      if (!['AUDIO', 'TON'].includes(tokenType)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid token_type: must be AUDIO or TON' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Rate limit check
       if (!checkRateLimit(body.profile_id)) {
         console.warn(`[Distribute Rewards] Rate limit exceeded for profile: ${body.profile_id}`);
@@ -117,6 +128,7 @@ Deno.serve(async (req) => {
           metadata: {
             profile_id: body.profile_id,
             reward_type: body.reward_type,
+            token_type: tokenType,
             amount: body.amount,
             timestamp: new Date().toISOString()
           }
@@ -143,11 +155,12 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Check budget before distribution
+      // Check budget before distribution with token type
       const { data: budgetCheck, error: budgetError } = await supabase.rpc('check_reward_budget', {
         p_profile_id: body.profile_id,
         p_amount: body.amount,
-        p_reward_type: body.reward_type
+        p_reward_type: body.reward_type,
+        p_token_type: tokenType
       });
 
       if (budgetError) {
@@ -181,6 +194,7 @@ Deno.serve(async (req) => {
             metadata: {
               profile_id: body.profile_id,
               reward_type: body.reward_type,
+              token_type: tokenType,
               activity_proof: body.activity_proof
             }
           });
@@ -192,14 +206,15 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.log(`[Distribute Rewards] Distributing ${body.amount} AUDIO to ${body.profile_id} for ${body.reward_type}`);
+      console.log(`[Distribute Rewards] Distributing ${body.amount} ${tokenType} to ${body.profile_id} for ${body.reward_type}`);
 
-      // Execute atomic transfer
+      // Execute atomic transfer with token type
       const { data: transferResult, error: transferError } = await supabase.rpc('atomic_reward_transfer', {
         p_profile_id: body.profile_id,
         p_amount: body.amount,
         p_reward_type: body.reward_type,
-        p_source: body.source || 'edge_function_distribution'
+        p_source: body.source || 'edge_function_distribution',
+        p_token_type: tokenType
       });
 
       if (transferError) {
@@ -218,12 +233,13 @@ Deno.serve(async (req) => {
         );
       }
 
-      console.log(`[Distribute Rewards] Successfully distributed ${body.amount} AUDIO to ${body.profile_id}`);
+      console.log(`[Distribute Rewards] Successfully distributed ${body.amount} ${tokenType} to ${body.profile_id}`);
 
       return new Response(
         JSON.stringify({
           success: true,
           amount: body.amount,
+          token_type: tokenType,
           reward_type: body.reward_type,
           profile_id: body.profile_id,
           treasury_balance: transferResult.new_treasury_balance
@@ -280,11 +296,13 @@ Deno.serve(async (req) => {
       let failCount = 0;
 
       for (const dist of body.distributions) {
+        const tokenType = dist.token_type || 'AUDIO';
         const { data, error } = await supabase.rpc('atomic_reward_transfer', {
           p_profile_id: dist.profile_id,
           p_amount: dist.amount,
           p_reward_type: dist.reward_type,
-          p_source: 'admin_bulk_distribution'
+          p_source: 'admin_bulk_distribution',
+          p_token_type: tokenType
         });
 
         if (error || !data?.success) {
@@ -292,7 +310,7 @@ Deno.serve(async (req) => {
           results.push({ profile_id: dist.profile_id, success: false, error: error?.message || data?.error });
         } else {
           successCount++;
-          results.push({ profile_id: dist.profile_id, success: true, amount: dist.amount });
+          results.push({ profile_id: dist.profile_id, success: true, amount: dist.amount, token_type: tokenType });
         }
       }
 
@@ -339,22 +357,145 @@ Deno.serve(async (req) => {
 
       if (!profile) {
         return new Response(
-          JSON.stringify({ claims: [], caps: [] }),
+          JSON.stringify({ claims: [], caps: [], preference: 'AUDIO' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      const { data: claims } = await supabase
-        .from('user_reward_claims')
-        .select('*')
-        .eq('profile_id', profile.id);
-
-      const { data: caps } = await supabase
-        .from('reward_caps')
-        .select('reward_type, max_per_user, is_active');
+      const [claimsResult, capsResult, prefResult] = await Promise.all([
+        supabase
+          .from('user_reward_claims')
+          .select('*')
+          .eq('profile_id', profile.id),
+        supabase
+          .from('reward_caps')
+          .select('reward_type, token_type, max_per_user, max_daily_platform, current_daily_used, is_active'),
+        supabase
+          .from('user_reward_preferences')
+          .select('preferred_token')
+          .eq('profile_id', profile.id)
+          .single()
+      ]);
 
       return new Response(
-        JSON.stringify({ claims: claims || [], caps: caps || [] }),
+        JSON.stringify({ 
+          claims: claimsResult.data || [], 
+          caps: capsResult.data || [],
+          preference: prefResult.data?.preferred_token || 'AUDIO'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } else if (action === 'set-preference') {
+      // Set user's token preference
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'Authorization required' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data: { user }, error: authError } = await supabase.auth.getUser(
+        authHeader.replace('Bearer ', '')
+      );
+
+      if (authError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { preferred_token } = await req.json();
+
+      if (!['AUDIO', 'TON'].includes(preferred_token)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid token preference: must be AUDIO or TON' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Get user's profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (!profile) {
+        return new Response(
+          JSON.stringify({ error: 'Profile not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Upsert preference
+      const { error: upsertError } = await supabase
+        .from('user_reward_preferences')
+        .upsert({
+          profile_id: profile.id,
+          preferred_token,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'profile_id' });
+
+      if (upsertError) {
+        console.error('[Distribute Rewards] Failed to set preference:', upsertError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to save preference' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      console.log(`[Distribute Rewards] Set token preference to ${preferred_token} for profile ${profile.id}`);
+
+      return new Response(
+        JSON.stringify({ success: true, preferred_token }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+
+    } else if (action === 'get-preference') {
+      // Get user's token preference
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ preferred_token: 'AUDIO' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data: { user } } = await supabase.auth.getUser(
+        authHeader.replace('Bearer ', '')
+      );
+
+      if (!user) {
+        return new Response(
+          JSON.stringify({ preferred_token: 'AUDIO' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .single();
+
+      if (!profile) {
+        return new Response(
+          JSON.stringify({ preferred_token: 'AUDIO' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const { data: pref } = await supabase
+        .from('user_reward_preferences')
+        .select('preferred_token')
+        .eq('profile_id', profile.id)
+        .single();
+
+      return new Response(
+        JSON.stringify({ preferred_token: pref?.preferred_token || 'AUDIO' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
 

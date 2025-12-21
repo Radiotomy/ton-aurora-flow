@@ -81,6 +81,7 @@ export type Database = {
           profile_id: string
           reward_type: string
           source: string | null
+          token_type: string
         }
         Insert: {
           amount: number
@@ -92,6 +93,7 @@ export type Database = {
           profile_id: string
           reward_type: string
           source?: string | null
+          token_type?: string
         }
         Update: {
           amount?: number
@@ -103,6 +105,7 @@ export type Database = {
           profile_id?: string
           reward_type?: string
           source?: string | null
+          token_type?: string
         }
         Relationships: []
       }
@@ -822,6 +825,7 @@ export type Database = {
           max_daily_platform: number
           max_per_user: number
           reward_type: string
+          token_type: string
           updated_at: string | null
         }
         Insert: {
@@ -833,6 +837,7 @@ export type Database = {
           max_daily_platform?: number
           max_per_user?: number
           reward_type: string
+          token_type?: string
           updated_at?: string | null
         }
         Update: {
@@ -844,6 +849,7 @@ export type Database = {
           max_daily_platform?: number
           max_per_user?: number
           reward_type?: string
+          token_type?: string
           updated_at?: string | null
         }
         Relationships: []
@@ -1298,6 +1304,7 @@ export type Database = {
           last_claim_at: string | null
           profile_id: string
           reward_type: string
+          token_type: string
           updated_at: string | null
         }
         Insert: {
@@ -1308,6 +1315,7 @@ export type Database = {
           last_claim_at?: string | null
           profile_id: string
           reward_type: string
+          token_type?: string
           updated_at?: string | null
         }
         Update: {
@@ -1318,9 +1326,42 @@ export type Database = {
           last_claim_at?: string | null
           profile_id?: string
           reward_type?: string
+          token_type?: string
           updated_at?: string | null
         }
         Relationships: []
+      }
+      user_reward_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          preferred_token: string
+          profile_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          preferred_token?: string
+          profile_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          preferred_token?: string
+          profile_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_reward_preferences_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -1362,15 +1403,26 @@ export type Database = {
         }
         Returns: Json
       }
-      atomic_reward_transfer: {
-        Args: {
-          p_amount: number
-          p_profile_id: string
-          p_reward_type: string
-          p_source?: string
-        }
-        Returns: Json
-      }
+      atomic_reward_transfer:
+        | {
+            Args: {
+              p_amount: number
+              p_profile_id: string
+              p_reward_type: string
+              p_source?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_profile_id: string
+              p_reward_type: string
+              p_source?: string
+              p_token_type?: string
+            }
+            Returns: Json
+          }
       can_access_financial_data: {
         Args: { target_user_id: string }
         Returns: boolean
@@ -1388,10 +1440,24 @@ export type Database = {
         }
         Returns: boolean
       }
-      check_reward_budget: {
-        Args: { p_amount: number; p_profile_id: string; p_reward_type: string }
-        Returns: Json
-      }
+      check_reward_budget:
+        | {
+            Args: {
+              p_amount: number
+              p_profile_id: string
+              p_reward_type: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_profile_id: string
+              p_reward_type: string
+              p_token_type?: string
+            }
+            Returns: Json
+          }
       cleanup_expired_stream_sessions: { Args: never; Returns: undefined }
       get_current_user_profile_id: { Args: never; Returns: string }
       get_safe_profile_data: {
