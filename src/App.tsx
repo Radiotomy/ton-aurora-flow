@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Navigation from "./components/Navigation";
+import { ScrollToTop } from "./components/ScrollToTop";
 import Footer from "./components/Footer";
 
 // Lazily loaded pages (non-critical)
@@ -93,6 +94,7 @@ function AppContent() {
         }}
       >
         <MonitoringProvider>
+          <ScrollToTop />
           <TonSitesRouter>
             <Navigation />
             <ErrorBoundaryWithTWA>
