@@ -40,6 +40,7 @@ const Help = lazy(() => import("./pages/Help"));
 const HelpFans = lazy(() => import("./pages/HelpFans"));
 const HelpArtists = lazy(() => import("./pages/HelpArtists"));
 const ContractValidation = lazy(() => import("./pages/ContractValidation").then(m => ({ default: m.ContractValidation })));
+const Install = lazy(() => import("./pages/Install"));
 
 // Page loading fallback
 const PageLoader = () => (
@@ -118,6 +119,7 @@ function AppContent() {
                   <Route path="/help/fans" element={<HelpFans />} />
                   <Route path="/help/artists" element={<HelpArtists />} />
                   <Route path="/contracts/validate" element={<ContractValidation />} />
+                  <Route path="/install" element={<Install />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
