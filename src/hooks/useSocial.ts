@@ -50,7 +50,10 @@ export const useSocial = () => {
     }, [profile, trackId]);
 
     const toggleFavorite = async (artistId: string) => {
-      if (!profile) return false;
+      if (!profile) {
+        toast.error('Please log in to like tracks');
+        return false;
+      }
       
       setLoading(true);
       try {
@@ -59,6 +62,7 @@ export const useSocial = () => {
         return result;
       } catch (error) {
         console.error('Error in useSocial toggleFavorite:', error);
+        toast.error('Failed to update favorite status');
         return false;
       } finally {
         setLoading(false);
