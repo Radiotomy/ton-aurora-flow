@@ -4,6 +4,7 @@
  */
 
 import { Address } from '@ton/core';
+import { supabase } from '@/integrations/supabase/client';
 
 interface WalletBalance {
   balance: bigint;
@@ -12,16 +13,6 @@ interface WalletBalance {
   lastUpdated: Date;
   chainstackPowered?: boolean; // Indicates if powered by Chainstack
   network?: string;        // Network type (mainnet/testnet)
-}
-
-interface TonCenterResponse {
-  ok: boolean;
-  result: {
-    balance: string;
-    account_state: string;
-    last_transaction_lt: string;
-    last_transaction_hash: string;
-  };
 }
 
 export class RealWalletBalanceService {
@@ -35,25 +26,17 @@ export class RealWalletBalanceService {
     try {
       const addressString = typeof address === 'string' ? address : address.toString();
       
-      const response = await fetch('https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/ton-wallet-balance', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwamphZ2xtcXZjd3B6cmRveXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NjQ5OTQsImV4cCI6MjA3MTE0MDk5NH0.FlRvJf4wVnQ96gaJJdli0AIcPQ0DmBU0yGiU0sudZeU`
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('ton-wallet-balance', {
+        body: {
           address: addressString,
           isTestnet
-        })
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Wallet balance API error:', errorData);
-        throw new Error(errorData.error || `API returned ${response.status}: ${response.statusText}`);
+      if (error) {
+        console.error('Wallet balance API error:', error);
+        throw new Error(error.message || 'Failed to fetch wallet balance');
       }
-
-      const data = await response.json();
       
       // Log successful API source for debugging
       console.log(`✅ Wallet balance fetched via ${data.apiSource}: ${data.formatted} TON`);
@@ -81,7 +64,7 @@ export class RealWalletBalanceService {
           network: isTestnet ? 'testnet' : 'mainnet'
         };
       }
-      throw new Error(`Failed to get wallet balance: ${error.message}`);
+      throw new Error(`Failed to get wallet balance: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -97,30 +80,24 @@ export class RealWalletBalanceService {
     try {
       const addressString = typeof address === 'string' ? address : address.toString();
       
-      const response = await fetch('https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/ton-transaction-history', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwamphZ2xtcXZjd3B6cmRveXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NjQ5OTQsImV4cCI6MjA3MTE0MDk5NH0.FlRvJf4wVnQ96gaJJdli0AIcPQ0DmBU0yGiU0sudZeU`
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('ton-transaction-history', {
+        body: {
           address: addressString,
           limit,
           offset,
           isTestnet
-        })
+        }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch transaction history via Chainstack');
+      if (error) {
+        throw new Error(error.message || 'Failed to fetch transaction history via Chainstack');
       }
 
-      return await response.json();
+      return data;
       
     } catch (error) {
       console.error('Chainstack transaction history error:', error);
-      throw new Error(`Failed to get transaction history via Chainstack: ${error.message}`);
+      throw new Error(`Failed to get transaction history via Chainstack: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
@@ -138,25 +115,18 @@ export class RealWalletBalanceService {
       const fromAddressString = typeof fromAddress === 'string' ? fromAddress : fromAddress.toString();
       const toAddressString = typeof toAddress === 'string' ? toAddress : toAddress.toString();
       
-      const response = await fetch('https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/ton-fee-estimation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwamphZ2xtcXZjd3B6cmRveXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NjQ5OTQsImV4cCI6MjA3MTE0MDk5NH0.FlRvJf4wVnQ96gaJJdli0AIcPQ0DmBU0yGiU0sudZeU`
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('ton-fee-estimation', {
+        body: {
           fromAddress: fromAddressString,
           toAddress: toAddressString,
           amount: amount.toString(),
           operationType,
           isTestnet
-        })
+        }
       });
 
-      const data = await response.json();
-      
-      if (!response.ok) {
-        console.warn('Chainstack fee estimation failed, using fallback:', data.error);
+      if (error) {
+        console.warn('Chainstack fee estimation failed, using fallback:', error);
         return {
           estimatedFee: '50000000', // 0.05 TON
           recommendedFee: '60000000', // 0.06 TON
@@ -178,7 +148,7 @@ export class RealWalletBalanceService {
         formattedRecommended: '0.060000',
         fallback: true,
         operationType,
-        error: error.message
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }
