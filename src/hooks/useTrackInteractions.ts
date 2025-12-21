@@ -12,6 +12,47 @@ export const useTrackInteractions = () => {
   const setProfileRef = useRef(setProfile);
   setProfileRef.current = setProfile;
 
+  // Validate transaction parameters server-side before constructing transaction
+  const validateTransactionParams = useCallback(async (params: {
+    artistId: string;
+    artistWalletAddress: string;
+    amount: number;
+    transactionType: 'tip' | 'nft_purchase' | 'fan_club_membership' | 'event_ticket';
+    metadata?: Record<string, unknown>;
+  }) => {
+    const { data, error } = await supabase.functions.invoke('validate-transaction-params', {
+      body: params
+    });
+
+    if (error) {
+      console.error('Transaction validation error:', error);
+      throw new Error('Transaction validation failed');
+    }
+
+    if (!data?.validated) {
+      throw new Error(data?.error || 'Transaction validation failed');
+    }
+
+    return data;
+  }, []);
+
+  // Fetch artist wallet address from database
+  const fetchArtistWallet = useCallback(async (artistId: string): Promise<string | null> => {
+    // First try to find by profile ID
+    const { data: profileById } = await supabase
+      .from('profiles')
+      .select('wallet_address')
+      .eq('id', artistId)
+      .single();
+
+    if (profileById?.wallet_address) {
+      return profileById.wallet_address;
+    }
+
+    // If not found by ID, it might be an external artist ID - return null
+    return null;
+  }, []);
+
   // Play track with Web3 benefits
   const playTrack = useCallback(async (trackId: string, artistId: string) => {
     if (isConnected && profile) {
@@ -45,22 +86,43 @@ export const useTrackInteractions = () => {
     }
 
     if (tipAmount && tipAmount > 0) {
-      // Send TON tip to artist
-      const transaction = {
-        validUntil: Math.floor(Date.now() / 1000) + 300, // 5 minutes
-        messages: [
-          {
-            address: artistId, // In real implementation, this would be artist's wallet
-            amount: (tipAmount * 1e9).toString(), // Convert TON to nanoTON
-            payload: `Tip for track ${trackId}`,
-          },
-        ],
-      };
+      try {
+        // Fetch artist wallet address from database
+        const artistWalletAddress = await fetchArtistWallet(artistId);
+        
+        if (!artistWalletAddress) {
+          toast({
+            title: "Unable to tip",
+            description: "Artist wallet address not found. They may not have set up their wallet yet.",
+            variant: "destructive",
+          });
+          return;
+        }
 
-      const result = await sendTransaction(transaction);
-      if (result) {
-        // Record the tip in database
-        try {
+        // Validate transaction parameters server-side
+        const validatedParams = await validateTransactionParams({
+          artistId,
+          artistWalletAddress,
+          amount: tipAmount,
+          transactionType: 'tip',
+          metadata: { trackId }
+        });
+
+        // Build transaction with validated parameters
+        const transaction = {
+          validUntil: Math.floor(Date.now() / 1000) + 300, // 5 minutes
+          messages: [
+            {
+              address: validatedParams.artistWalletAddress,
+              amount: (validatedParams.amount * 1e9).toString(), // Convert TON to nanoTON
+              payload: `Tip for track ${trackId}`,
+            },
+          ],
+        };
+
+        const result = await sendTransaction(transaction);
+        if (result) {
+          // Record the tip in database
           await supabase
             .from('listening_history')
             .insert({
@@ -75,9 +137,14 @@ export const useTrackInteractions = () => {
             title: "Tip sent!",
             description: `You tipped ${tipAmount} TON to the artist`,
           });
-        } catch (error) {
-          console.error('Error recording tip:', error);
         }
+      } catch (error) {
+        console.error('Error processing tip:', error);
+        toast({
+          title: "Tip failed",
+          description: error instanceof Error ? error.message : "Failed to process tip",
+          variant: "destructive",
+        });
       }
     } else {
       // Simple like without tip
@@ -86,7 +153,7 @@ export const useTrackInteractions = () => {
         description: "Added to your liked tracks",
       });
     }
-  }, [isConnected, profile, sendTransaction]);
+  }, [isConnected, profile, sendTransaction, fetchArtistWallet, validateTransactionParams]);
 
   // Collect NFT version of track
   const collectTrack = useCallback(async (trackId: string, nftContractAddress: string, price: number) => {
@@ -98,22 +165,31 @@ export const useTrackInteractions = () => {
       return;
     }
 
-    // Send payment for NFT
-    const transaction = {
-      validUntil: Math.floor(Date.now() / 1000) + 300, // 5 minutes
-      messages: [
-        {
-          address: nftContractAddress,
-          amount: (price * 1e9).toString(), // Convert TON to nanoTON
-          payload: `Purchase NFT ${trackId}`,
-        },
-      ],
-    };
+    try {
+      // Validate transaction parameters server-side
+      const validatedParams = await validateTransactionParams({
+        artistId: nftContractAddress, // Use contract address as artist ID for NFT purchases
+        artistWalletAddress: nftContractAddress,
+        amount: price,
+        transactionType: 'nft_purchase',
+        metadata: { trackId }
+      });
 
-    const result = await sendTransaction(transaction);
-    if (result) {
-      // Record the collection in database
-      try {
+      // Send payment for NFT with validated parameters
+      const transaction = {
+        validUntil: Math.floor(Date.now() / 1000) + 300, // 5 minutes
+        messages: [
+          {
+            address: validatedParams.artistWalletAddress,
+            amount: (validatedParams.amount * 1e9).toString(), // Convert TON to nanoTON
+            payload: `Purchase NFT ${trackId}`,
+          },
+        ],
+      };
+
+      const result = await sendTransaction(transaction);
+      if (result) {
+        // Record the collection in database
         await supabase
           .from('track_collections')
           .insert({
@@ -143,15 +219,22 @@ export const useTrackInteractions = () => {
           title: "NFT Collected!",
           description: "Track NFT added to your collection",
         });
-      } catch (error) {
-        console.error('Error recording collection:', error);
       }
+    } catch (error) {
+      console.error('Error collecting NFT:', error);
+      toast({
+        title: "Collection failed",
+        description: error instanceof Error ? error.message : "Failed to collect NFT",
+        variant: "destructive",
+      });
     }
-  }, [isConnected, profile, sendTransaction]);
+  }, [isConnected, profile, sendTransaction, validateTransactionParams]);
 
   // Share track with referral benefits
   const shareTrack = useCallback(async (trackId: string) => {
-    const shareUrl = `${window.location.origin}?track=${trackId}&ref=${profile?.wallet_address}`;
+    // Use profile ID for referral tracking instead of exposing wallet address
+    const referralId = profile?.id || '';
+    const shareUrl = `${window.location.origin}?track=${encodeURIComponent(trackId)}&ref=${encodeURIComponent(referralId)}`;
     
     if (navigator.share) {
       await navigator.share({

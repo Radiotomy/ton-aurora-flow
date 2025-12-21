@@ -289,26 +289,19 @@ export class TonPaymentService {
     amount?: string,
     operationType: string = 'transfer'
   ): Promise<string> {
-    // Use Chainstack for real-time fee estimation
+    // Use Chainstack for real-time fee estimation via Supabase client
     if (fromAddress && toAddress && amount) {
       try {
-        const response = await fetch('https://cpjjaglmqvcwpzrdoyul.supabase.co/functions/v1/ton-fee-estimation', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNwamphZ2xtcXZjd3B6cmRveXVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTU1NjQ5OTQsImV4cCI6MjA3MTE0MDk5NH0.FlRvJf4wVnQ96gaJJdli0AIcPQ0DmBU0yGiU0sudZeU`
-          },
-          body: JSON.stringify({
+        const { data, error } = await supabase.functions.invoke('ton-fee-estimation', {
+          body: {
             fromAddress,
             toAddress,
             amount: toNano(amount).toString(),
             operationType
-          })
+          }
         });
 
-        const data = await response.json();
-        
-        if (response.ok && !data.fallback) {
+        if (!error && data && !data.fallback) {
           return data.formattedRecommended;
         }
       } catch (error) {
@@ -317,7 +310,7 @@ export class TonPaymentService {
     }
     
     // Fallback fees based on operation type
-    const fallbackFees = {
+    const fallbackFees: Record<string, string> = {
       'transfer': '0.05',
       'nft_mint': '0.2',
       'nft_transfer': '0.1',
