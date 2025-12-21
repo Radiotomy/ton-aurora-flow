@@ -1,10 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.55.0';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Telegram webhook - only accepts requests from Telegram servers
+// We don't use standard CORS here as this is a webhook endpoint
 
 // Telegram update schema
 const TelegramUpdateSchema = z.object({
@@ -50,8 +48,7 @@ async function sendTelegramMessage(
   );
   
   if (!response.ok) {
-    const error = await response.text();
-    console.error('Telegram API error:', error);
+    console.error('Telegram API error');
     throw new Error('Failed to send message');
   }
   
@@ -197,9 +194,15 @@ Join our community: @audioton_community`
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  // Telegram webhooks should only accept POST requests
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ ok: false, error: 'Method not allowed' }),
+      { 
+        headers: { 'Content-Type': 'application/json' },
+        status: 405 
+      }
+    );
   }
 
   try {
@@ -210,7 +213,7 @@ Deno.serve(async (req) => {
 
     // Parse incoming update
     const update = await req.json();
-    console.log('Received Telegram update:', JSON.stringify(update));
+    console.log('Received Telegram update');
 
     // Validate update structure
     const validatedUpdate = TelegramUpdateSchema.parse(update);
@@ -232,20 +235,19 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ ok: true }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         status: 200 
       }
     );
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error('Webhook error');
     
     return new Response(
       JSON.stringify({ 
-        error: error.message,
-        details: error instanceof z.ZodError ? error.errors : undefined
+        error: 'Webhook processing failed'
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         status: 200 // Return 200 to acknowledge receipt even on errors
       }
     );

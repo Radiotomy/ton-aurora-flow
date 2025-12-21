@@ -8,10 +8,27 @@ const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://audioton.co',
+  'https://www.audioton.co',
+  'https://cpjjaglmqvcwpzrdoyul.lovableproject.com',
+  'http://localhost:5173',
+  'http://localhost:8080',
+  'http://localhost:3000',
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('origin') || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
 
 interface RecommendationRequest {
   profileId: string;
@@ -21,6 +38,8 @@ interface RecommendationRequest {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -60,7 +79,7 @@ serve(async (req) => {
       profileInfo: profile
     };
 
-    console.log('User context for recommendations:', JSON.stringify(userContext, null, 2));
+    console.log('User context prepared for recommendations');
 
     // Generate AI recommendations
     const prompt = `As a music recommendation AI, analyze this user's listening patterns and suggest ${count} music tracks. 
@@ -144,8 +163,7 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
     });
 
     if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('Lovable AI gateway error response:', errorText);
+      console.error('Lovable AI gateway error:', aiResponse.status);
 
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({
@@ -167,7 +185,7 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
         });
       }
 
-      throw new Error(`AI gateway error: ${aiResponse.status} - ${errorText}`);
+      throw new Error(`AI gateway error: ${aiResponse.status}`);
     }
 
     const aiData = await aiResponse.json();
@@ -181,7 +199,6 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
         .replace(/^```json\s*/i, '')
         .replace(/^```\s*/i, '')
         .replace(/```\s*$/i, '')
-        // tolerate trailing commas
         .replace(/,\s*([}\]])/g, '$1');
 
       const start = cleaned.indexOf('{');
@@ -199,25 +216,21 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
         aiRecommendations = parseLooseJson(content);
       }
     } catch (e) {
-      console.error('Failed to parse AI response:', {
-        toolArgsStr,
-        content: aiData?.choices?.[0]?.message?.content,
-      });
-      throw new Error(
-        `AI response was not valid JSON: ${e instanceof Error ? e.message : 'unknown parse error'}`
-      );
+      console.error('Failed to parse AI response');
+      throw new Error('AI response was not valid JSON');
     }
 
     if (!aiRecommendations?.recommendations || !Array.isArray(aiRecommendations.recommendations)) {
-      console.error('AI returned invalid schema:', aiRecommendations);
+      console.error('AI returned invalid schema');
       throw new Error('AI returned invalid recommendation schema');
     }
 
-    console.log('AI recommendations generated:', aiRecommendations);
+    console.log('AI recommendations generated');
+    
     // Fetch trending tracks from Audius API to match with AI suggestions
     const audiusUrl = `${supabaseUrl}/functions/v1/audius-api/trending-tracks?limit=50${genres.length > 0 ? `&genre=${encodeURIComponent(genres[0])}` : ''}`;
     
-    console.log(`Calling Audius API: ${audiusUrl}`);
+    console.log('Calling Audius API');
     
     const audiusResponse = await fetch(audiusUrl, {
       method: 'GET',
@@ -228,15 +241,14 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
     });
 
     if (!audiusResponse.ok) {
-      const errorText = await audiusResponse.text();
-      console.error('Audius API error:', audiusResponse.status, errorText);
-      throw new Error(`Failed to fetch tracks from Audius: ${audiusResponse.status}`);
+      console.error('Audius API error:', audiusResponse.status);
+      throw new Error('Failed to fetch tracks from Audius');
     }
 
     const audiusData = await audiusResponse.json();
 
     if (!audiusData.success) {
-      console.error('Audius API returned error:', audiusData.error);
+      console.error('Audius API returned error');
       throw new Error('Failed to fetch tracks from Audius');
     }
 
@@ -245,7 +257,6 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
 
     // Match AI recommendations with actual tracks
     const matchedRecommendations = aiRecommendations.recommendations.slice(0, count).map((rec: any, index: number) => {
-      // Simple matching logic - in production, this could be more sophisticated
       const matchedTrack = tracks[index % tracks.length];
       
       return {
@@ -275,7 +286,7 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
       .eq('profile_id', profileId);
 
     if (deleteError) {
-      console.error('Error deleting old recommendations:', deleteError);
+      console.error('Error deleting old recommendations');
     }
 
     // Store new recommendations in database
@@ -286,17 +297,17 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
           ...rec,
           profile_id: profileId,
           created_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         }))
       )
       .select();
 
     if (storeError) {
-      console.error('Error storing recommendations:', storeError);
+      console.error('Error storing recommendations');
       throw new Error('Failed to store recommendations');
     }
 
-    console.log(`Stored ${storedRecommendations?.length} recommendations for user ${profileId}`);
+    console.log(`Stored ${storedRecommendations?.length} recommendations`);
 
     return new Response(JSON.stringify({
       success: true,
@@ -307,9 +318,10 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
     });
 
   } catch (error) {
-    console.error('Error in ai-recommendations function:', error);
+    const corsHeaders = getCorsHeaders(req);
+    console.error('Error in ai-recommendations function');
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: 'Failed to generate recommendations',
       success: false 
     }), {
       status: 500,

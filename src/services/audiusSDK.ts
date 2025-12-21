@@ -1,5 +1,5 @@
-import { sdk } from '@audius/sdk';
 import { supabase } from '@/integrations/supabase/client';
+import { logError, logInfo } from '@/utils/secureLogger';
 
 export interface AudiusTrack {
   id: string;
@@ -40,107 +40,112 @@ export interface AudiusUser {
   verified: boolean;
 }
 
+/**
+ * Audius SDK Service - All API calls are proxied through secure edge functions
+ * to prevent API key exposure in client-side code
+ */
 export class AudiusSDKService {
-  private static sdkInstance: any = null;
-
   /**
-   * Initialize Audius SDK
-   */
-  private static async getSDK() {
-    if (!this.sdkInstance) {
-      this.sdkInstance = sdk({
-        apiKey: process.env.AUDIUS_API_KEY,
-        apiSecret: process.env.AUDIUS_API_SECRET,
-        appName: 'AudioTon'
-      });
-    }
-    return this.sdkInstance;
-  }
-
-  /**
-   * Get trending tracks from Audius
+   * Get trending tracks from Audius via edge function
    */
   static async getTrendingTracks(limit: number = 10): Promise<AudiusTrack[]> {
     try {
-      const audiusSdk = await this.getSDK();
-      const response = await audiusSdk.tracks.getTrendingTracks({
-        limit,
-        time: 'week'
+      const { data, error } = await supabase.functions.invoke('audius-api', {
+        body: { path: 'trending-tracks', limit }
       });
       
-      return response.data || [];
+      if (error) {
+        logError('AudiusSDK.getTrendingTracks', 'Edge function error');
+        return [];
+      }
+      
+      return data?.tracks || [];
     } catch (error) {
-      console.error('Error fetching trending tracks:', error);
+      logError('AudiusSDK.getTrendingTracks', 'Failed to fetch trending tracks');
       return [];
     }
   }
 
   /**
-   * Search tracks on Audius
+   * Search tracks on Audius via edge function
    */
   static async searchTracks(query: string, limit: number = 20): Promise<AudiusTrack[]> {
     try {
-      const audiusSdk = await this.getSDK();
-      const response = await audiusSdk.tracks.searchTracks({
-        query,
-        limit
+      const { data, error } = await supabase.functions.invoke('audius-api', {
+        body: { path: 'search-tracks', query, limit }
       });
       
-      return response.data || [];
+      if (error) {
+        logError('AudiusSDK.searchTracks', 'Edge function error');
+        return [];
+      }
+      
+      return data?.tracks || [];
     } catch (error) {
-      console.error('Error searching tracks:', error);
+      logError('AudiusSDK.searchTracks', 'Failed to search tracks');
       return [];
     }
   }
 
   /**
-   * Get track by ID
+   * Get track by ID via edge function
    */
   static async getTrack(trackId: string): Promise<AudiusTrack | null> {
     try {
-      const audiusSdk = await this.getSDK();
-      const response = await audiusSdk.tracks.getTrack({
-        trackId
+      const { data, error } = await supabase.functions.invoke('audius-api', {
+        body: { path: `track/${trackId}` }
       });
       
-      return response.data || null;
+      if (error) {
+        logError('AudiusSDK.getTrack', 'Edge function error');
+        return null;
+      }
+      
+      return data?.track || null;
     } catch (error) {
-      console.error('Error fetching track:', error);
+      logError('AudiusSDK.getTrack', 'Failed to fetch track');
       return null;
     }
   }
 
   /**
-   * Get user by ID
+   * Get user by ID via edge function
    */
   static async getUser(userId: string): Promise<AudiusUser | null> {
     try {
-      const audiusSdk = await this.getSDK();
-      const response = await audiusSdk.users.getUser({
-        id: userId
+      const { data, error } = await supabase.functions.invoke('audius-api', {
+        body: { path: `user/${userId}` }
       });
       
-      return response.data || null;
+      if (error) {
+        logError('AudiusSDK.getUser', 'Edge function error');
+        return null;
+      }
+      
+      return data?.user || null;
     } catch (error) {
-      console.error('Error fetching user:', error);
+      logError('AudiusSDK.getUser', 'Failed to fetch user');
       return null;
     }
   }
 
   /**
-   * Get user tracks
+   * Get user tracks via edge function
    */
   static async getUserTracks(userId: string, limit: number = 20): Promise<AudiusTrack[]> {
     try {
-      const audiusSdk = await this.getSDK();
-      const response = await audiusSdk.users.getUsersTracks({
-        id: userId,
-        limit
+      const { data, error } = await supabase.functions.invoke('audius-api', {
+        body: { path: `user/${userId}/tracks`, limit }
       });
       
-      return response.data || [];
+      if (error) {
+        logError('AudiusSDK.getUserTracks', 'Edge function error');
+        return [];
+      }
+      
+      return data?.tracks || [];
     } catch (error) {
-      console.error('Error fetching user tracks:', error);
+      logError('AudiusSDK.getUserTracks', 'Failed to fetch user tracks');
       return [];
     }
   }
@@ -174,17 +179,17 @@ export class AudiusSDKService {
           mood: trackData.mood,
           tags: trackData.tags,
           token: authToken,
-          // Note: Files would need to be uploaded to Supabase storage first
         },
       });
 
-      if (error || !data.success) {
-        throw new Error(data?.error || error?.message || 'Track upload failed');
+      if (error || !data?.success) {
+        logError('AudiusSDK.uploadTrack', 'Track upload failed');
+        return null;
       }
 
       return { trackId: data.trackId };
     } catch (error) {
-      console.error('Error uploading track:', error);
+      logError('AudiusSDK.uploadTrack', 'Failed to upload track');
       return null;
     }
   }
@@ -213,13 +218,14 @@ export class AudiusSDKService {
         },
       });
 
-      if (error || !data.success) {
-        throw new Error(data?.error || error?.message || 'Playlist creation failed');
+      if (error || !data?.success) {
+        logError('AudiusSDK.createPlaylist', 'Playlist creation failed');
+        return null;
       }
 
       return { playlistId: data.playlistId };
     } catch (error) {
-      console.error('Error creating playlist:', error);
+      logError('AudiusSDK.createPlaylist', 'Failed to create playlist');
       return null;
     }
   }
@@ -245,13 +251,14 @@ export class AudiusSDKService {
         },
       });
 
-      if (error || !data.success) {
-        throw new Error(data?.error || error?.message || 'Follow action failed');
+      if (error || !data?.success) {
+        logError('AudiusSDK.toggleUserFollow', 'Follow action failed');
+        return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error with follow action:', error);
+      logError('AudiusSDK.toggleUserFollow', 'Failed to toggle follow');
       return false;
     }
   }
@@ -277,13 +284,14 @@ export class AudiusSDKService {
         },
       });
 
-      if (error || !data.success) {
-        throw new Error(data?.error || error?.message || 'Favorite action failed');
+      if (error || !data?.success) {
+        logError('AudiusSDK.toggleTrackFavorite', 'Favorite action failed');
+        return false;
       }
 
       return true;
     } catch (error) {
-      console.error('Error with favorite action:', error);
+      logError('AudiusSDK.toggleTrackFavorite', 'Failed to toggle favorite');
       return false;
     }
   }
@@ -306,26 +314,29 @@ export class AudiusSDKService {
         })
         .eq('id', profileId);
 
-      // Store Audius sync data (when tables are available)
-      console.log('Audius profile sync completed for:', audiusUser.handle);
+      logInfo('AudiusSDK.syncAudiusProfile', 'Profile sync completed');
     } catch (error) {
-      console.error('Error syncing Audius profile:', error);
+      logError('AudiusSDK.syncAudiusProfile', 'Failed to sync profile');
     }
   }
 
   /**
-   * Get track stream URL
+   * Get track stream URL via edge function
    */
   static async getTrackStreamUrl(trackId: string): Promise<string | null> {
     try {
-      const audiusSdk = await this.getSDK();
-      const response = await audiusSdk.tracks.streamTrack({
-        trackId
+      const { data, error } = await supabase.functions.invoke('audius-api', {
+        body: { path: `stream-url/${trackId}` }
       });
       
-      return response.data || null;
+      if (error) {
+        logError('AudiusSDK.getTrackStreamUrl', 'Edge function error');
+        return null;
+      }
+      
+      return data?.streamUrl || null;
     } catch (error) {
-      console.error('Error getting track stream URL:', error);
+      logError('AudiusSDK.getTrackStreamUrl', 'Failed to get stream URL');
       return null;
     }
   }

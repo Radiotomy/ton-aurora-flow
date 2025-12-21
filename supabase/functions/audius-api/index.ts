@@ -1,15 +1,30 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.55.0";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Allowed origins for CORS
+const ALLOWED_ORIGINS = [
+  'https://audioton.co',
+  'https://www.audioton.co',
+  'https://cpjjaglmqvcwpzrdoyul.lovableproject.com',
+  'http://localhost:5173',
+  'http://localhost:8080',
+  'http://localhost:3000',
+];
+
+function getCorsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('origin') || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
+  };
+}
 
 // Initialize Audius SDK configuration
 const AUDIUS_API_KEY = Deno.env.get('AudioTon');
-const AUDIUS_API_SECRET = Deno.env.get('AudioTon_Secret');
 
 // Audius API endpoints
 const AUDIUS_DISCOVERY_HOST = 'https://discoveryprovider.audius.co';
@@ -83,22 +98,21 @@ async function makeAudiusRequest(endpoint: string, params: Record<string, string
     console.log(`Audius API response status: ${response.status}`);
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Audius API error: ${response.status} ${response.statusText}`, errorText);
-      throw new Error(`Audius API error: ${response.status} - ${errorText}`);
+      console.error(`Audius API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Audius API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log(`Audius API response data:`, JSON.stringify(data, null, 2));
-    
     return data;
   } catch (error) {
-    console.error(`Error in makeAudiusRequest:`, error);
+    console.error(`Error in makeAudiusRequest:`, error instanceof Error ? error.message : 'Unknown error');
     throw error;
   }
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -124,7 +138,7 @@ serve(async (req) => {
             // Get track stream URL with app_name parameter for authentication
             const streamUrl = `${AUDIUS_DISCOVERY_HOST}/v1/tracks/${trackId}/stream?app_name=${AUDIUS_API_KEY}`;
             
-            console.log(`Providing stream URL for track ${trackId}: ${streamUrl}`);
+            console.log(`Providing stream URL for track ${trackId}`);
             
             return new Response(JSON.stringify({ 
               streamUrl,
@@ -136,7 +150,7 @@ serve(async (req) => {
           }
         }
       } catch (e) {
-        console.error('Error parsing POST body:', e);
+        console.error('Error parsing POST body');
       }
     }
 
@@ -147,7 +161,7 @@ serve(async (req) => {
         const genre = searchParams.get('genre') || undefined;
         const limit = parseInt(searchParams.get('limit') || '20');
         const offset = parseInt(searchParams.get('offset') || '0');
-        const time = searchParams.get('time') || 'week'; // week, month, allTime
+        const time = searchParams.get('time') || 'week';
         const sortMethod = searchParams.get('sort_method') || undefined;
 
         const params: Record<string, string> = { 
@@ -159,12 +173,10 @@ serve(async (req) => {
           params.genre = genre;
         }
         
-        // Add time parameter - Audius typically uses 'time' for trending periods
         if (time && time !== 'week') {
           params.time = time;
         }
         
-        // Add sort method if specified
         if (sortMethod) {
           params.sort_method = sortMethod;
         }
@@ -173,7 +185,7 @@ serve(async (req) => {
         
         return new Response(JSON.stringify({ 
           tracks: data.data || [],
-          hasMore: (data.data || []).length === limit, // Indicate if more tracks available
+          hasMore: (data.data || []).length === limit,
           offset: offset,
           limit: limit,
           success: true 
@@ -283,10 +295,9 @@ serve(async (req) => {
 
         if (streamMatch) {
           const trackId = streamMatch[1];
-          // Get track stream URL with app_name parameter for authentication
           const streamUrl = `${AUDIUS_DISCOVERY_HOST}/v1/tracks/${trackId}/stream?app_name=${AUDIUS_API_KEY}`;
           
-          console.log(`Providing stream URL for track ${trackId}: ${streamUrl}`);
+          console.log(`Providing stream URL for track ${trackId}`);
           
           return new Response(JSON.stringify({ 
             streamUrl,
@@ -307,9 +318,10 @@ serve(async (req) => {
       }
     }
   } catch (error) {
-    console.error('Error in audius-api function:', error);
+    const corsHeaders = getCorsHeaders(req);
+    console.error('Error in audius-api function');
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: 'Internal server error',
       success: false 
     }), {
       status: 500,
