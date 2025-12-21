@@ -55,7 +55,7 @@ function AppContent() {
   }, [isInTWA, colorScheme]);
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-36 lg:pb-24">
       <ProfileSecurityCheck />
       <BrowserRouter
         future={{

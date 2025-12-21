@@ -36,14 +36,14 @@ export const FeaturedTracks = () => {
   }, []);
 
   return (
-    <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
+    <section className="py-8 sm:py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <div className="flex items-center justify-between mb-6 sm:mb-8">
         <div className="text-center flex-1">
-          <h2 className="text-3xl font-bold text-foreground mb-2">
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-1 sm:mb-2">
             Featured Tracks
           </h2>
-          <p className="text-muted-foreground">
-            Handpicked tracks from top artists on AudioTon
+          <p className="text-sm sm:text-base text-muted-foreground">
+            Handpicked tracks from top artists
           </p>
         </div>
         <Button 
@@ -55,7 +55,31 @@ export const FeaturedTracks = () => {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Mobile: Horizontal Scroll, Desktop: Grid */}
+      <div className="sm:hidden -mx-4 px-4">
+        <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-4">
+          {loading ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex-shrink-0 w-40 space-y-3">
+                <Skeleton className="aspect-square rounded-2xl" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </div>
+            ))
+          ) : (
+            tracks.map((track) => (
+              <div key={track.id} className="flex-shrink-0 w-40">
+                <TrackCard {...track} />
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Desktop Grid */}
+      <div className="hidden sm:grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {loading ? (
           Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="space-y-3">
@@ -73,11 +97,11 @@ export const FeaturedTracks = () => {
         )}
       </div>
 
-      <div className="text-center mt-8 sm:hidden">
+      <div className="text-center mt-6 sm:hidden">
         <Button 
           variant="outline"
           onClick={() => navigate('/discover')}
-          className="aurora-hover"
+          className="aurora-hover w-full max-w-xs h-11"
         >
           Explore More Tracks
         </Button>

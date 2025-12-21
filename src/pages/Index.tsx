@@ -7,7 +7,7 @@ import { FeaturedTracks } from '@/components/FeaturedTracks';
 
 const Index = () => {
   return (
-    <main className="pt-16">
+    <main className="pt-14 sm:pt-16">
       <HeroSection />
       
       <FeaturedTracks />
@@ -19,12 +19,12 @@ const Index = () => {
       <UserFeedSection />
       
       {/* Platform Stats */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="text-center mb-8">
-          <h2 className="text-2xl font-bold text-foreground">
+      <section className="py-8 sm:py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="text-center mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
             🚀 TON Payment System <span className="text-aurora">Now Live</span>
           </h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-sm sm:text-base text-muted-foreground mt-2 px-4">
             Real TON blockchain payments are now active! Connect your wallet to start tipping artists.
           </p>
         </div>

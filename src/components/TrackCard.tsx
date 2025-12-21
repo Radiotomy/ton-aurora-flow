@@ -165,10 +165,10 @@ const TrackCard = memo(({
 
   return (
     <>
-      <div className={`glass-panel rounded-2xl overflow-hidden group transition-all duration-300 ${
+      <div className={`glass-panel rounded-xl sm:rounded-2xl overflow-hidden group transition-all duration-300 ${
         isCurrentTrack 
-          ? 'scale-[1.05] ring-2 ring-primary/50 shadow-lg shadow-primary/20 hover:scale-[1.06]' 
-          : 'hover:scale-[1.02]'
+          ? 'scale-[1.02] sm:scale-[1.05] ring-2 ring-primary/50 shadow-lg shadow-primary/20' 
+          : 'hover:scale-[1.02] active:scale-[0.98]'
       }`}>
         {/* Artwork */}
         <div className="relative aspect-square overflow-hidden bg-muted/20">
@@ -183,16 +183,16 @@ const TrackCard = memo(({
             }}
           />
           
-          {/* Overlay */}
-            <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-all duration-500 ${
-            isCurrentTrack ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+          {/* Overlay - Always visible on touch devices */}
+          <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent transition-all duration-500 ${
+            isCurrentTrack ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 sm:opacity-0'
           } pointer-events-none`}>
-            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between pointer-events-auto">
+            <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 right-2 sm:right-3 flex items-center justify-between pointer-events-auto">
               <Button 
                 size="sm" 
-                className={`glass-button h-10 w-10 rounded-full transition-all duration-300 hover:scale-110 shadow-lg ${
+                className={`glass-button h-10 w-10 sm:h-10 sm:w-10 rounded-full transition-all duration-300 hover:scale-110 shadow-lg ${
                   isCurrentTrack 
-                    ? 'bg-primary/60 hover:bg-primary/70 ring-2 ring-primary/50 shadow-primary/30' 
+                    ? 'bg-primary/60 hover:bg-primary/70 ring-2 ring-primary/50' 
                     : 'bg-primary/30 hover:bg-primary/50 ring-1 ring-primary/20'
                 }`}
                 onClick={handlePlay}
@@ -204,23 +204,23 @@ const TrackCard = memo(({
                 )}
               </Button>
               
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 {/* EQ Visualizer - shows when track is playing */}
                 {isTrackPlaying && (
-                  <div className="flex items-center gap-2 animate-fade-in">
+                  <div className="hidden sm:flex items-center gap-2 animate-fade-in">
                     <MiniEQVisualizer isPlaying={isTrackPlaying} size="sm" />
                     <MiniVolumeControl />
                   </div>
                 )}
                 
-                {/* Action buttons */}
-                <div className="flex items-center gap-1">
+                {/* Action buttons - larger touch targets */}
+                <div className="flex items-center gap-0.5 sm:gap-1">
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={handleLike}
                     disabled={favLoading}
-                    className={`h-8 w-8 rounded-full backdrop-blur-md bg-background/30 hover:bg-background/50 border border-white/20 hover:border-primary/40 hover:scale-110 transition-all duration-200 ${isFavorited ? 'text-primary' : 'text-white'} hover:text-primary`}
+                    className={`h-9 w-9 sm:h-8 sm:w-8 rounded-full backdrop-blur-md bg-background/30 hover:bg-background/50 border border-white/20 ${isFavorited ? 'text-primary' : 'text-white'}`}
                     title="Like track"
                   >
                     <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
@@ -231,7 +231,7 @@ const TrackCard = memo(({
                       size="sm"
                       variant="ghost"
                       onClick={handleMintNFT}
-                      className="h-8 w-8 rounded-full backdrop-blur-md bg-gradient-to-r from-primary/30 to-accent/30 hover:from-primary/50 hover:to-accent/50 border border-primary/20 hover:border-primary/40 hover:scale-110 transition-all duration-200 text-white shadow-lg hover:shadow-primary/20"
+                      className="h-9 w-9 sm:h-8 sm:w-8 rounded-full backdrop-blur-md bg-gradient-to-r from-primary/30 to-accent/30 border border-primary/20 text-white"
                       title="Mint NFT"
                     >
                       <Sparkles className="w-4 h-4" />
@@ -242,7 +242,7 @@ const TrackCard = memo(({
                     size="sm"
                     variant="ghost"
                     onClick={handleTipArtist}
-                    className="h-8 w-8 rounded-full backdrop-blur-md bg-background/30 hover:bg-background/50 border border-white/20 hover:border-accent/40 hover:scale-110 transition-all duration-200 text-white hover:text-accent"
+                    className="h-9 w-9 sm:h-8 sm:w-8 rounded-full backdrop-blur-md bg-background/30 hover:bg-background/50 border border-white/20 text-white"
                     title="Tip Artist"
                   >
                     <Coins className="w-4 h-4" />
@@ -252,17 +252,36 @@ const TrackCard = memo(({
             </div>
           </div>
           
+          {/* Mobile Play Button Overlay - Always visible */}
+          <div className="absolute inset-0 flex items-center justify-center sm:hidden pointer-events-none">
+            <Button 
+              size="sm" 
+              className={`glass-button h-12 w-12 rounded-full transition-all duration-300 shadow-lg pointer-events-auto ${
+                isCurrentTrack 
+                  ? 'bg-primary/80 ring-2 ring-primary/50' 
+                  : 'bg-black/50 opacity-0 group-active:opacity-100'
+              }`}
+              onClick={handlePlay}
+            >
+              {isTrackPlaying ? (
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white" />
+              ) : (
+                <Play className="w-5 h-5 ml-0.5 text-white" fill="currentColor" />
+              )}
+            </Button>
+          </div>
+          
           {/* Status Badges */}
-          <div className="absolute top-3 left-3 flex flex-col space-y-2">
+          <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col space-y-1 sm:space-y-2">
             {isNft && (
-              <Badge variant="secondary" className="glass-panel bg-accent/20 text-accent-foreground">
-                <Gem className="w-3 h-3 mr-1" />
+              <Badge variant="secondary" className="glass-panel bg-accent/20 text-accent-foreground text-[10px] sm:text-xs px-1.5 sm:px-2">
+                <Gem className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
                 NFT
               </Badge>
             )}
             {fanClubOnly && (
-              <Badge variant="secondary" className="glass-panel bg-secondary/20 text-secondary-foreground">
-                <Users className="w-3 h-3 mr-1" />
+              <Badge variant="secondary" className="glass-panel bg-secondary/20 text-secondary-foreground text-[10px] sm:text-xs px-1.5 sm:px-2">
+                <Users className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
                 Fan Club
               </Badge>
             )}
@@ -270,9 +289,9 @@ const TrackCard = memo(({
           
           {/* Price Badge */}
           {price && (
-            <div className="absolute top-3 right-3">
-              <Badge variant="outline" className="glass-panel bg-background/20 text-foreground">
-                <Zap className="w-3 h-3 mr-1" />
+            <div className="absolute top-2 sm:top-3 right-2 sm:right-3">
+              <Badge variant="outline" className="glass-panel bg-background/20 text-foreground text-[10px] sm:text-xs px-1.5 sm:px-2">
+                <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
                 {price} TON
               </Badge>
             </div>
@@ -280,19 +299,19 @@ const TrackCard = memo(({
         </div>
         
         {/* Content */}
-        <div className="p-4 space-y-3">
+        <div className="p-3 sm:p-4 space-y-2 sm:space-y-3">
           <div>
-            <h3 className="font-semibold text-foreground text-sm line-clamp-1 group-hover:text-aurora transition-colors">
+            <h3 className="font-semibold text-foreground text-xs sm:text-sm line-clamp-1 group-hover:text-aurora transition-colors">
               {title}
             </h3>
-            <p className="text-muted-foreground text-xs">{artist}</p>
+            <p className="text-muted-foreground text-[10px] sm:text-xs">{artist}</p>
           </div>
           
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <div className="flex items-center space-x-4">
+          <div className="flex items-center justify-between text-[10px] sm:text-xs text-muted-foreground">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <span>{duration}</span>
               <div className="flex items-center space-x-1">
-                <Heart className="w-3 h-3" />
+                <Heart className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 <span>{likes.toLocaleString()}</span>
               </div>
             </div>
@@ -301,18 +320,18 @@ const TrackCard = memo(({
               <Button 
                 size="sm" 
                 variant="aurora" 
-                className="text-xs px-3 py-1 h-7"
+                className="text-[10px] sm:text-xs px-2 sm:px-3 py-0.5 sm:py-1 h-6 sm:h-7"
                 onClick={handleCollect}
                 disabled={isCollecting || !isConnected}
               >
                 {isCollecting ? (
                   <>
-                    <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                    Collecting...
+                    <Loader2 className="w-2.5 h-2.5 sm:w-3 sm:h-3 animate-spin mr-1" />
+                    ...
                   </>
                 ) : (
                   <>
-                    <ShoppingCart className="w-3 h-3 mr-1" />
+                    <ShoppingCart className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />
                     Collect
                   </>
                 )}

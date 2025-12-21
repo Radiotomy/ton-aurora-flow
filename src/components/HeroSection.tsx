@@ -67,17 +67,17 @@ const HeroSection = () => {
       </motion.div>
       
       {/* Main Content */}
-      <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
-        <div className="space-y-10">
+      <div className="relative z-10 text-center px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto py-8 sm:py-0">
+        <div className="space-y-6 sm:space-y-10">
           {/* Main Heading */}
           <motion.div 
-            className="space-y-6"
+            className="space-y-4 sm:space-y-6"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
             <motion.h1 
-              className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight"
+              className="text-3xl sm:text-5xl lg:text-7xl font-bold tracking-tight leading-tight"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2, duration: 1 }}
@@ -103,7 +103,7 @@ const HeroSection = () => {
             </motion.h1>
             
             <motion.p 
-              className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed"
+              className="text-base sm:text-lg lg:text-xl text-muted-foreground max-w-3xl mx-auto leading-relaxed px-2"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7, duration: 0.8 }}
@@ -117,7 +117,7 @@ const HeroSection = () => {
             </motion.p>
             
             <motion.div
-              className="flex items-center justify-center space-x-2 text-sm text-muted-foreground"
+              className="flex items-center justify-center space-x-2 text-xs sm:text-sm text-muted-foreground"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.9, duration: 0.8 }}
@@ -133,40 +133,43 @@ const HeroSection = () => {
           {/* Enhanced Call to Action */}
           <EnhancedWalletSection />
           
-          {/* Enhanced Features Showcase */}
+          {/* Enhanced Features Showcase - Scrollable on Mobile */}
           <motion.div 
-            className="flex flex-wrap justify-center gap-3 pt-4"
+            className="pt-2 sm:pt-4 -mx-4 sm:mx-0"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 1.2, duration: 0.8 }}
           >
-            {[
-              { label: '⚡ Lightning-fast Payments', color: '#10b981' },
-              { label: '🛡️ Immutable Ownership', color: '#6366f1' },
-              { label: '🌐 Cross-chain Bridge', color: '#8b5cf6' },
-              { label: '🎵 Creator Royalties', color: '#06b6d4' },
-              { label: '🎪 Token-Gated Events', color: '#f59e0b' },
-              { label: '💎 NFT Collections', color: '#ec4899' }
-            ].map((feature, index) => (
-              <motion.div
-                key={feature.label}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 1.4 + index * 0.1, duration: 0.5 }}
-                whileHover={{ scale: 1.05, y: -2 }}
-              >
-                <Badge 
-                  variant="outline" 
-                  className="glass-panel bg-background/5 text-foreground border-glass-border/30 px-3 py-2 cursor-pointer transition-all duration-300 hover:shadow-lg"
-                  style={{ 
-                    borderColor: `${feature.color}40`,
-                    boxShadow: `0 0 20px ${feature.color}10`
-                  }}
+            <div className="flex sm:flex-wrap sm:justify-center gap-2 sm:gap-3 overflow-x-auto scrollbar-hide px-4 sm:px-0 pb-2">
+              {[
+                { label: '⚡ Fast Payments', color: '#10b981' },
+                { label: '🛡️ Ownership', color: '#6366f1' },
+                { label: '🌐 Cross-chain', color: '#8b5cf6' },
+                { label: '🎵 Royalties', color: '#06b6d4' },
+                { label: '🎪 Events', color: '#f59e0b' },
+                { label: '💎 NFTs', color: '#ec4899' }
+              ].map((feature, index) => (
+                <motion.div
+                  key={feature.label}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.4 + index * 0.1, duration: 0.5 }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  className="flex-shrink-0"
                 >
-                  {feature.label}
-                </Badge>
-              </motion.div>
-            ))}
+                  <Badge 
+                    variant="outline" 
+                    className="glass-panel bg-background/5 text-foreground border-glass-border/30 px-3 py-2 cursor-pointer transition-all duration-300 hover:shadow-lg whitespace-nowrap text-xs sm:text-sm"
+                    style={{ 
+                      borderColor: `${feature.color}40`,
+                      boxShadow: `0 0 20px ${feature.color}10`
+                    }}
+                  >
+                    {feature.label}
+                  </Badge>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         </div>
       </div>
