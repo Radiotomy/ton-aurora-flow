@@ -89,21 +89,58 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
+    const aiBody: any = {
+      model: 'google/gemini-2.5-flash',
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are an expert music recommendation engine. Use the provided tool to return structured recommendations.'
+        },
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: 1000,
+      temperature: 0.7,
+      tools: [
+        {
+          type: 'function',
+          function: {
+            name: 'recommend_tracks',
+            description: 'Return a list of track recommendation rationales (no track IDs).',
+            parameters: {
+              type: 'object',
+              properties: {
+                recommendations: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      reason: { type: 'string' },
+                      genres: { type: 'array', items: { type: 'string' } },
+                      moods: { type: 'array', items: { type: 'string' } },
+                      confidence: { type: 'number' }
+                    },
+                    required: ['reason', 'genres', 'moods', 'confidence'],
+                    additionalProperties: false
+                  }
+                }
+              },
+              required: ['recommendations'],
+              additionalProperties: false
+            }
+          }
+        }
+      ],
+      tool_choice: { type: 'function', function: { name: 'recommend_tracks' } }
+    };
+
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: 'You are an expert music recommendation engine with deep knowledge of music genres, moods, and user preferences. Always respond with valid JSON.' },
-          { role: 'user', content: prompt }
-        ],
-        max_tokens: 1000,
-        temperature: 0.7
-      }),
+      body: JSON.stringify(aiBody),
     });
 
     if (!aiResponse.ok) {
@@ -134,24 +171,49 @@ Focus on music discovery, diversity, and matching the user's demonstrated prefer
     }
 
     const aiData = await aiResponse.json();
-    const content = aiData?.choices?.[0]?.message?.content ?? '';
+
+    const toolArgsStr =
+      aiData?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments ?? null;
+
+    const parseLooseJson = (raw: string) => {
+      const cleaned = raw
+        .trim()
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/```\s*$/i, '')
+        // tolerate trailing commas
+        .replace(/,\s*([}\]])/g, '$1');
+
+      const start = cleaned.indexOf('{');
+      const end = cleaned.lastIndexOf('}');
+      const candidate = start !== -1 && end !== -1 && end > start ? cleaned.slice(start, end + 1) : cleaned;
+      return JSON.parse(candidate);
+    };
 
     let aiRecommendations: any;
     try {
-      aiRecommendations = JSON.parse(content);
-    } catch {
-      const start = content.indexOf('{');
-      const end = content.lastIndexOf('}');
-      if (start !== -1 && end !== -1 && end > start) {
-        aiRecommendations = JSON.parse(content.slice(start, end + 1));
+      if (toolArgsStr) {
+        aiRecommendations = JSON.parse(toolArgsStr);
       } else {
-        console.error('AI response was not valid JSON:', content);
-        throw new Error('AI response was not valid JSON');
+        const content = aiData?.choices?.[0]?.message?.content ?? '';
+        aiRecommendations = parseLooseJson(content);
       }
+    } catch (e) {
+      console.error('Failed to parse AI response:', {
+        toolArgsStr,
+        content: aiData?.choices?.[0]?.message?.content,
+      });
+      throw new Error(
+        `AI response was not valid JSON: ${e instanceof Error ? e.message : 'unknown parse error'}`
+      );
+    }
+
+    if (!aiRecommendations?.recommendations || !Array.isArray(aiRecommendations.recommendations)) {
+      console.error('AI returned invalid schema:', aiRecommendations);
+      throw new Error('AI returned invalid recommendation schema');
     }
 
     console.log('AI recommendations generated:', aiRecommendations);
-
     // Fetch trending tracks from Audius API to match with AI suggestions
     const audiusUrl = `${supabaseUrl}/functions/v1/audius-api/trending-tracks?limit=50${genres.length > 0 ? `&genre=${encodeURIComponent(genres[0])}` : ''}`;
     
