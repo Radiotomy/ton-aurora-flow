@@ -500,11 +500,18 @@ export type Database = {
           id: string
           is_live: boolean | null
           max_attendees: number | null
+          recording_duration: number | null
+          recording_ipfs_cid: string | null
+          recording_size: number | null
+          recording_ton_bag_id: string | null
           requires_ticket: boolean | null
           scheduled_end: string | null
           scheduled_start: string
           status: string
+          storage_type: string | null
           stream_url: string | null
+          thumbnail_ipfs_cid: string | null
+          thumbnail_ton_bag_id: string | null
           thumbnail_url: string | null
           ticket_price: number | null
           ticket_price_ton: number | null
@@ -520,11 +527,18 @@ export type Database = {
           id?: string
           is_live?: boolean | null
           max_attendees?: number | null
+          recording_duration?: number | null
+          recording_ipfs_cid?: string | null
+          recording_size?: number | null
+          recording_ton_bag_id?: string | null
           requires_ticket?: boolean | null
           scheduled_end?: string | null
           scheduled_start: string
           status?: string
+          storage_type?: string | null
           stream_url?: string | null
+          thumbnail_ipfs_cid?: string | null
+          thumbnail_ton_bag_id?: string | null
           thumbnail_url?: string | null
           ticket_price?: number | null
           ticket_price_ton?: number | null
@@ -540,11 +554,18 @@ export type Database = {
           id?: string
           is_live?: boolean | null
           max_attendees?: number | null
+          recording_duration?: number | null
+          recording_ipfs_cid?: string | null
+          recording_size?: number | null
+          recording_ton_bag_id?: string | null
           requires_ticket?: boolean | null
           scheduled_end?: string | null
           scheduled_start?: string
           status?: string
+          storage_type?: string | null
           stream_url?: string | null
+          thumbnail_ipfs_cid?: string | null
+          thumbnail_ton_bag_id?: string | null
           thumbnail_url?: string | null
           ticket_price?: number | null
           ticket_price_ton?: number | null

@@ -10,7 +10,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import LiveStreamService, { type LiveEvent } from '@/services/liveStreamService';
 import { supabase } from '@/integrations/supabase/client';
-import { Calendar, Clock, DollarSign, Users, Plus, Image, Upload, X } from 'lucide-react';
+import { pinataService } from '@/services/pinataService';
+import { Calendar, Clock, DollarSign, Users, Plus, Image, Upload, X, Cloud } from 'lucide-react';
 
 interface LiveEventCreatorProps {
   onEventCreated?: (event: LiveEvent) => void;
@@ -79,11 +80,28 @@ export const LiveEventCreator: React.FC<LiveEventCreatorProps> = ({ onEventCreat
     }
   };
 
-  const uploadThumbnail = async (eventId: string): Promise<string | null> => {
+  const uploadThumbnail = async (eventId: string, artistId: string): Promise<{ url: string; ipfsCid?: string } | null> => {
     if (!thumbnailFile) return null;
 
     setUploadingThumbnail(true);
     try {
+      // Upload to IPFS via Pinata (Phase 1)
+      const ipfsResult = await pinataService.uploadEventThumbnail(
+        thumbnailFile,
+        eventId,
+        artistId
+      );
+
+      if (ipfsResult.success && ipfsResult.gatewayUrl) {
+        console.log('[LiveEventCreator] Thumbnail uploaded to IPFS:', ipfsResult.cid);
+        return {
+          url: ipfsResult.gatewayUrl,
+          ipfsCid: ipfsResult.cid
+        };
+      }
+
+      // Fallback to Supabase storage if IPFS fails
+      console.warn('[LiveEventCreator] IPFS upload failed, falling back to Supabase storage');
       const fileExt = thumbnailFile.name.split('.').pop();
       const fileName = `${eventId}/${Date.now()}.${fileExt}`;
 
@@ -96,12 +114,11 @@ export const LiveEventCreator: React.FC<LiveEventCreatorProps> = ({ onEventCreat
 
       if (error) throw error;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('event-thumbnails')
         .getPublicUrl(data.path);
 
-      return publicUrl;
+      return { url: publicUrl };
     } catch (error) {
       console.error('Error uploading thumbnail:', error);
       toast({
@@ -158,16 +175,24 @@ export const LiveEventCreator: React.FC<LiveEventCreatorProps> = ({ onEventCreat
 
       const createdEvent = await LiveStreamService.createEvent(eventData);
 
-      // Upload thumbnail if provided
+      // Upload thumbnail if provided (to IPFS via Pinata)
       let thumbnailUrl: string | null = null;
+      let thumbnailIpfsCid: string | undefined;
       if (thumbnailFile && createdEvent.id) {
-        thumbnailUrl = await uploadThumbnail(createdEvent.id);
+        const uploadResult = await uploadThumbnail(createdEvent.id, profile.id);
         
-        // Update event with thumbnail URL
-        if (thumbnailUrl) {
+        if (uploadResult) {
+          thumbnailUrl = uploadResult.url;
+          thumbnailIpfsCid = uploadResult.ipfsCid;
+          
+          // Update event with thumbnail URL and IPFS CID
           await supabase
             .from('live_events')
-            .update({ thumbnail_url: thumbnailUrl })
+            .update({ 
+              thumbnail_url: thumbnailUrl,
+              thumbnail_ipfs_cid: thumbnailIpfsCid,
+              storage_type: thumbnailIpfsCid ? 'ipfs' : 'supabase'
+            })
             .eq('id', createdEvent.id);
         }
       }
