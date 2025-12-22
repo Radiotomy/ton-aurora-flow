@@ -6,6 +6,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { LiveStreamModal } from '@/components/LiveStreamModal';
 import { EventTicketing } from '@/components/EventTicketing';
+import { CalendarExportButton } from '@/components/CalendarExportButton';
+import { EventReminderButton } from '@/components/EventReminderButton';
 import { useWeb3 } from '@/hooks/useWeb3';
 import { useToast } from '@/hooks/use-toast';
 import { 
@@ -276,6 +278,14 @@ export const LiveEventCard: React.FC<LiveEventCardProps> = ({
             <Star className="h-4 w-4" />
           </Button>
         </div>
+
+        {/* Calendar & Reminder for upcoming events */}
+        {event.status === 'upcoming' && (
+          <div className="flex gap-2 pt-2 border-t border-border/50">
+            <CalendarExportButton event={event} className="flex-1" />
+            <EventReminderButton event={event} showLabel={false} size="icon" />
+          </div>
+        )}
       </CardContent>
     </Card>
   );
