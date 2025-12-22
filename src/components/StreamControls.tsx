@@ -40,24 +40,24 @@ import {
 
 interface StreamControlsProps {
   eventId: string;
-  localStream: MediaStream | null;
+  localStream?: MediaStream | null;
+  isLive?: boolean;
   videoEnabled: boolean;
   audioEnabled: boolean;
   onToggleVideo: () => void;
   onToggleAudio: () => void;
-  onScreenStreamChange?: (stream: MediaStream | null) => void;
-  onCameraStreamChange?: (stream: MediaStream | null) => void;
+  onStreamChange?: (stream: MediaStream, source: 'camera' | 'screen') => void;
 }
 
 export const StreamControls: React.FC<StreamControlsProps> = ({
   eventId,
   localStream,
+  isLive = false,
   videoEnabled,
   audioEnabled,
   onToggleVideo,
   onToggleAudio,
-  onScreenStreamChange,
-  onCameraStreamChange
+  onStreamChange
 }) => {
   const {
     isSharing: isScreenSharing,
@@ -94,21 +94,27 @@ export const StreamControls: React.FC<StreamControlsProps> = ({
   const handleScreenShare = async () => {
     if (isScreenSharing) {
       stopScreenShare();
-      onScreenStreamChange?.(null);
     } else {
       const stream = await startScreenShare({ audio: true });
-      onScreenStreamChange?.(stream);
+      if (stream) {
+        onStreamChange?.(stream, 'screen');
+        
+        // Listen for screen share end (user clicks browser's stop button)
+        stream.getVideoTracks()[0].onended = () => {
+          stopScreenShare();
+        };
+      }
     }
   };
 
   const handleCameraSwitch = async (deviceId: string) => {
     const success = await switchCamera(deviceId);
-    if (success && onCameraStreamChange) {
-      // Get the new stream from the camera
+    if (success) {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: { exact: deviceId } }
+        video: { deviceId: { exact: deviceId } },
+        audio: true
       });
-      onCameraStreamChange(stream);
+      onStreamChange?.(stream, 'camera');
     }
   };
 
