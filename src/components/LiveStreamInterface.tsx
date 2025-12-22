@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -8,12 +8,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useWeb3 } from '@/hooks/useWeb3';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { StreamControls } from './StreamControls';
 import { 
-  Video, 
-  VideoOff, 
-  Mic, 
-  MicOff, 
-  Settings, 
   Share2, 
   Maximize,
   Users,
@@ -62,6 +58,7 @@ export const LiveStreamInterface: React.FC<LiveStreamInterfaceProps> = ({
   const [newMessage, setNewMessage] = useState('');
   const [tipAmount, setTipAmount] = useState('');
   const [streamSessions, setStreamSessions] = useState<StreamSession[]>([]);
+  const [currentStreamSource, setCurrentStreamSource] = useState<'camera' | 'screen'>('camera');
   
   const { isAuthenticated, user } = useAuth();
   const { isConnected, sendTransaction } = useWeb3();
@@ -71,6 +68,7 @@ export const LiveStreamInterface: React.FC<LiveStreamInterfaceProps> = ({
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const peerConnection = useRef<RTCPeerConnection | null>(null);
   const localStream = useRef<MediaStream | null>(null);
+  const cameraStream = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     if (isStreamer) {
@@ -288,7 +286,7 @@ export const LiveStreamInterface: React.FC<LiveStreamInterfaceProps> = ({
     }
   };
 
-  const toggleVideo = () => {
+  const toggleVideo = useCallback(() => {
     if (localStream.current) {
       const videoTrack = localStream.current.getVideoTracks()[0];
       if (videoTrack) {
@@ -296,9 +294,9 @@ export const LiveStreamInterface: React.FC<LiveStreamInterfaceProps> = ({
         setVideoEnabled(videoTrack.enabled);
       }
     }
-  };
+  }, []);
 
-  const toggleAudio = () => {
+  const toggleAudio = useCallback(() => {
     if (localStream.current) {
       const audioTrack = localStream.current.getAudioTracks()[0];
       if (audioTrack) {
@@ -306,7 +304,52 @@ export const LiveStreamInterface: React.FC<LiveStreamInterfaceProps> = ({
         setAudioEnabled(audioTrack.enabled);
       }
     }
-  };
+  }, []);
+
+  // Handle new stream from StreamControls (screen share or camera switch)
+  const handleStreamChange = useCallback((newStream: MediaStream, source: 'camera' | 'screen') => {
+    // Keep camera stream reference if switching to screen share
+    if (source === 'screen' && localStream.current && currentStreamSource === 'camera') {
+      cameraStream.current = localStream.current;
+    }
+
+    // Update local stream
+    localStream.current = newStream;
+    setCurrentStreamSource(source);
+
+    // Update video element
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = newStream;
+    }
+
+    // Update peer connection tracks
+    if (peerConnection.current) {
+      const senders = peerConnection.current.getSenders();
+      const videoTrack = newStream.getVideoTracks()[0];
+      const audioTrack = newStream.getAudioTracks()[0];
+
+      senders.forEach(sender => {
+        if (sender.track?.kind === 'video' && videoTrack) {
+          sender.replaceTrack(videoTrack);
+        } else if (sender.track?.kind === 'audio' && audioTrack) {
+          sender.replaceTrack(audioTrack);
+        }
+      });
+    }
+
+    toast({
+      title: source === 'screen' ? "Screen Sharing" : "Camera Active",
+      description: source === 'screen' ? "Sharing your screen with viewers" : "Camera stream active"
+    });
+  }, [currentStreamSource, toast]);
+
+  // Handle when screen share ends - revert to camera
+  const handleScreenShareEnd = useCallback(() => {
+    if (cameraStream.current) {
+      handleStreamChange(cameraStream.current, 'camera');
+    }
+    setCurrentStreamSource('camera');
+  }, [handleStreamChange]);
 
   const endStream = () => {
     cleanup();
@@ -318,16 +361,20 @@ export const LiveStreamInterface: React.FC<LiveStreamInterfaceProps> = ({
     });
   };
 
-  const cleanup = () => {
+  const cleanup = useCallback(() => {
     if (localStream.current) {
       localStream.current.getTracks().forEach(track => track.stop());
       localStream.current = null;
+    }
+    if (cameraStream.current) {
+      cameraStream.current.getTracks().forEach(track => track.stop());
+      cameraStream.current = null;
     }
     if (peerConnection.current) {
       peerConnection.current.close();
       peerConnection.current = null;
     }
-  };
+  }, []);
 
   const shareStream = async () => {
     const url = `${window.location.origin}/live-events/${eventId}`;
@@ -389,28 +436,20 @@ export const LiveStreamInterface: React.FC<LiveStreamInterfaceProps> = ({
 
               {/* Stream Controls */}
               <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {isStreamer && (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={toggleVideo}
-                        className={`text-white hover:bg-white/20 ${!videoEnabled ? 'bg-red-500' : ''}`}
-                      >
-                        {videoEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={toggleAudio}
-                        className={`text-white hover:bg-white/20 ${!audioEnabled ? 'bg-red-500' : ''}`}
-                      >
-                        {audioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
-                      </Button>
-                    </>
-                  )}
-                </div>
+                {isStreamer ? (
+                  <StreamControls
+                    eventId={eventId}
+                    localStream={localStream.current}
+                    isLive={isLive}
+                    videoEnabled={videoEnabled}
+                    audioEnabled={audioEnabled}
+                    onToggleVideo={toggleVideo}
+                    onToggleAudio={toggleAudio}
+                    onStreamChange={handleStreamChange}
+                  />
+                ) : (
+                  <div className="flex-1" />
+                )}
                 
                 <div className="flex items-center gap-2">
                   <Button
@@ -420,13 +459,6 @@ export const LiveStreamInterface: React.FC<LiveStreamInterfaceProps> = ({
                     className="text-white hover:bg-white/20"
                   >
                     <Share2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-white hover:bg-white/20"
-                  >
-                    <Settings className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
