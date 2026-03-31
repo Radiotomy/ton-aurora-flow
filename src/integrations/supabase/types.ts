@@ -1467,7 +1467,7 @@ export type Database = {
         Args: {
           max_operations?: number
           operation_type: string
-          time_window?: unknown
+          time_window?: string
           user_profile_id: string
         }
         Returns: boolean
@@ -1535,7 +1535,7 @@ export type Database = {
         Args: {
           max_operations?: number
           operation_type: string
-          time_window?: unknown
+          time_window?: string
         }
         Returns: boolean
       }
