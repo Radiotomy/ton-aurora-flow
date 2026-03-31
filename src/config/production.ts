@@ -155,9 +155,7 @@ export const DEVELOPMENT_CONFIG = {
   ...PRODUCTION_CONFIG,
   TON_NETWORK: 'testnet' as const,
   
-  // Chainstack testnet endpoint (using mainnet for now)
-  CHAINSTACK_API_URL: 'https://ton-mainnet.core.chainstack.com/68b4cb9196a69de29db7191014f18715/api/v3',
-  CHAINSTACK_FALLBACK_URL: 'https://nd-123-456-789.p2pify.com/3c6e0b8a9c15224a8228b9a98ca1531d',
+  // Chainstack - keys moved server-side to edge functions
   
   CONTRACTS: {
     NFT_COLLECTION: 'kQBvW8Z5huBkMJYdnfAEM5JqTNkuWX3diqYENkWsIL0XggGG',

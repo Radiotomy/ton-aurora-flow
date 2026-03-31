@@ -43,6 +43,46 @@ function checkRateLimit(profileId: string, maxRequests: number = 10, windowMs: n
   return true;
 }
 
+// Helper to authenticate user and get their profile
+async function authenticateAndGetProfile(
+  req: Request,
+  supabase: any
+): Promise<{ userId: string; profileId: string } | Response> {
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(
+      JSON.stringify({ error: 'Authorization required' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  const { data, error } = await supabase.auth.getClaims(token);
+  if (error || !data?.claims) {
+    return new Response(
+      JSON.stringify({ error: 'Invalid authentication' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  const userId = data.claims.sub;
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('auth_user_id', userId)
+    .single();
+
+  if (!profile) {
+    return new Response(
+      JSON.stringify({ error: 'Profile not found' }),
+      { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+
+  return { userId, profileId: profile.id };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -59,10 +99,14 @@ Deno.serve(async (req) => {
     console.log(`[Distribute Rewards] Action: ${action}`);
 
     if (action === 'check-budget') {
-      // Check if a reward can be distributed
-      const { profile_id, amount, reward_type, token_type = 'AUDIO' } = await req.json();
+      // Require authentication for budget checks
+      const authResult = await authenticateAndGetProfile(req, supabase);
+      if (authResult instanceof Response) return authResult;
 
-      if (!profile_id || !amount || !reward_type) {
+      const { profileId } = authResult;
+      const { amount, reward_type, token_type = 'AUDIO' } = await req.json();
+
+      if (!amount || !reward_type) {
         return new Response(
           JSON.stringify({ error: 'Missing required fields' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -70,7 +114,7 @@ Deno.serve(async (req) => {
       }
 
       const { data, error } = await supabase.rpc('check_reward_budget', {
-        p_profile_id: profile_id,
+        p_profile_id: profileId,
         p_amount: amount,
         p_reward_type: reward_type,
         p_token_type: token_type
@@ -79,7 +123,7 @@ Deno.serve(async (req) => {
       if (error) {
         console.error('[Distribute Rewards] Budget check error:', error);
         return new Response(
-          JSON.stringify({ error: error.message }),
+          JSON.stringify({ error: 'Budget check failed' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -90,13 +134,28 @@ Deno.serve(async (req) => {
       );
 
     } else if (action === 'distribute') {
+      // Require authentication
+      const authResult = await authenticateAndGetProfile(req, supabase);
+      if (authResult instanceof Response) return authResult;
+
+      const { profileId } = authResult;
       const body: DistributeRequest = await req.json();
       const tokenType = body.token_type || 'AUDIO';
 
-      // Validate request
-      if (!body.profile_id || !body.amount || !body.reward_type) {
+      // Enforce that user can only distribute to their own profile
+      if (body.profile_id && body.profile_id !== profileId) {
         return new Response(
-          JSON.stringify({ error: 'Missing required fields: profile_id, amount, reward_type' }),
+          JSON.stringify({ error: 'Cannot distribute rewards to another user' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const targetProfileId = profileId;
+
+      // Validate request
+      if (!body.amount || !body.reward_type) {
+        return new Response(
+          JSON.stringify({ error: 'Missing required fields: amount, reward_type' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -117,16 +176,15 @@ Deno.serve(async (req) => {
       }
 
       // Rate limit check
-      if (!checkRateLimit(body.profile_id)) {
-        console.warn(`[Distribute Rewards] Rate limit exceeded for profile: ${body.profile_id}`);
+      if (!checkRateLimit(targetProfileId)) {
+        console.warn(`[Distribute Rewards] Rate limit exceeded for profile: ${targetProfileId}`);
         
-        // Log suspicious activity
         await supabase.from('security_audit_log').insert({
           user_id: null,
           action_type: 'rate_limit_exceeded',
           table_name: 'distribute_rewards',
           metadata: {
-            profile_id: body.profile_id,
+            profile_id: targetProfileId,
             reward_type: body.reward_type,
             token_type: tokenType,
             amount: body.amount,
@@ -140,24 +198,9 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Verify profile exists
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, display_name')
-        .eq('id', body.profile_id)
-        .single();
-
-      if (profileError || !profileData) {
-        console.error('[Distribute Rewards] Profile not found:', body.profile_id);
-        return new Response(
-          JSON.stringify({ error: 'Profile not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Check budget before distribution with token type
+      // Check budget before distribution
       const { data: budgetCheck, error: budgetError } = await supabase.rpc('check_reward_budget', {
-        p_profile_id: body.profile_id,
+        p_profile_id: targetProfileId,
         p_amount: body.amount,
         p_reward_type: body.reward_type,
         p_token_type: tokenType
@@ -184,15 +227,15 @@ Deno.serve(async (req) => {
 
       // Verify activity if proof is provided
       if (body.activity_proof) {
-        const isValidActivity = await verifyActivity(supabase, body.profile_id, body.activity_proof);
+        const isValidActivity = await verifyActivity(supabase, targetProfileId, body.activity_proof);
         if (!isValidActivity) {
-          console.warn(`[Distribute Rewards] Activity verification failed for profile: ${body.profile_id}`);
+          console.warn(`[Distribute Rewards] Activity verification failed for profile: ${targetProfileId}`);
           
           await supabase.from('security_audit_log').insert({
             action_type: 'invalid_activity_proof',
             table_name: 'distribute_rewards',
             metadata: {
-              profile_id: body.profile_id,
+              profile_id: targetProfileId,
               reward_type: body.reward_type,
               token_type: tokenType,
               activity_proof: body.activity_proof
@@ -206,11 +249,11 @@ Deno.serve(async (req) => {
         }
       }
 
-      console.log(`[Distribute Rewards] Distributing ${body.amount} ${tokenType} to ${body.profile_id} for ${body.reward_type}`);
+      console.log(`[Distribute Rewards] Distributing ${body.amount} ${tokenType} to ${targetProfileId} for ${body.reward_type}`);
 
-      // Execute atomic transfer with token type
+      // Execute atomic transfer
       const { data: transferResult, error: transferError } = await supabase.rpc('atomic_reward_transfer', {
-        p_profile_id: body.profile_id,
+        p_profile_id: targetProfileId,
         p_amount: body.amount,
         p_reward_type: body.reward_type,
         p_source: body.source || 'edge_function_distribution',
@@ -233,7 +276,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      console.log(`[Distribute Rewards] Successfully distributed ${body.amount} ${tokenType} to ${body.profile_id}`);
+      console.log(`[Distribute Rewards] Successfully distributed ${body.amount} ${tokenType} to ${targetProfileId}`);
 
       return new Response(
         JSON.stringify({
@@ -241,7 +284,7 @@ Deno.serve(async (req) => {
           amount: body.amount,
           token_type: tokenType,
           reward_type: body.reward_type,
-          profile_id: body.profile_id,
+          profile_id: targetProfileId,
           treasury_balance: transferResult.new_treasury_balance
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -249,27 +292,13 @@ Deno.serve(async (req) => {
 
     } else if (action === 'bulk-distribute') {
       // Bulk distribution - admin only
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
-        return new Response(
-          JSON.stringify({ error: 'Authorization required' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      const authResult = await authenticateAndGetProfile(req, supabase);
+      if (authResult instanceof Response) return authResult;
 
-      const { data: { user }, error: authError } = await supabase.auth.getUser(
-        authHeader.replace('Bearer ', '')
-      );
-
-      if (authError || !user) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid authentication' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      const { userId } = authResult;
 
       const { data: roleData } = await supabase.rpc('has_role', {
-        _user_id: user.id,
+        _user_id: userId,
         _role: 'admin'
       });
 
@@ -328,52 +357,23 @@ Deno.serve(async (req) => {
       );
 
     } else if (action === 'user-claims') {
-      // Get user's reward claims - authenticated users can see their own
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
-        return new Response(
-          JSON.stringify({ error: 'Authorization required' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      const authResult = await authenticateAndGetProfile(req, supabase);
+      if (authResult instanceof Response) return authResult;
 
-      const { data: { user }, error: authError } = await supabase.auth.getUser(
-        authHeader.replace('Bearer ', '')
-      );
-
-      if (authError || !user) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid authentication' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Get user's profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .single();
-
-      if (!profile) {
-        return new Response(
-          JSON.stringify({ claims: [], caps: [], preference: 'AUDIO' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      const { profileId } = authResult;
 
       const [claimsResult, capsResult, prefResult] = await Promise.all([
         supabase
           .from('user_reward_claims')
           .select('*')
-          .eq('profile_id', profile.id),
+          .eq('profile_id', profileId),
         supabase
           .from('reward_caps')
           .select('reward_type, token_type, max_per_user, max_daily_platform, current_daily_used, is_active'),
         supabase
           .from('user_reward_preferences')
           .select('preferred_token')
-          .eq('profile_id', profile.id)
+          .eq('profile_id', profileId)
           .single()
       ]);
 
@@ -387,26 +387,10 @@ Deno.serve(async (req) => {
       );
 
     } else if (action === 'set-preference') {
-      // Set user's token preference
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
-        return new Response(
-          JSON.stringify({ error: 'Authorization required' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      const authResult = await authenticateAndGetProfile(req, supabase);
+      if (authResult instanceof Response) return authResult;
 
-      const { data: { user }, error: authError } = await supabase.auth.getUser(
-        authHeader.replace('Bearer ', '')
-      );
-
-      if (authError || !user) {
-        return new Response(
-          JSON.stringify({ error: 'Invalid authentication' }),
-          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
+      const { profileId } = authResult;
       const { preferred_token } = await req.json();
 
       if (!['AUDIO', 'TON'].includes(preferred_token)) {
@@ -416,25 +400,10 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Get user's profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .single();
-
-      if (!profile) {
-        return new Response(
-          JSON.stringify({ error: 'Profile not found' }),
-          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      // Upsert preference
       const { error: upsertError } = await supabase
         .from('user_reward_preferences')
         .upsert({
-          profile_id: profile.id,
+          profile_id: profileId,
           preferred_token,
           updated_at: new Date().toISOString()
         }, { onConflict: 'profile_id' });
@@ -447,51 +416,27 @@ Deno.serve(async (req) => {
         );
       }
 
-      console.log(`[Distribute Rewards] Set token preference to ${preferred_token} for profile ${profile.id}`);
-
       return new Response(
         JSON.stringify({ success: true, preferred_token }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
 
     } else if (action === 'get-preference') {
-      // Get user's token preference
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
+      const authResult = await authenticateAndGetProfile(req, supabase);
+      if (authResult instanceof Response) {
+        // For unauthenticated users, return default
         return new Response(
           JSON.stringify({ preferred_token: 'AUDIO' }),
           { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      const { data: { user } } = await supabase.auth.getUser(
-        authHeader.replace('Bearer ', '')
-      );
-
-      if (!user) {
-        return new Response(
-          JSON.stringify({ preferred_token: 'AUDIO' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .single();
-
-      if (!profile) {
-        return new Response(
-          JSON.stringify({ preferred_token: 'AUDIO' }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      const { profileId } = authResult;
 
       const { data: pref } = await supabase
         .from('user_reward_preferences')
         .select('preferred_token')
-        .eq('profile_id', profile.id)
+        .eq('profile_id', profileId)
         .single();
 
       return new Response(
@@ -499,15 +444,51 @@ Deno.serve(async (req) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
 
-    } else {
+    } else if (action === 'treasury-status') {
+      const authResult = await authenticateAndGetProfile(req, supabase);
+      if (authResult instanceof Response) return authResult;
+
+      const { userId } = authResult;
+
+      const { data: isAdmin } = await supabase.rpc('has_role', {
+        _user_id: userId,
+        _role: 'admin'
+      });
+
+      if (!isAdmin) {
+        return new Response(
+          JSON.stringify({ error: 'Admin access required' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const [treasuryResult, capsResult, recentMovements] = await Promise.all([
+        supabase.from('platform_treasury').select('*'),
+        supabase.from('reward_caps').select('*'),
+        supabase
+          .from('treasury_movements')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(20)
+      ]);
+
       return new Response(
-        JSON.stringify({ error: 'Invalid action' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          treasury: treasuryResult.data || [],
+          caps: capsResult.data || [],
+          recent_movements: recentMovements.data || []
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    return new Response(
+      JSON.stringify({ error: 'Invalid action' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
   } catch (error) {
-    console.error('[Distribute Rewards] Error:', error);
+    console.error('[Distribute Rewards] Unexpected error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -515,63 +496,52 @@ Deno.serve(async (req) => {
   }
 });
 
-// Helper function to verify user activity
-async function verifyActivity(
-  supabase: ReturnType<typeof createClient>,
-  profileId: string,
-  proof: { type: string; reference_id?: string; timestamp?: string }
-): Promise<boolean> {
+// Verify activity proof
+async function verifyActivity(supabase: any, profileId: string, proof: any): Promise<boolean> {
   try {
+    if (!proof.type) return false;
+
     switch (proof.type) {
-      case 'tip':
-        // Verify the user actually sent a tip
-        const { data: tipData } = await supabase
+      case 'listening': {
+        if (!proof.reference_id) return false;
+        const { data } = await supabase
+          .from('listening_history')
+          .select('id')
+          .eq('profile_id', profileId)
+          .eq('track_id', proof.reference_id)
+          .limit(1);
+        return (data?.length || 0) > 0;
+      }
+      case 'tip': {
+        if (!proof.reference_id) return false;
+        const { data } = await supabase
           .from('transactions')
           .select('id')
           .eq('from_profile_id', profileId)
           .eq('transaction_type', 'tip')
+          .eq('id', proof.reference_id)
           .limit(1);
-        return (tipData?.length || 0) > 0;
-
-      case 'mint':
-        // Verify the user minted an NFT
-        const { data: mintData } = await supabase
+        return (data?.length || 0) > 0;
+      }
+      case 'nft_mint': {
+        const { data } = await supabase
           .from('user_assets')
           .select('id')
           .eq('profile_id', profileId)
           .eq('asset_type', 'nft')
           .limit(1);
-        return (mintData?.length || 0) > 0;
-
-      case 'listen':
-        // Verify listening activity
-        const { data: listenData } = await supabase
-          .from('listening_history')
+        return (data?.length || 0) > 0;
+      }
+      case 'fan_club': {
+        const { data } = await supabase
+          .from('fan_club_memberships')
           .select('id')
           .eq('profile_id', profileId)
           .limit(1);
-        return (listenData?.length || 0) > 0;
-
-      case 'referral':
-        // Verify referral - would need referred_by field
-        return true; // Simplified for now
-
-      case 'welcome':
-        // Welcome bonus - verify new user
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('created_at')
-          .eq('id', profileId)
-          .single();
-        
-        if (!profileData) return false;
-        
-        const createdAt = new Date(profileData.created_at);
-        const daysSinceCreation = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
-        return daysSinceCreation <= 7; // Welcome bonus valid for 7 days
-
+        return (data?.length || 0) > 0;
+      }
       default:
-        return true; // Allow unknown types (admin may add custom rewards)
+        return false;
     }
   } catch (error) {
     console.error('[Distribute Rewards] Activity verification error:', error);
