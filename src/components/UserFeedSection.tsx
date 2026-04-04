@@ -1,12 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, lazy, Suspense } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import TrackCard from '@/components/TrackCard';
 import { PlaylistCard } from '@/components/PlaylistCard';
-import { AudiusLoginButton } from '@/components/AudiusLoginButton';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const AudiusLoginButton = lazy(() => import('@/components/AudiusLoginButton').then(m => ({ default: m.AudiusLoginButton })));
 import { Music, Heart, RotateCcw, Users, Rss } from 'lucide-react';
 import { useAudiusAuth, useAudiusUserData } from '@/hooks/useAudiusAuth';
 import { AudiusService } from '@/services/audiusService';
