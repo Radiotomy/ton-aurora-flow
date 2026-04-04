@@ -138,7 +138,7 @@ const Navigation = () => {
               )}
               
               {/* Audius Login */}
-              <AudiusLoginButton />
+              <Suspense fallback={<div className="w-8 h-8" />}><AudiusLoginButton /></Suspense>
               
               {/* Auth Buttons */}
               {isAuthenticated ? (
