@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { WalletButton } from '@/components/WalletButton';
 import { SearchModal } from '@/components/SearchModal';
 import { VoiceSearch } from '@/components/VoiceSearch';
-import { AudiusLoginButton } from '@/components/AudiusLoginButton';
-import { CrossChainBridgeModal } from '@/components/CrossChainBridgeModal';
 import { useAuth } from '@/hooks/useAuth';
+
+// Lazy-load non-critical components to prevent blank page on module load failures
+const AudiusLoginButton = lazy(() => import('@/components/AudiusLoginButton').then(m => ({ default: m.AudiusLoginButton })));
+const CrossChainBridgeModal = lazy(() => import('@/components/CrossChainBridgeModal').then(m => ({ default: m.CrossChainBridgeModal })));
 import { useUserRoles } from '@/hooks/useUserRoles';
 import { 
   Home, 
@@ -136,7 +138,7 @@ const Navigation = () => {
               )}
               
               {/* Audius Login */}
-              <AudiusLoginButton />
+              <Suspense fallback={<div className="w-8 h-8" />}><AudiusLoginButton /></Suspense>
               
               {/* Auth Buttons */}
               {isAuthenticated ? (
@@ -329,12 +331,14 @@ const Navigation = () => {
       
       <SearchModal open={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       {isAuthenticated && (
-        <CrossChainBridgeModal 
-          open={isBridgeOpen} 
-          onOpenChange={setIsBridgeOpen}
-          balances={[]}
-          onConversionComplete={() => {}}
-        />
+        <Suspense fallback={null}>
+          <CrossChainBridgeModal 
+            open={isBridgeOpen} 
+            onOpenChange={setIsBridgeOpen}
+            balances={[]}
+            onConversionComplete={() => {}}
+          />
+        </Suspense>
       )}
     </>
   );
