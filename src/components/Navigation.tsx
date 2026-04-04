@@ -331,12 +331,14 @@ const Navigation = () => {
       
       <SearchModal open={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
       {isAuthenticated && (
-        <CrossChainBridgeModal 
-          open={isBridgeOpen} 
-          onOpenChange={setIsBridgeOpen}
-          balances={[]}
-          onConversionComplete={() => {}}
-        />
+        <Suspense fallback={null}>
+          <CrossChainBridgeModal 
+            open={isBridgeOpen} 
+            onOpenChange={setIsBridgeOpen}
+            balances={[]}
+            onConversionComplete={() => {}}
+          />
+        </Suspense>
       )}
     </>
   );

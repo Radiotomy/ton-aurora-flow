@@ -56,7 +56,7 @@ export const UserFeedSection: React.FC = () => {
               Welcome back, {user?.name}!
             </p>
           </div>
-          <AudiusLoginButton />
+          <Suspense fallback={<div className="w-8 h-8" />}><AudiusLoginButton /></Suspense>
         </div>
       </CardHeader>
 
